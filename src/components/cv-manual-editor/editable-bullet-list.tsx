@@ -51,12 +51,12 @@ export function EditableBulletList({ items, onChange, placeholder = "Escribe aqu
             placeholder={placeholder}
             className="flex-1 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/30 focus:outline-none"
           />
-          <button onClick={() => remove(i)} className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all">
+          <button type="button" onClick={() => remove(i)} className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}
-      <button onClick={add} className="flex items-center gap-1.5 text-[11px] text-teal-400 hover:text-teal-300 pt-1">
+      <button type="button" onClick={add} className="flex items-center gap-1.5 text-[11px] text-teal-400 hover:text-teal-300 pt-1">
         <Plus className="h-3 w-3" />
         Añadir punto
       </button>

@@ -20,7 +20,7 @@ interface ProfileHistoryState {
 }
 
 function cloneProfile(profile: StandardCVProfile): StandardCVProfile {
-  return structuredClone(normalizeStandardCVProfile(profile));
+  return structuredClone(profile);
 }
 
 function serializeProfile(profile: StandardCVProfile | null): string {
