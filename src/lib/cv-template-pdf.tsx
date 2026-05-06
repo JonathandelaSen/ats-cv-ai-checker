@@ -322,7 +322,7 @@ const modernStyles = StyleSheet.create({
     fontFamily: "InterPDFExtraBold",
     fontSize: 11,
     textTransform: "uppercase",
-    letterSpacing: 1.5,
+    letterSpacing: 0,
     color: "#0f766e",
     marginBottom: 6,
     lineHeight: 1.2,

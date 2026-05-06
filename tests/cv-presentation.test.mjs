@@ -48,6 +48,18 @@ test("PDF and preview renderers use shared section ordering and titles", () => {
   }
 });
 
+test("Pulso PDF headline avoids character spacing that breaks pdfminer extraction", () => {
+  const source = read("src/lib/cv-template-pdf.tsx");
+  const modernStyles = source.match(
+    /const modernStyles = StyleSheet\.create\(\{([\s\S]*?)\n\}\);/
+  )?.[1];
+  assert.ok(modernStyles);
+
+  const headlineStyle = modernStyles.match(/headline:\s*\{([\s\S]*?)\n  \},/)?.[1];
+  assert.ok(headlineStyle);
+  assert.match(headlineStyle, /letterSpacing:\s*0/);
+});
+
 test("PDF preview keeps the previous document mounted while a refreshed URL loads", () => {
   const source = read("src/components/pdf-preview.tsx");
 
