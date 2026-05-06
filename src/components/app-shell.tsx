@@ -378,7 +378,7 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <TemplatesView
-                cvs={cvs.filter(c => c.type === "uploaded")}
+                cvs={cvs}
                 geminiApiKey={geminiApiKey}
                 hasGeminiApiKey={geminiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}

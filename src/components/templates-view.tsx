@@ -100,7 +100,7 @@ export default function TemplatesView({
             Elige un diseño para tu nuevo CV
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-zinc-400">
-            Selecciona una plantilla profesional y conéctala con uno de tus CVs subidos para empezar a editar con IA.
+            Selecciona una plantilla profesional y conéctala con uno de tus CVs subidos o generados para empezar a editar con IA.
           </p>
         </header>
 
@@ -191,9 +191,9 @@ export default function TemplatesView({
               </div>
 
               <div className="p-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <label className="text-sm font-medium text-zinc-300">1. Elige tu CV de origen</label>
+                <div className="grid gap-8 md:grid-cols-2 items-start">
+                  <div>
+                    <label className="mb-4 block text-sm font-medium text-zinc-300">1. Elige tu CV de origen</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                       <input
@@ -205,7 +205,7 @@ export default function TemplatesView({
                       />
                     </div>
                     
-                    <div className="max-h-[300px] space-y-2 overflow-y-auto pr-2">
+                    <div className="mt-4 max-h-[300px] space-y-2 overflow-y-auto pr-2">
                       {filteredCvs.length > 0 ? (
                         filteredCvs.map((cv) => (
                           <button
@@ -217,16 +217,16 @@ export default function TemplatesView({
                                 : "border-white/5 bg-white/[0.02] text-zinc-400 hover:border-white/20 hover:bg-white/5"
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <FileText className={`h-4 w-4 ${selectedCvId === cv.id ? "text-teal-400" : "text-zinc-500"}`} />
-                              <span className="text-sm font-medium truncate max-w-[140px]">{cv.name}</span>
+                            <div className="flex items-center gap-3 min-w-0 mr-2">
+                              <FileText className={`h-4 w-4 shrink-0 ${selectedCvId === cv.id ? "text-teal-400" : "text-zinc-500"}`} />
+                              <span className="text-sm font-medium truncate">{cv.name}</span>
                             </div>
-                            {selectedCvId === cv.id && <Check className="h-4 w-4" />}
+                            {selectedCvId === cv.id && <Check className="h-4 w-4 shrink-0" />}
                           </button>
                         ))
                       ) : (
                         <div className="flex flex-col items-center justify-center py-8 text-center">
-                          <p className="text-sm text-zinc-500">No tienes CVs subidos</p>
+                          <p className="text-sm text-zinc-500">No tienes CVs disponibles</p>
                           <Button
                             variant="link"
                             className="mt-2 text-teal-400"
@@ -240,8 +240,8 @@ export default function TemplatesView({
                   </div>
 
                   <div className="space-y-6">
-                    <div className="space-y-4">
-                      <label className="text-sm font-medium text-zinc-300">2. Idioma de salida</label>
+                    <div>
+                      <label className="mb-4 block text-sm font-medium text-zinc-300">2. Idioma de salida</label>
                       <div className="grid grid-cols-2 gap-2">
                         {(["es", "en"] as const).map((l) => (
                           <button
@@ -279,11 +279,11 @@ export default function TemplatesView({
                       </div>
                     )}
 
-                    <div className="pt-4">
+                    <div className="pt-2">
                       <Button
                         disabled={!selectedCvId || creating}
                         onClick={handleCreateVersion}
-                        className="w-full h-12 bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-50"
+                        className="w-full h-12 bg-teal-500 text-black font-semibold hover:bg-teal-400 disabled:opacity-50 transition-colors"
                       >
                         {creating ? (
                           <>

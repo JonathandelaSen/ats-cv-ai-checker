@@ -313,10 +313,13 @@ const modernStyles = StyleSheet.create({
     lineHeight: 1.05,
   },
   headline: {
-    fontSize: 0,
-    color: "transparent",
-    marginBottom: 0,
-    lineHeight: 0,
+    fontFamily: "InterPDFExtraBold",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    color: "#0f766e",
+    marginBottom: 6,
+    lineHeight: 1.2,
   },
   contact: {
     flexDirection: "row",
@@ -547,7 +550,7 @@ function CVTemplateDocument({
         <View style={s.header}>
           <View style={s.headerIdentity}>
             <Text style={s.name}>{basics.name || "Untitled CV"}</Text>
-            {basics.headline && !isModern && (
+            {basics.headline && (
               <Text style={s.headline}>{basics.headline}</Text>
             )}
           </View>
@@ -593,9 +596,7 @@ function CVTemplateDocument({
             <Section title={labels.about} s={s}>
               <View style={s.item}>
                 <Text style={s.summary}>
-                  {isModern && basics.headline
-                    ? `${basics.headline}. ${profile.summary}`
-                    : profile.summary}
+                  {profile.summary}
                 </Text>
               </View>
             </Section>

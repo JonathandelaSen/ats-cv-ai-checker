@@ -54,7 +54,24 @@ export async function POST(
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    let profile = await getCVStructuredProfile(supabase, id, user.id);
+    let profile = null;
+
+    if (cv.type === "template" && cv.profile) {
+      profile = {
+        id: "template-profile-" + cv.id,
+        user_id: user.id,
+        cv_id: cv.id,
+        schema_version: cv.schema_version ?? "",
+        source_text_hash: cv.source_text_hash ?? "",
+        ai_model: cv.ai_model ?? "",
+        profile: cv.profile,
+        created_at: cv.created_at,
+        updated_at: cv.updated_at,
+      };
+    } else {
+      profile = await getCVStructuredProfile(supabase, id, user.id);
+    }
+
     if (!profile) {
       if (!geminiApiKey?.trim()) {
         return NextResponse.json(

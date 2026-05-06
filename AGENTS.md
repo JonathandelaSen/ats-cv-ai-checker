@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 ## Supabase local auth email templates
@@ -19,3 +21,5 @@ Never push to `main`. Commit locally or push to a non-main branch if requested, 
 ## Worktrees
 
 Work directly on `main` (the primary checkout) by default. Do not create git worktrees or switch to alternate branches unless the user explicitly asks for it in the same turn. If worktrees were created in earlier turns, clean them up and continue on `main`.
+
+Do not add [extensions] worktreeConfig = true" to .git/config because it breaks antigravity IDE
