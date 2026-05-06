@@ -81,6 +81,7 @@ export function PDFPreview({ url }: PDFPreviewProps) {
                 <Document
                   file={u}
                   onLoadSuccess={({ numPages }) => handleLoadSuccess(u, numPages)}
+                  externalLinkTarget="_blank"
                   loading={
                     urls.length === 1 ? (
                       <div className="flex items-center justify-center p-12 text-zinc-500">
@@ -98,7 +99,7 @@ export function PDFPreview({ url }: PDFPreviewProps) {
                       <Page
                         pageNumber={index + 1}
                         scale={scale}
-                        renderAnnotationLayer={false}
+                        renderAnnotationLayer={true}
                         renderTextLayer={false}
                         loading={
                           urls.length === 1 ? (

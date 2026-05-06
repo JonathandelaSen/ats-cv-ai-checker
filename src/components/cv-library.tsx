@@ -293,8 +293,6 @@ export default function CVLibrary({
                   {selected.type === "template" && (
                     <a
                       href={`/?view=editor&cv=${encodeURIComponent(selected.id)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-teal-500/20 bg-teal-500/10 px-3 text-xs font-semibold text-teal-300 transition-colors hover:bg-teal-500/20"
                     >
                       <Pencil className="h-3.5 w-3.5" />
