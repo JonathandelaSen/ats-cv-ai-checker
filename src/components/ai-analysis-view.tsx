@@ -22,8 +22,24 @@ import {
   X,
   Plus,
   Pencil,
+  CalendarClock,
 } from "lucide-react";
-import type { AnalysisMode, AIContext, JobKeyData } from "@/lib/db";
+import {
+  OFFER_STATUSES,
+  type AnalysisMode,
+  type AIContext,
+  type JobKeyData,
+  type OfferStatus,
+} from "@/lib/db";
+
+const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
+  interesante: "Interesante",
+  aplicado: "Aplicado",
+  entrevista: "Entrevista",
+  oferta: "Oferta",
+  rechazado: "Rechazado",
+  descartado: "Descartado",
+};
 
 interface AIAnalysisViewProps {
   analysis: {
@@ -36,6 +52,10 @@ interface AIAnalysisViewProps {
     analysis_mode: AnalysisMode;
     job_description: string | null;
     job_url: string | null;
+    offer_status: OfferStatus | null;
+    offer_notes: string | null;
+    offer_next_action: string | null;
+    offer_next_action_at: string | null;
     ai_context: AIContext | null;
     job_key_data: string | null;
     job_keywords: string | null;
@@ -77,12 +97,32 @@ function safeParseJobKeyData(value: string | null): JobKeyData | null {
   }
 }
 
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 export default function AIAnalysisView({ analysis, onDelete, onUpdate }: AIAnalysisViewProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [editedUrl, setEditedUrl] = useState(analysis.job_url || "");
   const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [offerStatus, setOfferStatus] = useState<OfferStatus>(
+    analysis.offer_status ?? "interesante"
+  );
+  const [offerNotes, setOfferNotes] = useState(analysis.offer_notes ?? "");
+  const [offerNextAction, setOfferNextAction] = useState(
+    analysis.offer_next_action ?? ""
+  );
+  const [offerNextActionAt, setOfferNextActionAt] = useState(
+    toDateTimeLocalValue(analysis.offer_next_action_at)
+  );
+  const [isSavingTracking, setIsSavingTracking] = useState(false);
   const keywords = safeParseArray(analysis.ai_keywords);
   const improvements = safeParseArray(analysis.ai_improvements);
   const jobKeywords = safeParseArray(analysis.job_keywords);
@@ -201,6 +241,30 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       alert("No se pudo guardar la URL.");
     } finally {
       setIsSavingUrl(false);
+    }
+  };
+
+  const handleSaveTracking = async () => {
+    setIsSavingTracking(true);
+    try {
+      const res = await fetch(`/api/analyses/${analysis.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          offer_status: offerStatus,
+          offer_notes: offerNotes,
+          offer_next_action: offerNextAction,
+          offer_next_action_at: offerNextActionAt || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al guardar el seguimiento");
+      onUpdate?.();
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo guardar el seguimiento de la oferta.");
+    } finally {
+      setIsSavingTracking(false);
     }
   };
 
@@ -327,6 +391,100 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
             </div>
           </div>
         </div>
+
+        {analysis.analysis_mode === "job_match" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+            className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-5"
+          >
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                  <CalendarClock className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-emerald-300">
+                    Seguimiento de oferta
+                  </h4>
+                  <p className="text-xs text-zinc-500">
+                    Estado, nota y próxima acción de este proceso.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleSaveTracking}
+                disabled={isSavingTracking}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+              >
+                {isSavingTracking ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                {isSavingTracking ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[220px_1fr_220px]">
+              <label className="space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                  Estado
+                </span>
+                <select
+                  value={offerStatus}
+                  onChange={(event) =>
+                    setOfferStatus(event.target.value as OfferStatus)
+                  }
+                  className="h-10 w-full rounded-lg border border-white/[0.06] bg-[#0a0a12] px-3 text-sm text-zinc-200 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                >
+                  {OFFER_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {OFFER_STATUS_LABELS[status]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                  Próxima acción
+                </span>
+                <input
+                  type="text"
+                  value={offerNextAction}
+                  onChange={(event) => setOfferNextAction(event.target.value)}
+                  placeholder="Ej. Enviar follow-up al recruiter"
+                  className="h-10 w-full rounded-lg border border-white/[0.06] bg-[#0a0a12] px-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                  Fecha
+                </span>
+                <input
+                  type="datetime-local"
+                  value={offerNextActionAt}
+                  onChange={(event) =>
+                    setOfferNextActionAt(event.target.value)
+                  }
+                  className="h-10 w-full rounded-lg border border-white/[0.06] bg-[#0a0a12] px-3 text-sm text-zinc-200 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </label>
+            </div>
+            <label className="mt-3 block space-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                Nota
+              </span>
+              <textarea
+                value={offerNotes}
+                onChange={(event) => setOfferNotes(event.target.value)}
+                placeholder="Añade contexto del proceso, recruiter, condiciones o dudas."
+                rows={3}
+                className="w-full resize-none rounded-lg border border-white/[0.06] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+              />
+            </label>
+          </motion.div>
+        )}
 
         {(analysis.cv || analysis.cv_id) && (
           <motion.div

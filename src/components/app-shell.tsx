@@ -17,6 +17,7 @@ import type {
   AnalysisMode,
   AIContext,
   CVSummary,
+  OfferStatus,
 } from "@/lib/db";
 import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
 
@@ -54,6 +55,10 @@ interface FullAnalysis {
   ai_model: string | null;
   job_description: string | null;
   job_url: string | null;
+  offer_status: OfferStatus | null;
+  offer_notes: string | null;
+  offer_next_action: string | null;
+  offer_next_action_at: string | null;
   ai_context: AIContext | null;
   ai_score: number | null;
   ai_feedback: string | null;
@@ -526,6 +531,10 @@ export default function AppShell({
                         analysis_mode: activeAnalysis.analysis_mode,
                         job_description: activeAnalysis.job_description,
                         job_url: activeAnalysis.job_url,
+                        offer_status: activeAnalysis.offer_status,
+                        offer_notes: activeAnalysis.offer_notes,
+                        offer_next_action: activeAnalysis.offer_next_action,
+                        offer_next_action_at: activeAnalysis.offer_next_action_at,
                         ai_context: activeAnalysis.ai_context,
                         job_key_data: activeAnalysis.job_key_data,
                         job_keywords: activeAnalysis.job_keywords,

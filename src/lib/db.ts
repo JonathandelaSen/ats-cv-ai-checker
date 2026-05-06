@@ -13,6 +13,22 @@ export const CV_PDFS_BUCKET = "cv-pdfs";
 // ---------------------------------------------------------------------------
 
 export type AnalysisMode = "general" | "job_match";
+export type OfferStatus =
+  | "interesante"
+  | "aplicado"
+  | "entrevista"
+  | "oferta"
+  | "rechazado"
+  | "descartado";
+
+export const OFFER_STATUSES: readonly OfferStatus[] = [
+  "interesante",
+  "aplicado",
+  "entrevista",
+  "oferta",
+  "rechazado",
+  "descartado",
+];
 
 export interface AIContext {
   additionalContext?: string;
@@ -93,6 +109,10 @@ export interface Analysis extends ExtractedPdfText {
   ai_model: string | null;
   job_description: string | null;
   job_url: string | null;
+  offer_status: OfferStatus | null;
+  offer_notes: string | null;
+  offer_next_action: string | null;
+  offer_next_action_at: string | null;
   ai_context: AIContext | null;
   ai_score: number | null;
   ai_feedback: string | null;
@@ -117,6 +137,8 @@ export interface AnalysisSummary {
   ai_score: number | null;
   ai_analyzed_at: string | null;
   job_url: string | null;
+  offer_status: OfferStatus | null;
+  offer_next_action_at: string | null;
 }
 
 export interface CVRecommendationAnalysis extends AnalysisSummary {
@@ -327,7 +349,7 @@ export async function listAnalysesForCV(
   const { data, error } = await supabase
     .from("analyses")
     .select(
-      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url"
+      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url, offer_status, offer_next_action_at"
     )
     .eq("cv_id", cvId)
     .eq("user_id", userId)
@@ -345,7 +367,7 @@ export async function getLatestRecommendationAnalysisForCV(
   const { data, error } = await supabase
     .from("analyses")
     .select(
-      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url, ai_improvements, missing_keywords, ai_keywords"
+      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url, offer_status, offer_next_action_at, ai_improvements, missing_keywords, ai_keywords"
     )
     .eq("cv_id", cvId)
     .eq("user_id", userId)
@@ -484,6 +506,10 @@ export interface CreateAnalysisInput {
   ai_model: string | null;
   job_description: string | null;
   job_url: string | null;
+  offer_status?: OfferStatus | null;
+  offer_notes?: string | null;
+  offer_next_action?: string | null;
+  offer_next_action_at?: string | null;
   ai_context: AIContext | null;
   ai_score: number | null;
   ai_feedback: string | null;
@@ -505,6 +531,16 @@ export async function createAnalysis(
     .insert({
       ...data,
       job_key_data: data.job_key_data ?? null,
+      offer_status:
+        data.analysis_mode === "job_match"
+          ? (data.offer_status ?? "interesante")
+          : null,
+      offer_notes:
+        data.analysis_mode === "job_match" ? (data.offer_notes ?? null) : null,
+      offer_next_action:
+        data.analysis_mode === "job_match" ? (data.offer_next_action ?? null) : null,
+      offer_next_action_at:
+        data.analysis_mode === "job_match" ? (data.offer_next_action_at ?? null) : null,
       job_keywords: data.job_keywords ?? [],
       cv_keywords: data.cv_keywords ?? [],
       matching_keywords: data.matching_keywords ?? [],
@@ -593,7 +629,7 @@ export async function listAnalyses(
   const { data, error } = await supabase
     .from("analyses")
     .select(
-      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url"
+      "id, cv_id, title, filename, created_at, analysis_mode, ai_score, ai_analyzed_at, job_url, offer_status, offer_next_action_at"
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
@@ -606,7 +642,17 @@ export async function updateAnalysis(
   supabase: SupabaseClient,
   id: string,
   userId: string,
-  data: Partial<Pick<Analysis, "job_url" | "title">>
+  data: Partial<
+    Pick<
+      Analysis,
+      | "job_url"
+      | "title"
+      | "offer_status"
+      | "offer_notes"
+      | "offer_next_action"
+      | "offer_next_action_at"
+    >
+  >
 ): Promise<Analysis | null> {
   const { data: analysis, error } = await supabase
     .from("analyses")

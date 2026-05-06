@@ -20,7 +20,25 @@ import {
   LayoutTemplate,
   Wand2,
 } from "lucide-react";
-import type { AnalysisMode } from "@/lib/db";
+import type { AnalysisMode, OfferStatus } from "@/lib/db";
+
+const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
+  interesante: "Interesante",
+  aplicado: "Aplicado",
+  entrevista: "Entrevista",
+  oferta: "Oferta",
+  rechazado: "Rechazado",
+  descartado: "Descartado",
+};
+
+const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
+  interesante: "border-sky-500/20 bg-sky-500/10 text-sky-300",
+  aplicado: "border-indigo-500/20 bg-indigo-500/10 text-indigo-300",
+  entrevista: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+  oferta: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+  rechazado: "border-rose-500/20 bg-rose-500/10 text-rose-300",
+  descartado: "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
+};
 
 export interface AnalysisSummary {
   id: string;
@@ -32,6 +50,8 @@ export interface AnalysisSummary {
   ai_score: number | null;
   ai_analyzed_at: string | null;
   job_url: string | null;
+  offer_status: OfferStatus | null;
+  offer_next_action_at: string | null;
 }
 
 interface SidebarProps {
@@ -409,6 +429,13 @@ export default function Sidebar({
                     <span className="text-[11px] text-zinc-600 flex items-center gap-0.5">
                       <Sparkles className="w-3 h-3" />
                       Pendiente
+                    </span>
+                  )}
+                  {a.offer_status && (
+                    <span
+                      className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${OFFER_STATUS_BADGE_CLASS[a.offer_status]}`}
+                    >
+                      {OFFER_STATUS_LABELS[a.offer_status]}
                     </span>
                   )}
                 </div>
