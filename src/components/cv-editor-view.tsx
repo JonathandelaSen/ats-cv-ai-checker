@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Maximize2,
   Minimize2,
   Minus,
+  PenLine,
   Plus,
   RotateCcw,
   Search,
@@ -32,6 +33,7 @@ import { getCVTemplate, type CVTemplateLocale } from "@/lib/cv-templates";
 import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
+import { ManualEditor } from "@/components/cv-manual-editor/manual-editor";
 
 interface CVEditorViewProps {
   cvs: CVSummary[];
@@ -82,6 +84,9 @@ export default function CVEditorView({
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingLocale, setSavingLocale] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editorTab, setEditorTab] = useState<"ai" | "manual">("ai");
+  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewStale, setPreviewStale] = useState(false);
 
   const currentVersionId = manuallySelectedVersionId ?? activeVersionId;
   const currentVersionFromList = useMemo(() =>
@@ -91,6 +96,12 @@ export default function CVEditorView({
   const currentVersion = editedVersion?.id === currentVersionFromList?.id ? editedVersion : currentVersionFromList;
   const activeTemplate = currentVersion?.template_id ? getCVTemplate(currentVersion.template_id) : null;
   const locale = (currentVersion?.template_locale ?? "es") as CVTemplateLocale;
+
+  useEffect(() => {
+    if (!currentVersion?.id) return;
+    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}#toolbar=0&navpanes=0&scrollbar=0`);
+    setPreviewStale(false);
+  }, [currentVersion?.id]);
 
   useEffect(() => {
     if (!currentVersion?.source_cv_id) return;
@@ -169,6 +180,7 @@ export default function CVEditorView({
       }
       setEditedVersion(data.version);
       setEditInstruction("");
+      reloadPreview();
       onCVUpdated();
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -190,6 +202,7 @@ export default function CVEditorView({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo cambiar idioma");
       setEditedVersion(data.version);
+      reloadPreview();
       onCVUpdated();
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -197,6 +210,16 @@ export default function CVEditorView({
       setSavingLocale(false);
     }
   };
+
+  const markPreviewStale = useCallback(() => {
+    setPreviewStale(true);
+  }, []);
+
+  const reloadPreview = useCallback(() => {
+    if (!currentVersion?.id) return;
+    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}#toolbar=0&navpanes=0&scrollbar=0`);
+    setPreviewStale(false);
+  }, [currentVersion?.id]);
 
   if (!currentVersion || !activeTemplate) {
     return (
@@ -312,12 +335,22 @@ CV Original
                style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 0)", backgroundSize: "24px 24px" }} />
           
               {currentVersion.profile ? (
-                <iframe
-                  key={currentVersion.updated_at}
-                  src={`/api/cvs/${currentVersion.id}/template-pdf#toolbar=0&navpanes=0&scrollbar=0`}
-                  className="w-full h-full border-none bg-zinc-950"
-                  title="Vista previa del CV"
-                />
+                <>
+                  <iframe
+                    src={previewSrc}
+                    className="w-full h-full border-none bg-zinc-950"
+                    title="Vista previa del CV"
+                  />
+                  {previewStale && (
+                    <button
+                      onClick={reloadPreview}
+                      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-teal-500 px-4 py-2 text-xs font-bold text-black shadow-lg shadow-teal-500/20 hover:bg-teal-400 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Actualizar vista previa
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -329,16 +362,42 @@ CV Original
         <AnimatePresence>
           {isPanelOpen && (
             <motion.aside
-              initial={{ x: 380 }}
+              initial={{ x: 480 }}
               animate={{ x: 0 }}
-              exit={{ x: 380 }}
+              exit={{ x: 480 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 right-0 z-30 w-[380px] border-l border-white/5 bg-[#0a0a12]/95 backdrop-blur-xl md:relative"
+              className="fixed inset-y-0 right-0 z-30 w-[480px] border-l border-white/5 bg-[#0a0a12]/95 backdrop-blur-xl md:relative"
             >
               <div className="flex h-full flex-col overflow-y-auto p-6 scrollbar-thin">
                 <div className="space-y-8">
+                  {/* Tab Switcher */}
+                  <div className="flex gap-1 rounded-xl border border-white/5 p-1 bg-white/5">
+                    <button
+                      onClick={() => setEditorTab("ai")}
+                      className={`flex items-center gap-1.5 flex-1 justify-center rounded-lg px-3 py-2 text-xs font-medium transition-all ${editorTab === "ai" ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      IA
+                    </button>
+                    <button
+                      onClick={() => setEditorTab("manual")}
+                      className={`flex items-center gap-1.5 flex-1 justify-center rounded-lg px-3 py-2 text-xs font-medium transition-all ${editorTab === "manual" ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                    >
+                      <PenLine className="h-3.5 w-3.5" />
+                      Manual
+                    </button>
+                  </div>
+
+                  {editorTab === "manual" && currentVersion.profile && (
+                    <ManualEditor
+                      profile={currentVersion.profile}
+                      cvId={currentVersion.id}
+                      onProfileUpdated={markPreviewStale}
+                    />
+                  )}
+
                   {/* IA Section */}
-                  <section>
+                  {editorTab === "ai" && <section>
                     <header className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
@@ -399,7 +458,7 @@ CV Original
                         ))}
                       </div>
                     </div>
-                  </section>
+                  </section>}
 
                   {/* Recommendations Section */}
                   <section className="space-y-4">
