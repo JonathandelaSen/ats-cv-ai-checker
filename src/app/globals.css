@@ -399,3 +399,81 @@
 .cvp-modern .cvp-tags span {
   font-size: 14px;
 }
+
+/* ─── Filo ─── */
+
+.cvp-filo {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: #ffffff;
+  color: #171717;
+  padding-top: 18mm;
+}
+
+.cvp-filo .cvp-header {
+  flex-direction: column;
+  gap: 10px;
+  border-top: 8px solid var(--cvp-accent);
+  border-bottom: 3px solid #171717;
+  padding-top: 14px;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+
+.cvp-filo .cvp-header h1 {
+  max-width: 100%;
+  font-size: 54px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.cvp-filo .cvp-headline {
+  margin-top: 9px;
+  color: var(--cvp-accent);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.cvp-filo .cvp-contact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: unset;
+  gap: 8px;
+  color: #3f3f46;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.cvp-filo .cvp-section {
+  margin-bottom: 22px;
+}
+
+.cvp-filo .cvp-section h2 {
+  border-top: 3px solid var(--cvp-accent);
+  border-bottom: 1px solid #171717;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cvp-filo .cvp-item h3,
+.cvp-filo .cvp-skills h3 {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.cvp-filo .cvp-summary,
+.cvp-filo .cvp-item li,
+.cvp-filo .cvp-skills p,
+.cvp-filo .cvp-tags span {
+  color: #27272a;
+  font-size: 13px;
+}

@@ -6,6 +6,7 @@ import {
 } from "@/lib/db";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
+import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
@@ -84,8 +85,8 @@ export async function POST(
       model,
       profile: cv.profile,
       instruction: instruction.trim(),
-      templateId: (cv.template_id ?? "compact") as "compact",
-      locale: (cv.template_locale ?? "es") as "es" | "en",
+      templateId: (cv.template_id ?? "compact") as CVTemplateId,
+      locale: (cv.template_locale ?? "es") as CVTemplateLocale,
       recommendations,
     });
 

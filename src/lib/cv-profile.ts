@@ -69,6 +69,7 @@ export interface StandardCVPresentation {
   sectionTitles?: Partial<Record<CVRenderableSectionId, string>>;
   sectionOrder?: CVRenderableSectionId[];
   accentColor?: string;
+  tagsColor?: string;
 }
 
 export interface StandardCVProfile {
@@ -216,6 +217,7 @@ function normalizePresentation(value: unknown): StandardCVPresentation | undefin
         ? undefined
         : normalizeSectionOrder(raw.sectionOrder),
     accentColor: normalizeAccentColor(raw.accentColor),
+    tagsColor: normalizeAccentColor(raw.tagsColor),
   });
   return Object.keys(presentation).length > 0 ? presentation : undefined;
 }

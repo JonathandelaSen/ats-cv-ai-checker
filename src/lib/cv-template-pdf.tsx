@@ -406,9 +406,140 @@ const modernStyles = StyleSheet.create({
   link: { color: "#2d2d2d", textDecoration: "none" },
 });
 
+// ─── Filo styles ───
+const filoStyles = StyleSheet.create({
+  page: {
+    padding: 42.52,
+    fontFamily: "InterPDF",
+    fontWeight: 400,
+    fontSize: 9.5,
+    lineHeight: 1.48,
+    color: "#27272a",
+    backgroundColor: "#ffffff",
+  },
+  header: {
+    flexDirection: "column",
+    gap: 7,
+    borderTopWidth: 6,
+    borderTopColor: "#9f1239",
+    borderBottomWidth: 2,
+    borderBottomColor: "#171717",
+    paddingTop: 11,
+    paddingBottom: 14,
+    marginBottom: 18,
+  },
+  headerIdentity: { flexDirection: "column" },
+  name: {
+    fontFamily: "InterPDFExtraBold",
+    fontSize: 34,
+    fontWeight: 400,
+    color: "#111111",
+    marginBottom: 5,
+    lineHeight: 0.98,
+    textTransform: "uppercase",
+  },
+  headline: {
+    fontFamily: "InterPDFExtraBold",
+    fontSize: 10.5,
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 1.2,
+    color: "#9f1239",
+    textTransform: "uppercase",
+  },
+  contact: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    color: "#3f3f46",
+    fontFamily: "InterPDFSemiBold",
+    fontSize: 8.75,
+  },
+  contactLine: { marginBottom: 0 },
+  body: { flexDirection: "column", gap: 0 },
+  section: { marginBottom: 16 },
+  sectionTitle: {
+    fontFamily: "InterPDFExtraBold",
+    fontWeight: 400,
+    fontSize: 9.5,
+    letterSpacing: 0,
+    textTransform: "uppercase",
+    color: "#171717",
+    borderTopWidth: 2,
+    borderTopColor: "#9f1239",
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#171717",
+    paddingTop: 4,
+    paddingBottom: 4,
+    marginBottom: 9,
+  },
+  summary: { color: "#27272a", fontSize: 9.5, lineHeight: 1.48 },
+  item: { marginBottom: 12 },
+  itemHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+    marginBottom: 3,
+  },
+  itemHeadMain: { flexGrow: 1, flexShrink: 1 },
+  itemTitle: {
+    fontFamily: "InterPDFExtraBold",
+    fontWeight: 400,
+    fontSize: 10.25,
+    color: "#111111",
+    lineHeight: 1.2,
+    marginBottom: 2,
+  },
+  itemMeta: {
+    color: "#52525b",
+    fontFamily: "InterPDFSemiBold",
+    fontSize: 8.75,
+  },
+  itemDate: {
+    flexGrow: 0,
+    flexShrink: 0,
+    width: 86,
+    color: "#52525b",
+    fontFamily: "InterPDFSemiBold",
+    fontSize: 8.75,
+    textAlign: "right",
+  },
+  bulletContainer: { flexDirection: "row", marginBottom: 3, paddingLeft: 4 },
+  bulletDot: { width: 10, fontSize: 9.5, color: "#9f1239" },
+  bulletText: { flex: 1, color: "#27272a", fontSize: 9.5, lineHeight: 1.48 },
+  skillsGrid: { flexDirection: "column", gap: 0 },
+  skillGroup: { marginBottom: 0 },
+  skillTitle: {
+    fontFamily: "InterPDFExtraBold",
+    fontWeight: 400,
+    fontSize: 9.5,
+    color: "#111111",
+    marginBottom: 2,
+  },
+  skillItems: { color: "#27272a", fontSize: 9.5, lineHeight: 1.48 },
+  tag: {
+    color: "#27272a",
+    backgroundColor: "#ffffff",
+    borderWidth: 0.75,
+    borderColor: "#9f1239",
+    fontSize: 8.75,
+    lineHeight: 1,
+    borderRadius: 0,
+    paddingTop: 3,
+    paddingBottom: 5,
+    paddingHorizontal: 7,
+    marginBottom: 5,
+    marginRight: 5,
+    overflow: "hidden",
+  },
+  tagsContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
+  link: { color: "#27272a", textDecoration: "none" },
+});
+
 function getStyles(templateId: CVTemplateId) {
   if (templateId === "classic") return classicStyles;
   if (templateId === "modern") return modernStyles;
+  if (templateId === "filo") return filoStyles;
   return compactStyles;
 }
 
@@ -554,8 +685,10 @@ function CVTemplateDocument({
   const documentVariant = templateDef?.name ?? "CV";
   const isModern = templateId === "modern";
   const isClassic = templateId === "classic";
-  const skillSeparator = isModern ? " / " : ", ";
+  const isFilo = templateId === "filo";
+  const skillSeparator = isModern || isFilo ? " / " : ", ";
   const accentColor = getResolvedAccentColor(profile, templateId);
+  const tagsColor = profile.presentation?.tagsColor;
 
   const renderSection = (section: CVRenderableSectionId) => {
     const title = getSectionTitle(section, locale, profile);
@@ -583,7 +716,7 @@ function CVTemplateDocument({
     if (section === "skills" && hasItems(profile.skills)) {
       return (
         <Section key={section} title={title} s={s} accentColor={accentColor}>
-          {isClassic ? (
+          {isClassic || isFilo ? (
             <Text style={s.skillItems}>
               {profile.skills?.flatMap((g) => g.items || []).join(", ")}
             </Text>
@@ -626,13 +759,19 @@ function CVTemplateDocument({
     if (section === "technicalSkills" && hasItems(profile.technicalSkills)) {
       return (
         <Section key={section} title={title} s={s} accentColor={accentColor}>
-          <View style={s.tagsContainer}>
-            {profile.technicalSkills?.map((skill, index) => (
-              <Text key={index} style={s.tag}>
-                {skill}
-              </Text>
-            ))}
-          </View>
+          {isFilo ? (
+            <Text style={s.skillItems}>
+              {profile.technicalSkills?.join(skillSeparator)}
+            </Text>
+          ) : (
+            <View style={s.tagsContainer}>
+              {profile.technicalSkills?.map((skill, index) => (
+                <Text key={index} style={tagsColor ? [s.tag, { backgroundColor: tagsColor, color: "#ffffff" }] : s.tag}>
+                  {skill}
+                </Text>
+              ))}
+            </View>
+          )}
         </Section>
       );
     }
@@ -642,7 +781,7 @@ function CVTemplateDocument({
         <Section key={section} title={title} s={s} accentColor={accentColor}>
           <View style={s.tagsContainer}>
             {profile.languages?.map((language, index) => (
-              <Text key={index} style={s.tag}>
+              <Text key={index} style={tagsColor ? [s.tag, { backgroundColor: tagsColor, color: "#ffffff" }] : s.tag}>
                 {[language.name, language.level].filter(Boolean).join(" · ")}
               </Text>
             ))}
@@ -707,6 +846,7 @@ function CVTemplateDocument({
           style={[
             s.header,
             {
+              borderTopColor: accentColor,
               borderBottomColor: accentColor,
             },
           ]}
@@ -714,7 +854,7 @@ function CVTemplateDocument({
           <View style={s.headerIdentity}>
             <Text style={s.name}>{basics.name || "Untitled CV"}</Text>
             {basics.headline && (
-              <Text style={isModern ? [s.headline, { color: accentColor }] : s.headline}>
+              <Text style={isModern || isFilo ? [s.headline, { color: accentColor }] : s.headline}>
                 {basics.headline}
               </Text>
             )}

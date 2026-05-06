@@ -57,6 +57,7 @@ export function ManualEditor({
   const sectionOrder = getOrderedRenderableSections(profile);
   const sectionTitles = profile.presentation?.sectionTitles ?? {};
   const accentColor = profile.presentation?.accentColor ?? getTemplateAccentColor(templateId);
+  const tagsColor = profile.presentation?.tagsColor ?? "#f4f4f5";
 
   const moveSection = (section: CVRenderableSectionId, direction: -1 | 1) => {
     const index = sectionOrder.indexOf(section);
@@ -101,6 +102,13 @@ export function ManualEditor({
     updatePresentation((presentation) => ({
       ...presentation,
       accentColor,
+    }));
+  };
+
+  const updateTagsColor = (tagsColor: string) => {
+    updatePresentation((presentation) => ({
+      ...presentation,
+      tagsColor,
     }));
   };
 
@@ -150,14 +158,14 @@ export function ManualEditor({
       </div>
 
       <section className="mb-6 space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+        <div className="flex items-center justify-between pb-2 border-b border-white/[0.02]">
           <div className="flex items-center gap-2">
             <Palette className="h-3.5 w-3.5 text-teal-400" />
             <h4 className="text-xs font-semibold text-white tracking-wide">Presentación</h4>
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer group">
-              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">Color de acento</span>
+              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">Acento</span>
               <div className="relative flex items-center gap-1.5">
                 <div 
                   className="h-3.5 w-3.5 rounded-full border border-white/10 shadow-inner" 
@@ -173,7 +181,25 @@ export function ManualEditor({
                 />
               </div>
             </label>
-            <div className="h-3 w-px bg-white/10" />
+            <div className="h-3 w-px bg-white/[0.05]" />
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">Etiquetas</span>
+              <div className="relative flex items-center gap-1.5">
+                <div 
+                  className="h-3.5 w-3.5 rounded-full border border-white/10 shadow-inner" 
+                  style={{ backgroundColor: tagsColor }} 
+                />
+                <span className="text-[9px] font-mono text-zinc-500">{tagsColor}</span>
+                <input
+                  type="color"
+                  value={tagsColor}
+                  onChange={(event) => updateTagsColor(event.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  aria-label="Color de etiquetas"
+                />
+              </div>
+            </label>
+            <div className="h-3 w-px bg-white/[0.05]" />
             <button
               onClick={resetPresentation}
               className="text-[10px] text-zinc-500 hover:text-white transition-colors flex items-center gap-1"
@@ -191,7 +217,7 @@ export function ManualEditor({
               key={section}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => handleDropSection(index)}
-              className={`group grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 py-1.5 border-b border-white/[0.03] last:border-0 transition-colors ${
+              className={`group grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 py-1.5 border-b border-white/[0.015] last:border-0 transition-colors ${
                 draggedSection === section
                   ? "bg-teal-500/5 relative z-10"
                   : "hover:bg-white/[0.01]"

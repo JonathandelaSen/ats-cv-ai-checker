@@ -123,6 +123,7 @@ const TEMPLATE_CLASS_MAP: Record<CVTemplateId, string> = {
   compact: "cvp-compact",
   classic: "cvp-classic",
   modern: "cvp-modern",
+  filo: "cvp-filo",
 };
 
 export default function CVTemplatePreview({
@@ -134,7 +135,8 @@ export default function CVTemplatePreview({
   const basics = profile.basics ?? {};
   const isModern = templateId === "modern";
   const isClassic = templateId === "classic";
-  const skillSeparator = isModern ? " / " : ", ";
+  const isFilo = templateId === "filo";
+  const skillSeparator = isModern || isFilo ? " / " : ", ";
   const accentColor = getResolvedAccentColor(profile, templateId);
 
   const renderSection = (section: CVRenderableSectionId) => {
@@ -153,7 +155,7 @@ export default function CVTemplatePreview({
     if (section === "skills" && hasItems(profile.skills)) {
       return (
         <Section key={section} title={title}>
-          {isClassic ? (
+          {isClassic || isFilo ? (
             <p className="cvp-summary">
               {profile.skills?.flatMap((g) => g.items || []).join(", ")}
             </p>
@@ -172,11 +174,26 @@ export default function CVTemplatePreview({
     }
 
     if (section === "technicalSkills" && hasItems(profile.technicalSkills)) {
+      const tagsColor = profile.presentation?.tagsColor;
       return (
         <Section key={section} title={title}>
-          <p className="cvp-summary">
-            {profile.technicalSkills?.join(skillSeparator)}
-          </p>
+          {isFilo ? (
+            <p className="cvp-summary">
+              {profile.technicalSkills?.join(skillSeparator)}
+            </p>
+          ) : (
+            <div className="cvp-tags">
+              {profile.technicalSkills?.map((skill, index) => (
+                <span 
+                  key={index} 
+                  className="cvp-tag"
+                  style={tagsColor ? { backgroundColor: tagsColor, color: "#ffffff" } : undefined}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
         </Section>
       );
     }
@@ -212,11 +229,15 @@ export default function CVTemplatePreview({
     }
 
     if (section === "languages" && hasItems(profile.languages)) {
+      const tagsColor = profile.presentation?.tagsColor;
       return (
         <Section key={section} title={title}>
           <div className="cvp-tags">
             {profile.languages?.map((language, index) => (
-              <span key={index}>
+              <span 
+                key={index}
+                style={tagsColor ? { backgroundColor: tagsColor, color: "#ffffff" } : undefined}
+              >
                 {[language.name, language.level].filter(Boolean).join(" · ")}
               </span>
             ))}

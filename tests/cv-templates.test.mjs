@@ -97,6 +97,26 @@ test("templates UI is reachable and follows the new catalog -> editor flow", () 
   assert.match(editorView, /Canvas/i);
 });
 
+test("Filo template is registered across catalog, preview, PDF, and AI editing context", () => {
+  const templatesSource = read("src/lib/cv-templates.ts");
+  const previewSource = read("src/components/cv-template-preview.tsx");
+  const pdfSource = read("src/lib/cv-template-pdf.tsx");
+  const editSource = read("src/app/api/cvs/[id]/edit/route.ts");
+
+  assert.match(
+    templatesSource,
+    /export type CVTemplateId\s*=\s*"compact"\s*\|\s*"classic"\s*\|\s*"modern"\s*\|\s*"filo"/
+  );
+  assert.match(templatesSource, /templateId:\s*"filo"/);
+  assert.match(templatesSource, /name:\s*"Filo"/);
+  assert.match(templatesSource, /filo:\s*"#[0-9a-fA-F]{6}"/);
+  assert.match(previewSource, /filo:\s*"cvp-filo"/);
+  assert.match(pdfSource, /const filoStyles\s*=\s*StyleSheet\.create/);
+  assert.match(pdfSource, /templateId === "filo"/);
+  assert.match(editSource, /import type \{ CVTemplateId, CVTemplateLocale \}/);
+  assert.doesNotMatch(editSource, /as "compact"/);
+});
+
 test("CV editor exposes session undo and redo controls for profile edits", () => {
   assert.ok(exists("src/components/cv-manual-editor/use-profile-history.ts"));
   const editorView = read("src/components/cv-editor-view.tsx");

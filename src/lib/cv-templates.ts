@@ -1,6 +1,6 @@
 import type { StandardCVProfile } from "@/lib/cv-profile";
 
-export type CVTemplateId = "compact" | "classic" | "modern";
+export type CVTemplateId = "compact" | "classic" | "modern" | "filo";
 export type CVTemplateLocale = "es" | "en";
 export type CVRenderableSectionId =
   | "summary"
@@ -98,6 +98,7 @@ const TEMPLATE_ACCENT_COLORS: Record<CVTemplateId, string> = {
   compact: "#111827",
   classic: "#1a1a2e",
   modern: "#0f766e",
+  filo: "#9f1239",
 };
 
 export function isRenderableSectionId(
@@ -279,6 +280,15 @@ export const CV_TEMPLATES: CVTemplateDefinition[] = [
     name: "Pulso",
     description:
       "Bold contemporary design with strong typographic hierarchy. Great for tech and creative roles.",
+    supportedSections: ALL_SECTIONS,
+    locales: ["es", "en"],
+    fixtureProfile: loremProfile,
+  },
+  {
+    templateId: "filo",
+    name: "Filo",
+    description:
+      "A sharp editorial resume with fearless contrast, built as clean single-column text for ATS parsing.",
     supportedSections: ALL_SECTIONS,
     locales: ["es", "en"],
     fixtureProfile: loremProfile,
