@@ -34,6 +34,7 @@ import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { ManualEditor } from "@/components/cv-manual-editor/manual-editor";
+import { PDFPreview } from "@/components/pdf-preview";
 
 interface CVEditorViewProps {
   cvs: CVSummary[];
@@ -71,7 +72,6 @@ export default function CVEditorView({
   onCVUpdated,
   onBackToLibrary,
 }: CVEditorViewProps) {
-  const [zoom, setZoom] = useState(0.85);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -86,7 +86,6 @@ export default function CVEditorView({
   const [error, setError] = useState<string | null>(null);
   const [editorTab, setEditorTab] = useState<"ai" | "manual">("ai");
   const [previewSrc, setPreviewSrc] = useState("");
-  const [previewStale, setPreviewStale] = useState(false);
 
   const currentVersionId = manuallySelectedVersionId ?? activeVersionId;
   const currentVersionFromList = useMemo(() =>
@@ -99,8 +98,7 @@ export default function CVEditorView({
 
   useEffect(() => {
     if (!currentVersion?.id) return;
-    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}#toolbar=0&navpanes=0&scrollbar=0`);
-    setPreviewStale(false);
+    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}`);
   }, [currentVersion?.id]);
 
   useEffect(() => {
@@ -211,14 +209,9 @@ export default function CVEditorView({
     }
   };
 
-  const markPreviewStale = useCallback(() => {
-    setPreviewStale(true);
-  }, []);
-
   const reloadPreview = useCallback(() => {
     if (!currentVersion?.id) return;
-    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}#toolbar=0&navpanes=0&scrollbar=0`);
-    setPreviewStale(false);
+    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}`);
   }, [currentVersion?.id]);
 
   if (!currentVersion || !activeTemplate) {
@@ -335,22 +328,7 @@ CV Original
                style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 0)", backgroundSize: "24px 24px" }} />
           
               {currentVersion.profile ? (
-                <>
-                  <iframe
-                    src={previewSrc}
-                    className="w-full h-full border-none bg-zinc-950"
-                    title="Vista previa del CV"
-                  />
-                  {previewStale && (
-                    <button
-                      onClick={reloadPreview}
-                      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-teal-500 px-4 py-2 text-xs font-bold text-black shadow-lg shadow-teal-500/20 hover:bg-teal-400 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      Actualizar vista previa
-                    </button>
-                  )}
-                </>
+                <PDFPreview url={previewSrc} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -392,7 +370,7 @@ CV Original
                     <ManualEditor
                       profile={currentVersion.profile}
                       cvId={currentVersion.id}
-                      onProfileUpdated={markPreviewStale}
+                      onProfileUpdated={reloadPreview}
                     />
                   )}
 
