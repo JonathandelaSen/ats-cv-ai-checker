@@ -96,3 +96,29 @@ test("templates UI is reachable and follows the new catalog -> editor flow", () 
   assert.match(editorView, /Editor IA/);
   assert.match(editorView, /Canvas/i);
 });
+
+test("CV editor exposes session undo and redo controls for profile edits", () => {
+  assert.ok(exists("src/components/cv-manual-editor/use-profile-history.ts"));
+  const editorView = read("src/components/cv-editor-view.tsx");
+  const historyHook = read("src/components/cv-manual-editor/use-profile-history.ts");
+
+  assert.match(historyHook, /useProfileHistory/);
+  assert.match(historyHook, /canUndo/);
+  assert.match(historyHook, /canRedo/);
+  assert.match(editorView, /Undo2/);
+  assert.match(editorView, /Redo2/);
+  assert.match(editorView, /metaKey/);
+  assert.match(editorView, /ctrlKey/);
+  assert.match(editorView, /shiftKey/);
+  assert.match(editorView, /Ctrl\+Y/);
+});
+
+test("manual CV editor is controlled by the shared profile history", () => {
+  const manualEditor = read("src/components/cv-manual-editor/manual-editor.tsx");
+
+  assert.doesNotMatch(manualEditor, /useState<StandardCVProfile>/);
+  assert.doesNotMatch(manualEditor, /setTimeout\(\(\) => save/);
+  assert.match(manualEditor, /onChange: \(updater: \(prev: StandardCVProfile\) => StandardCVProfile\) => void/);
+  assert.match(manualEditor, /onSave: \(\) => void/);
+  assert.match(manualEditor, /saveState: "idle" \| "saving" \| "saved"/);
+});

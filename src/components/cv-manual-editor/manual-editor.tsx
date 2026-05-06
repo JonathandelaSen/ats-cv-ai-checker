@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowDown, ArrowUp, Briefcase, Code, GraduationCap, GripVertical, Languages, Palette, RotateCcw, Save, User, FileText, Wrench, Award, FolderOpen, Heart, Trophy, BookOpen } from "lucide-react";
 import type { StandardCVProfile } from "@/lib/cv-profile";
-import { normalizeStandardCVProfile } from "@/lib/cv-profile";
 import {
   DEFAULT_SECTION_ORDER,
   getOrderedRenderableSections,
@@ -25,59 +24,26 @@ import { EditableBulletList } from "./editable-bullet-list";
 
 interface ManualEditorProps {
   profile: StandardCVProfile;
-  cvId: string;
   templateId: CVTemplateId;
   locale: CVTemplateLocale;
-  onProfileUpdated: () => void;
+  saveState: "idle" | "saving" | "saved";
+  onChange: (updater: (prev: StandardCVProfile) => StandardCVProfile) => void;
+  onSave: () => void;
 }
 
-export function ManualEditor({ profile, cvId, templateId, locale, onProfileUpdated }: ManualEditorProps) {
-  const [local, setLocal] = useState<StandardCVProfile>(() => structuredClone(profile));
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+export function ManualEditor({
+  profile,
+  templateId,
+  locale,
+  saveState,
+  onChange,
+  onSave,
+}: ManualEditorProps) {
   const [draggedSection, setDraggedSection] = useState<CVRenderableSectionId | null>(null);
-  const savedRef = useRef(JSON.stringify(profile));
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-  useEffect(() => {
-    const incoming = JSON.stringify(profile);
-    if (incoming !== savedRef.current) {
-      setLocal(structuredClone(profile));
-      savedRef.current = incoming;
-      setSaveState("idle");
-    }
-  }, [profile]);
-
-  const save = useCallback(async (data: StandardCVProfile) => {
-    const normalized = normalizeStandardCVProfile(data);
-    const json = JSON.stringify(normalized);
-    if (json === savedRef.current) return;
-
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/cvs/${cvId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: normalized }),
-      });
-      if (!res.ok) throw new Error("Save failed");
-      await res.json();
-      savedRef.current = json;
-      setSaveState("saved");
-      onProfileUpdated();
-    } catch {
-      setSaveState("idle");
-    }
-  }, [cvId, onProfileUpdated]);
 
   const handleChange = useCallback((updater: (prev: StandardCVProfile) => StandardCVProfile) => {
-    setLocal((prev) => {
-      const next = updater(prev);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => save(next), 1500);
-      setSaveState("idle");
-      return next;
-    });
-  }, [save]);
+    onChange(updater);
+  }, [onChange]);
 
   const updatePresentation = useCallback((
     updater: (prev: NonNullable<StandardCVProfile["presentation"]>) => StandardCVProfile["presentation"]
@@ -88,9 +54,9 @@ export function ManualEditor({ profile, cvId, templateId, locale, onProfileUpdat
     });
   }, [handleChange]);
 
-  const sectionOrder = getOrderedRenderableSections(local);
-  const sectionTitles = local.presentation?.sectionTitles ?? {};
-  const accentColor = local.presentation?.accentColor ?? getTemplateAccentColor(templateId);
+  const sectionOrder = getOrderedRenderableSections(profile);
+  const sectionTitles = profile.presentation?.sectionTitles ?? {};
+  const accentColor = profile.presentation?.accentColor ?? getTemplateAccentColor(templateId);
 
   const moveSection = (section: CVRenderableSectionId, direction: -1 | 1) => {
     const index = sectionOrder.indexOf(section);
@@ -153,18 +119,18 @@ export function ManualEditor({ profile, cvId, templateId, locale, onProfileUpdat
   };
 
   const sections = [
-    { id: "basics", label: "Datos personales", icon: User, content: <SectionBasics basics={local.basics ?? {}} onChange={(basics) => handleChange((p) => ({ ...p, basics }))} /> },
-    { id: "summary", label: "Resumen", icon: FileText, content: <SectionSummary summary={local.summary ?? ""} onChange={(summary) => handleChange((p) => ({ ...p, summary }))} /> },
-    { id: "experience", label: "Experiencia", icon: Briefcase, count: local.experience?.length, content: <SectionExperience items={local.experience ?? []} onChange={(experience) => handleChange((p) => ({ ...p, experience }))} /> },
-    { id: "education", label: "Educación", icon: GraduationCap, count: local.education?.length, content: <SectionEducation items={local.education ?? []} onChange={(education) => handleChange((p) => ({ ...p, education }))} /> },
-    { id: "skills", label: "Habilidades", icon: Wrench, count: local.skills?.length, content: <SectionSkills items={local.skills ?? []} onChange={(skills) => handleChange((p) => ({ ...p, skills }))} /> },
-    { id: "technicalSkills", label: "Habilidades técnicas", icon: Code, count: local.technicalSkills?.length, content: <EditableBulletList items={local.technicalSkills ?? []} onChange={(technicalSkills) => handleChange((p) => ({ ...p, technicalSkills }))} placeholder="Ej: React, Node.js, Python..." /> },
-    { id: "languages", label: "Idiomas", icon: Languages, count: local.languages?.length, content: <SectionLanguages items={local.languages ?? []} onChange={(languages) => handleChange((p) => ({ ...p, languages }))} /> },
-    { id: "certifications", label: "Certificaciones", icon: Award, count: local.certifications?.length, content: <SectionNamedItems items={local.certifications ?? []} onChange={(certifications) => handleChange((p) => ({ ...p, certifications }))} sectionLabel="Certificación" /> },
-    { id: "projects", label: "Proyectos", icon: FolderOpen, count: local.projects?.length, content: <SectionNamedItems items={local.projects ?? []} onChange={(projects) => handleChange((p) => ({ ...p, projects }))} sectionLabel="Proyecto" /> },
-    { id: "awards", label: "Premios", icon: Trophy, count: local.awards?.length, content: <SectionNamedItems items={local.awards ?? []} onChange={(awards) => handleChange((p) => ({ ...p, awards }))} sectionLabel="Premio" /> },
-    { id: "publications", label: "Publicaciones", icon: BookOpen, count: local.publications?.length, content: <SectionNamedItems items={local.publications ?? []} onChange={(publications) => handleChange((p) => ({ ...p, publications }))} sectionLabel="Publicación" /> },
-    { id: "volunteering", label: "Voluntariado", icon: Heart, count: local.volunteering?.length, content: <SectionNamedItems items={local.volunteering ?? []} onChange={(volunteering) => handleChange((p) => ({ ...p, volunteering }))} sectionLabel="Voluntariado" /> },
+    { id: "basics", label: "Datos personales", icon: User, content: <SectionBasics basics={profile.basics ?? {}} onChange={(basics) => handleChange((p) => ({ ...p, basics }))} /> },
+    { id: "summary", label: "Resumen", icon: FileText, content: <SectionSummary summary={profile.summary ?? ""} onChange={(summary) => handleChange((p) => ({ ...p, summary }))} /> },
+    { id: "experience", label: "Experiencia", icon: Briefcase, count: profile.experience?.length, content: <SectionExperience items={profile.experience ?? []} onChange={(experience) => handleChange((p) => ({ ...p, experience }))} /> },
+    { id: "education", label: "Educación", icon: GraduationCap, count: profile.education?.length, content: <SectionEducation items={profile.education ?? []} onChange={(education) => handleChange((p) => ({ ...p, education }))} /> },
+    { id: "skills", label: "Habilidades", icon: Wrench, count: profile.skills?.length, content: <SectionSkills items={profile.skills ?? []} onChange={(skills) => handleChange((p) => ({ ...p, skills }))} /> },
+    { id: "technicalSkills", label: "Habilidades técnicas", icon: Code, count: profile.technicalSkills?.length, content: <EditableBulletList items={profile.technicalSkills ?? []} onChange={(technicalSkills) => handleChange((p) => ({ ...p, technicalSkills }))} placeholder="Ej: React, Node.js, Python..." /> },
+    { id: "languages", label: "Idiomas", icon: Languages, count: profile.languages?.length, content: <SectionLanguages items={profile.languages ?? []} onChange={(languages) => handleChange((p) => ({ ...p, languages }))} /> },
+    { id: "certifications", label: "Certificaciones", icon: Award, count: profile.certifications?.length, content: <SectionNamedItems items={profile.certifications ?? []} onChange={(certifications) => handleChange((p) => ({ ...p, certifications }))} sectionLabel="Certificación" /> },
+    { id: "projects", label: "Proyectos", icon: FolderOpen, count: profile.projects?.length, content: <SectionNamedItems items={profile.projects ?? []} onChange={(projects) => handleChange((p) => ({ ...p, projects }))} sectionLabel="Proyecto" /> },
+    { id: "awards", label: "Premios", icon: Trophy, count: profile.awards?.length, content: <SectionNamedItems items={profile.awards ?? []} onChange={(awards) => handleChange((p) => ({ ...p, awards }))} sectionLabel="Premio" /> },
+    { id: "publications", label: "Publicaciones", icon: BookOpen, count: profile.publications?.length, content: <SectionNamedItems items={profile.publications ?? []} onChange={(publications) => handleChange((p) => ({ ...p, publications }))} sectionLabel="Publicación" /> },
+    { id: "volunteering", label: "Voluntariado", icon: Heart, count: profile.volunteering?.length, content: <SectionNamedItems items={profile.volunteering ?? []} onChange={(volunteering) => handleChange((p) => ({ ...p, volunteering }))} sectionLabel="Voluntariado" /> },
   ];
 
   return (
@@ -175,7 +141,7 @@ export function ManualEditor({ profile, cvId, templateId, locale, onProfileUpdat
           {saveState === "saving" && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-400 animate-pulse">Guardando...</span>}
           {saveState === "saved" && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">Guardado ✓</span>}
           <button
-            onClick={() => save(local)}
+            onClick={onSave}
             className="flex items-center gap-1 rounded-lg bg-white/5 border border-white/5 px-2 py-1 text-[11px] text-zinc-400 hover:text-white hover:bg-white/10"
           >
             <Save className="h-3 w-3" />

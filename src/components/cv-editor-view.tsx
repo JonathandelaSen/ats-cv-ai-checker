@@ -1,30 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Cpu,
   Download,
-  FileText,
   KeyRound,
   LayoutTemplate,
   Lightbulb,
   Loader2,
-  Maximize2,
-  Minimize2,
-  Minus,
   PenLine,
-  Plus,
-  RotateCcw,
-  Search,
+  Redo2,
   Settings,
   Sparkles,
+  Undo2,
   Wand2,
-  X,
 } from "lucide-react";
 import type {
   CVRecommendationAnalysis,
@@ -32,9 +23,14 @@ import type {
 } from "@/lib/db";
 import { getCVTemplate, type CVTemplateLocale } from "@/lib/cv-templates";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  normalizeStandardCVProfile,
+  type StandardCVProfile,
+} from "@/lib/cv-profile";
 
 import { Button } from "@/components/ui/button";
 import { ManualEditor } from "@/components/cv-manual-editor/manual-editor";
+import { useProfileHistory } from "@/components/cv-manual-editor/use-profile-history";
 
 const PDFPreview = dynamic(
   () => import("@/components/pdf-preview").then((mod) => mod.PDFPreview),
@@ -72,6 +68,10 @@ function safeParseArray(value: string | null | undefined): string[] {
   }
 }
 
+function serializeProfile(profile: StandardCVProfile | null | undefined) {
+  return JSON.stringify(profile ? normalizeStandardCVProfile(profile) : null);
+}
+
 export default function CVEditorView({
   cvs,
   hasOriginalCVs,
@@ -94,10 +94,14 @@ export default function CVEditorView({
   const [selectedModel, setSelectedModel] = useState("gemini-3.1-pro-preview");
   const [editInstruction, setEditInstruction] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [savingLocale, setSavingLocale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editorTab, setEditorTab] = useState<"ai" | "manual">("ai");
   const [previewVersion, setPreviewVersion] = useState(0);
+  const activeHistoryCvIdRef = useRef<string | null>(null);
+  const savedProfileJsonRef = useRef<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentVersionId = manuallySelectedVersionId ?? activeVersionId;
   const currentVersionFromList = useMemo(() =>
@@ -105,8 +109,20 @@ export default function CVEditorView({
   , [cvs, currentVersionId]);
 
   const currentVersion = editedVersion?.id === currentVersionFromList?.id ? editedVersion : currentVersionFromList;
+  const currentVersionIdForSave = currentVersion?.id ?? null;
   const activeTemplate = currentVersion?.template_id ? getCVTemplate(currentVersion.template_id) : null;
   const locale = (currentVersion?.template_locale ?? "es") as CVTemplateLocale;
+  const {
+    present: historyProfile,
+    canUndo,
+    canRedo,
+    reset: resetProfileHistory,
+    setProfile,
+    undo,
+    redo,
+  } = useProfileHistory(currentVersion?.profile ?? null);
+  const currentProfile = historyProfile ?? currentVersion?.profile ?? null;
+  const currentProfileJson = serializeProfile(currentProfile);
   const previewSrc = currentVersion?.id
     ? `/api/cvs/${currentVersion.id}/template-pdf?v=${previewVersion}`
     : "";
@@ -153,6 +169,111 @@ export default function CVEditorView({
     }
   };
 
+  const reloadPreview = useCallback(() => {
+    setPreviewVersion((version) => version + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!currentVersion?.id || !currentVersion.profile) return;
+
+    const incomingJson = serializeProfile(currentVersion.profile);
+    const isNewCV = activeHistoryCvIdRef.current !== currentVersion.id;
+    const isExternalProfileChange =
+      incomingJson !== savedProfileJsonRef.current &&
+      currentProfileJson === savedProfileJsonRef.current;
+
+    if (isNewCV || isExternalProfileChange) {
+      activeHistoryCvIdRef.current = currentVersion.id;
+      savedProfileJsonRef.current = incomingJson;
+      resetProfileHistory(currentVersion.profile);
+      setSaveState("idle");
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    }
+  }, [
+    currentProfileJson,
+    currentVersion?.id,
+    currentVersion?.profile,
+    resetProfileHistory,
+  ]);
+
+  const saveProfile = useCallback(async (profile: StandardCVProfile | null) => {
+    if (!currentVersionIdForSave || !profile) return false;
+
+    const normalized = normalizeStandardCVProfile(profile);
+    const json = JSON.stringify(normalized);
+    if (json === savedProfileJsonRef.current) return true;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveState("saving");
+    try {
+      const res = await fetch(`/api/cvs/${currentVersionIdForSave}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: normalized }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      savedProfileJsonRef.current = json;
+      setEditedVersion(data);
+      setSaveState("saved");
+      reloadPreview();
+      onCVUpdated();
+      return true;
+    } catch (err: unknown) {
+      setSaveState("idle");
+      setError(getErrorMessage(err));
+      return false;
+    }
+  }, [currentVersionIdForSave, onCVUpdated, reloadPreview]);
+
+  useEffect(() => {
+    if (!currentVersion?.id || !currentProfile) return;
+
+    if (currentProfileJson === savedProfileJsonRef.current) return;
+    setSaveState("idle");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      void saveProfile(currentProfile);
+    }, 1500);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [currentProfile, currentProfileJson, currentVersion?.id, saveProfile]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isUndoKey = event.key.toLowerCase() === "z";
+      const isRedoKey = event.key.toLowerCase() === "y";
+      const hasModifier = event.metaKey || event.ctrlKey;
+      if (!hasModifier) return;
+
+      if (isUndoKey && event.shiftKey && canRedo) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (isUndoKey && !event.shiftKey && canUndo) {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if (isRedoKey && event.ctrlKey && canRedo) {
+        event.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canRedo, canUndo, redo, undo]);
+
+  const handleManualChange = useCallback((updater: (prev: StandardCVProfile) => StandardCVProfile) => {
+    setProfile(updater, "manual");
+  }, [setProfile]);
+
   const applyInstruction = async (instruction = editInstruction) => {
     if (!currentVersion?.id) return;
     if (!hasGeminiApiKey) {
@@ -164,6 +285,8 @@ export default function CVEditorView({
     setEditingProfile(true);
     setError(null);
     try {
+      if (currentProfile && !(await saveProfile(currentProfile))) return;
+
       const res = await fetch(`/api/cvs/${currentVersion.id}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,13 +301,18 @@ export default function CVEditorView({
       let data;
       try {
         data = JSON.parse(text);
-      } catch (e) {
+      } catch {
         console.error("Non-JSON response from edit API:", text);
         throw new Error(`El servidor devolvió un error inesperado (Status: ${res.status}). Puede ser un timeout o un error de conexión.`);
       }
 
       if (!res.ok) {
         throw new Error(data.error || data.details || "No se pudo editar el CV");
+      }
+      if (data.version?.profile) {
+        savedProfileJsonRef.current = serializeProfile(data.version.profile);
+        setProfile(data.version.profile, "instant");
+        setSaveState("saved");
       }
       setEditedVersion(data.version);
       setEditInstruction("");
@@ -218,10 +346,6 @@ export default function CVEditorView({
       setSavingLocale(false);
     }
   };
-
-  const reloadPreview = useCallback(() => {
-    setPreviewVersion((version) => version + 1);
-  }, []);
 
   if (!currentVersion || !activeTemplate) {
     return (
@@ -293,6 +417,29 @@ CV Original
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 rounded-md border border-white/5 bg-white/5 p-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canUndo}
+              onClick={undo}
+              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              title="Deshacer (Cmd/Ctrl+Z)"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canRedo}
+              onClick={redo}
+              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              title="Rehacer (Cmd+Shift+Z / Ctrl+Y)"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
           <Button
             onClick={() => {
               setSaveName(`${currentVersion.name} (Editado)`);
@@ -336,7 +483,7 @@ CV Original
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
                style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 0)", backgroundSize: "24px 24px" }} />
           
-              {currentVersion.profile ? (
+              {currentProfile ? (
                 <PDFPreview url={previewSrc} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
@@ -375,13 +522,14 @@ CV Original
                     </button>
                   </div>
 
-                  {editorTab === "manual" && currentVersion.profile && (
+                  {editorTab === "manual" && currentProfile && (
                     <ManualEditor
-                      profile={currentVersion.profile}
-                      cvId={currentVersion.id}
+                      profile={currentProfile}
                       templateId={activeTemplate.templateId}
                       locale={locale}
-                      onProfileUpdated={reloadPreview}
+                      saveState={saveState}
+                      onChange={handleManualChange}
+                      onSave={() => void saveProfile(currentProfile)}
                     />
                   )}
 
