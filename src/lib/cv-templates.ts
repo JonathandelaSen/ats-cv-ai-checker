@@ -2,6 +2,26 @@ import type { StandardCVProfile } from "@/lib/cv-profile";
 
 export type CVTemplateId = "compact" | "classic" | "modern";
 export type CVTemplateLocale = "es" | "en";
+export type CVRenderableSectionId =
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "technicalSkills"
+  | "languages"
+  | "certifications"
+  | "projects"
+  | "awards"
+  | "publications"
+  | "volunteering";
+
+export interface CVPresentationInput {
+  presentation?: {
+    sectionTitles?: Partial<Record<CVRenderableSectionId, string>>;
+    sectionOrder?: CVRenderableSectionId[];
+    accentColor?: string;
+  };
+}
 
 export interface CVTemplateDefinition {
   templateId: CVTemplateId;
@@ -12,12 +32,41 @@ export interface CVTemplateDefinition {
   fixtureProfile: StandardCVProfile;
 }
 
+export const CV_RENDERABLE_SECTIONS: CVRenderableSectionId[] = [
+  "summary",
+  "experience",
+  "education",
+  "skills",
+  "technicalSkills",
+  "languages",
+  "certifications",
+  "projects",
+  "awards",
+  "publications",
+  "volunteering",
+];
+
+export const DEFAULT_SECTION_ORDER: CVRenderableSectionId[] = [
+  "summary",
+  "experience",
+  "skills",
+  "education",
+  "projects",
+  "technicalSkills",
+  "languages",
+  "certifications",
+  "awards",
+  "publications",
+  "volunteering",
+];
+
 export const SECTION_LABELS: Record<
   CVTemplateLocale,
-  Record<string, string>
+  Record<CVRenderableSectionId | "about", string>
 > = {
   es: {
     about: "Resumen Profesional",
+    summary: "Resumen Profesional",
     experience: "Experiencia",
     education: "Educación",
     skills: "Competencias",
@@ -31,6 +80,7 @@ export const SECTION_LABELS: Record<
   },
   en: {
     about: "Summary",
+    summary: "Summary",
     experience: "Experience",
     education: "Education",
     skills: "Skills",
@@ -43,6 +93,86 @@ export const SECTION_LABELS: Record<
     volunteering: "Volunteering",
   },
 };
+
+const TEMPLATE_ACCENT_COLORS: Record<CVTemplateId, string> = {
+  compact: "#111827",
+  classic: "#1a1a2e",
+  modern: "#0f766e",
+};
+
+export function isRenderableSectionId(
+  value: unknown
+): value is CVRenderableSectionId {
+  return (
+    typeof value === "string" &&
+    CV_RENDERABLE_SECTIONS.includes(value as CVRenderableSectionId)
+  );
+}
+
+export function normalizeSectionOrder(value: unknown): CVRenderableSectionId[] {
+  const ordered = Array.isArray(value)
+    ? value.filter(isRenderableSectionId)
+    : [];
+  const unique = Array.from(new Set(ordered));
+  const missing = DEFAULT_SECTION_ORDER.filter(
+    (section) => !unique.includes(section)
+  );
+  return [...unique, ...missing];
+}
+
+export function normalizeSectionTitles(
+  value: unknown
+): Partial<Record<CVRenderableSectionId, string>> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const titles: Partial<Record<CVRenderableSectionId, string>> = {};
+  for (const [key, rawTitle] of Object.entries(value)) {
+    if (!isRenderableSectionId(key) || typeof rawTitle !== "string") continue;
+    const customTitle = rawTitle.trim();
+    if (customTitle) titles[key] = customTitle;
+  }
+
+  return Object.keys(titles).length > 0 ? titles : undefined;
+}
+
+export function normalizeAccentColor(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed : undefined;
+}
+
+export function getTemplateAccentColor(templateId: CVTemplateId): string {
+  return TEMPLATE_ACCENT_COLORS[templateId];
+}
+
+export function getResolvedAccentColor(
+  profile: CVPresentationInput | null | undefined,
+  templateId: CVTemplateId
+): string {
+  return (
+    normalizeAccentColor(profile?.presentation?.accentColor) ??
+    getTemplateAccentColor(templateId)
+  );
+}
+
+export function getOrderedRenderableSections(
+  profile: CVPresentationInput | null | undefined
+): CVRenderableSectionId[] {
+  return normalizeSectionOrder(profile?.presentation?.sectionOrder);
+}
+
+export function getSectionTitle(
+  section: CVRenderableSectionId,
+  locale: string,
+  profile?: CVPresentationInput | null
+): string {
+  const customTitle = profile?.presentation?.sectionTitles?.[section]?.trim();
+  if (customTitle) return customTitle;
+  const labels = getSectionLabels(locale);
+  return labels[section];
+}
 
 const loremProfile: StandardCVProfile = {
   basics: {
@@ -122,17 +252,7 @@ const loremProfile: StandardCVProfile = {
 
 const ALL_SECTIONS: Array<keyof StandardCVProfile> = [
   "basics",
-  "summary",
-  "experience",
-  "education",
-  "skills",
-  "technicalSkills",
-  "languages",
-  "certifications",
-  "projects",
-  "awards",
-  "publications",
-  "volunteering",
+  ...CV_RENDERABLE_SECTIONS,
 ];
 
 export const CV_TEMPLATES: CVTemplateDefinition[] = [

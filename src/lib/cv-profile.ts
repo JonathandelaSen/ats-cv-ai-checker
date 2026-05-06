@@ -1,4 +1,10 @@
 import { createHash } from "crypto";
+import {
+  normalizeAccentColor,
+  normalizeSectionOrder,
+  normalizeSectionTitles,
+  type CVRenderableSectionId,
+} from "@/lib/cv-templates";
 
 export const CV_PROFILE_SCHEMA_VERSION = "cv-profile.v1";
 
@@ -59,6 +65,12 @@ export interface StandardCVNamedItem {
   bullets?: string[];
 }
 
+export interface StandardCVPresentation {
+  sectionTitles?: Partial<Record<CVRenderableSectionId, string>>;
+  sectionOrder?: CVRenderableSectionId[];
+  accentColor?: string;
+}
+
 export interface StandardCVProfile {
   basics?: StandardCVBasics;
   summary?: string;
@@ -72,6 +84,7 @@ export interface StandardCVProfile {
   publications?: StandardCVNamedItem[];
   technicalSkills?: string[];
   volunteering?: StandardCVNamedItem[];
+  presentation?: StandardCVPresentation;
   [key: string]: unknown;
 }
 
@@ -194,6 +207,19 @@ function normalizeNamedItem(value: unknown): StandardCVNamedItem {
   });
 }
 
+function normalizePresentation(value: unknown): StandardCVPresentation | undefined {
+  const raw = asRecord(value);
+  const presentation = withDefined({
+    sectionTitles: normalizeSectionTitles(raw.sectionTitles),
+    sectionOrder:
+      raw.sectionOrder === undefined
+        ? undefined
+        : normalizeSectionOrder(raw.sectionOrder),
+    accentColor: normalizeAccentColor(raw.accentColor),
+  });
+  return Object.keys(presentation).length > 0 ? presentation : undefined;
+}
+
 function normalizeArray<T>(
   value: unknown,
   normalize: (item: unknown) => T
@@ -221,6 +247,7 @@ export function normalizeStandardCVProfile(
     publications: normalizeArray(raw.publications, normalizeNamedItem),
     technicalSkills: asStringArray(raw.technicalSkills),
     volunteering: normalizeArray(raw.volunteering, normalizeNamedItem),
+    presentation: normalizePresentation(raw.presentation),
   };
 }
 

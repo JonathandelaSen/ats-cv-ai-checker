@@ -8,7 +8,10 @@ import type {
   StandardCVProfile,
 } from "@/lib/cv-profile";
 import {
-  getSectionLabels,
+  getOrderedRenderableSections,
+  getResolvedAccentColor,
+  getSectionTitle,
+  type CVRenderableSectionId,
   type CVTemplateId,
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
@@ -128,17 +131,149 @@ export default function CVTemplatePreview({
   locale,
   scale = "full",
 }: CVTemplatePreviewProps) {
-  const labels = getSectionLabels(locale);
   const basics = profile.basics ?? {};
   const isModern = templateId === "modern";
   const isClassic = templateId === "classic";
   const skillSeparator = isModern ? " / " : ", ";
+  const accentColor = getResolvedAccentColor(profile, templateId);
+
+  const renderSection = (section: CVRenderableSectionId) => {
+    const title = getSectionTitle(section, locale, profile);
+
+    if (section === "summary" && profile.summary) {
+      return (
+        <Section key={section} title={title}>
+          <p className="cvp-summary">
+            {isModern && basics.headline ? `${basics.headline}. ${profile.summary}` : profile.summary}
+          </p>
+        </Section>
+      );
+    }
+
+    if (section === "skills" && hasItems(profile.skills)) {
+      return (
+        <Section key={section} title={title}>
+          {isClassic ? (
+            <p className="cvp-summary">
+              {profile.skills?.flatMap((g) => g.items || []).join(", ")}
+            </p>
+          ) : (
+            <div className="cvp-skills">
+              {profile.skills?.map((group, index) => (
+                <div key={index}>
+                  {group.name && <h3>{group.name}</h3>}
+                  <p>{group.items?.join(skillSeparator)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      );
+    }
+
+    if (section === "technicalSkills" && hasItems(profile.technicalSkills)) {
+      return (
+        <Section key={section} title={title}>
+          <p className="cvp-summary">
+            {profile.technicalSkills?.join(skillSeparator)}
+          </p>
+        </Section>
+      );
+    }
+
+    if (section === "experience" && hasItems(profile.experience)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.experience?.map((item, index) => (
+            <ExperienceItem key={index} item={item} companyFirst={isModern} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "projects" && hasItems(profile.projects)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.projects?.map((item, index) => (
+            <NamedItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "education" && hasItems(profile.education)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.education?.map((item, index) => (
+            <EducationItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "languages" && hasItems(profile.languages)) {
+      return (
+        <Section key={section} title={title}>
+          <div className="cvp-tags">
+            {profile.languages?.map((language, index) => (
+              <span key={index}>
+                {[language.name, language.level].filter(Boolean).join(" · ")}
+              </span>
+            ))}
+          </div>
+        </Section>
+      );
+    }
+
+    if (section === "certifications" && hasItems(profile.certifications)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.certifications?.map((item, index) => (
+            <NamedItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "awards" && hasItems(profile.awards)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.awards?.map((item, index) => (
+            <NamedItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "publications" && hasItems(profile.publications)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.publications?.map((item, index) => (
+            <NamedItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "volunteering" && hasItems(profile.volunteering)) {
+      return (
+        <Section key={section} title={title}>
+          {profile.volunteering?.map((item, index) => (
+            <NamedItem key={index} item={item} />
+          ))}
+        </Section>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div
       className={`cvp-shell ${TEMPLATE_CLASS_MAP[templateId]} ${
         scale === "card" ? "cvp-card-scale" : ""
       }`}
+      style={{ "--cvp-accent": accentColor } as React.CSSProperties}
     >
       <header className="cvp-header">
         <div>
@@ -161,98 +296,7 @@ export default function CVTemplatePreview({
       </header>
 
       <main className="cvp-body">
-        {profile.summary && (
-          <Section title={labels.about}>
-            <p className="cvp-summary">
-              {isModern && basics.headline ? `${basics.headline}. ${profile.summary}` : profile.summary}
-            </p>
-          </Section>
-        )}
-        {hasItems(profile.skills) && (
-          <Section title={labels.skills}>
-            {isClassic ? (
-              <p className="cvp-summary">
-                {profile.skills?.flatMap((g) => g.items || []).join(", ")}
-              </p>
-            ) : (
-              <div className="cvp-skills">
-                {profile.skills?.map((group, index) => (
-                  <div key={index}>
-                    {group.name && <h3>{group.name}</h3>}
-                    <p>{group.items?.join(skillSeparator)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
-        {hasItems(profile.technicalSkills) && (
-          <Section title={labels.technicalSkills}>
-            <p className="cvp-summary">
-              {profile.technicalSkills?.join(skillSeparator)}
-            </p>
-          </Section>
-        )}
-        {hasItems(profile.experience) && (
-          <Section title={labels.experience}>
-            {profile.experience?.map((item, index) => (
-              <ExperienceItem key={index} item={item} companyFirst={isModern} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.projects) && (
-          <Section title={labels.projects}>
-            {profile.projects?.map((item, index) => (
-              <NamedItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.education) && (
-          <Section title={labels.education}>
-            {profile.education?.map((item, index) => (
-              <EducationItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.languages) && (
-          <Section title={labels.languages}>
-            <div className="cvp-tags">
-              {profile.languages?.map((language, index) => (
-                <span key={index}>
-                  {[language.name, language.level].filter(Boolean).join(" · ")}
-                </span>
-              ))}
-            </div>
-          </Section>
-        )}
-        {hasItems(profile.certifications) && (
-          <Section title={labels.certifications}>
-            {profile.certifications?.map((item, index) => (
-              <NamedItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.awards) && (
-          <Section title={labels.awards}>
-            {profile.awards?.map((item, index) => (
-              <NamedItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.publications) && (
-          <Section title={labels.publications}>
-            {profile.publications?.map((item, index) => (
-              <NamedItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
-        {hasItems(profile.volunteering) && (
-          <Section title={labels.volunteering}>
-            {profile.volunteering?.map((item, index) => (
-              <NamedItem key={index} item={item} />
-            ))}
-          </Section>
-        )}
+        {getOrderedRenderableSections(profile).map(renderSection)}
       </main>
     </div>
   );

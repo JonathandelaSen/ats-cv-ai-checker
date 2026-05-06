@@ -143,6 +143,7 @@
 }
 
 .cvp-shell {
+  --cvp-accent: #111827;
   width: 210mm;
   min-height: 297mm;
   margin-left: auto;
@@ -178,7 +179,7 @@
 }
 
 .cvp-compact .cvp-header {
-  border-bottom: 3px solid #111827;
+  border-bottom: 3px solid var(--cvp-accent);
 }
 
 .cvp-header h1 {
@@ -222,9 +223,9 @@
 
 .cvp-section h2 {
   margin-bottom: 10px;
-  border-bottom: 1px solid #dfd9ce;
+  border-bottom: 1px solid var(--cvp-accent);
   padding-bottom: 6px;
-  color: #161616;
+  color: var(--cvp-accent);
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 15px;
   font-weight: 800;
@@ -290,7 +291,7 @@
 }
 
 .cvp-tags span {
-  border: 1px solid #ded8ce;
+  border: 1px solid color-mix(in srgb, var(--cvp-accent) 28%, #ded8ce);
   padding: 4px 7px;
 }
 
@@ -306,7 +307,7 @@
   align-items: center;
   text-align: center;
   gap: 8px;
-  border-bottom: 1px solid #1a1a2e;
+  border-bottom: 1px solid var(--cvp-accent);
 }
 
 .cvp-classic .cvp-contact {
@@ -329,15 +330,15 @@
 
 .cvp-classic .cvp-section h2 {
   font-family: Georgia, "Times New Roman", serif;
-  color: #1a1a2e;
+  color: var(--cvp-accent);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #c8c4bc;
+  border-bottom: 1px solid var(--cvp-accent);
 }
 
 .cvp-classic .cvp-header h1 {
-  color: #1a1a2e;
+  color: var(--cvp-accent);
 }
 
 .cvp-classic .cvp-item h3 {
@@ -379,11 +380,11 @@
 
 .cvp-modern .cvp-section h2 {
   border-bottom: none;
-  border-left: 4px solid #0f766e;
+  border-left: 4px solid var(--cvp-accent);
   padding-left: 10px;
   padding-bottom: 0;
   font-size: 12px;
-  color: #0f766e;
+  color: var(--cvp-accent);
 }
 
 .cvp-modern .cvp-item h3,

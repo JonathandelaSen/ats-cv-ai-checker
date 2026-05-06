@@ -26,6 +26,7 @@ Critical rules:
 - You may rewrite, shorten, reorder, or clarify existing text when requested.
 - Keep the profile language consistent with the user's CV unless the user explicitly asks for another language.
 - Do not change visual styling, colors, fonts, template configuration, or layout metadata.
+- Preserve the "presentation" object exactly if it exists; it controls user-owned section titles, section order, and accent color.
 - Keep every field inside the JSON profile shape; do not include commentary or markdown.`;
 
 export function parseEditedCVProfile(rawText: string): StandardCVProfile {
@@ -74,5 +75,8 @@ export async function editCVProfileWithAI(
     },
   });
 
-  return parseEditedCVProfile(response.text || "{}");
+  return {
+    ...parseEditedCVProfile(response.text || "{}"),
+    presentation: input.profile.presentation,
+  };
 }

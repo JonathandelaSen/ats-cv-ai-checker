@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,18 @@ interface PDFPreviewProps {
 
 export function PDFPreview({ url }: PDFPreviewProps) {
   const [scale, setScale] = useState(0.85);
-  
-  // Keep track of the current and previous URL to overlap them during loading
   const [urls, setUrls] = useState<string[]>([url]);
   const [numPagesMap, setNumPagesMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    setUrls((prev) => {
-      if (prev[prev.length - 1] === url) return prev;
-      return [...prev.slice(-1), url];
-    });
+    const timer = setTimeout(() => {
+      setUrls((prev) => {
+        if (prev[prev.length - 1] === url) return prev;
+        return [...prev.slice(-1), url];
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [url]);
 
   function handleLoadSuccess(loadedUrl: string, numPages: number) {
@@ -73,7 +75,7 @@ export function PDFPreview({ url }: PDFPreviewProps) {
                 style={{ 
                   zIndex: isLatest ? 10 : 1,
                   opacity: isOld ? 0.4 : 1,
-                  filter: isOld ? "grayscale(100%) blur(2px)" : "none"
+                  filter: isOld ? "grayscale(100%) blur(2px)" : "none",
                 }}
               >
                 <Document
@@ -84,7 +86,7 @@ export function PDFPreview({ url }: PDFPreviewProps) {
                       <div className="flex items-center justify-center p-12 text-zinc-500">
                         <Loader2 className="h-8 w-8 animate-spin" />
                       </div>
-                    ) : null // If there is an old document, don't show loading spinner, let the old one be visible
+                    ) : null
                   }
                   className="flex flex-col items-center gap-4"
                 >

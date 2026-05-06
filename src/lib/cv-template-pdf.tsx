@@ -18,7 +18,10 @@ import type {
 } from "@/lib/cv-profile";
 import {
   getCVTemplate,
-  getSectionLabels,
+  getOrderedRenderableSections,
+  getResolvedAccentColor,
+  getSectionTitle,
+  type CVRenderableSectionId,
   type CVTemplateId,
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
@@ -423,14 +426,27 @@ function Section({
   title,
   children,
   s,
+  accentColor,
 }: {
   title: string;
   children: React.ReactNode;
   s: ReturnType<typeof getStyles>;
+  accentColor: string;
 }) {
   return (
     <View style={s.section}>
-      <Text style={s.sectionTitle}>{title}</Text>
+      <Text
+        style={[
+          s.sectionTitle,
+          {
+            color: accentColor,
+            borderBottomColor: accentColor,
+            borderLeftColor: accentColor,
+          },
+        ]}
+      >
+        {title}
+      </Text>
       {children}
     </View>
   );
@@ -532,7 +548,6 @@ function CVTemplateDocument({
   templateId: CVTemplateId;
   locale: CVTemplateLocale;
 }) {
-  const labels = getSectionLabels(locale);
   const basics = profile.basics ?? {};
   const s = getStyles(templateId);
   const templateDef = getCVTemplate(templateId);
@@ -540,6 +555,144 @@ function CVTemplateDocument({
   const isModern = templateId === "modern";
   const isClassic = templateId === "classic";
   const skillSeparator = isModern ? " / " : ", ";
+  const accentColor = getResolvedAccentColor(profile, templateId);
+
+  const renderSection = (section: CVRenderableSectionId) => {
+    const title = getSectionTitle(section, locale, profile);
+
+    if (section === "summary" && profile.summary) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          <View style={s.item}>
+            <Text style={s.summary}>{profile.summary}</Text>
+          </View>
+        </Section>
+      );
+    }
+
+    if (section === "experience" && hasItems(profile.experience)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.experience?.map((item, index) => (
+            <ExperiencePDF key={index} item={item} s={s} companyFirst={isModern} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "skills" && hasItems(profile.skills)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {isClassic ? (
+            <Text style={s.skillItems}>
+              {profile.skills?.flatMap((g) => g.items || []).join(", ")}
+            </Text>
+          ) : (
+            <View style={s.skillsGrid}>
+              {profile.skills?.map((group, index) => (
+                <View key={index} style={s.skillGroup}>
+                  {group.name && <Text style={s.skillTitle}>{group.name}</Text>}
+                  <Text style={s.skillItems}>
+                    {group.items?.join(skillSeparator)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Section>
+      );
+    }
+
+    if (section === "education" && hasItems(profile.education)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.education?.map((item, index) => (
+            <EducationPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "projects" && hasItems(profile.projects)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.projects?.map((item, index) => (
+            <NamedPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "technicalSkills" && hasItems(profile.technicalSkills)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          <View style={s.tagsContainer}>
+            {profile.technicalSkills?.map((skill, index) => (
+              <Text key={index} style={s.tag}>
+                {skill}
+              </Text>
+            ))}
+          </View>
+        </Section>
+      );
+    }
+
+    if (section === "languages" && hasItems(profile.languages)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          <View style={s.tagsContainer}>
+            {profile.languages?.map((language, index) => (
+              <Text key={index} style={s.tag}>
+                {[language.name, language.level].filter(Boolean).join(" · ")}
+              </Text>
+            ))}
+          </View>
+        </Section>
+      );
+    }
+
+    if (section === "certifications" && hasItems(profile.certifications)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.certifications?.map((item, index) => (
+            <NamedPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "awards" && hasItems(profile.awards)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.awards?.map((item, index) => (
+            <NamedPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "publications" && hasItems(profile.publications)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.publications?.map((item, index) => (
+            <NamedPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    if (section === "volunteering" && hasItems(profile.volunteering)) {
+      return (
+        <Section key={section} title={title} s={s} accentColor={accentColor}>
+          {profile.volunteering?.map((item, index) => (
+            <NamedPDF key={index} item={item} s={s} />
+          ))}
+        </Section>
+      );
+    }
+
+    return null;
+  };
 
 
   return (
@@ -550,11 +703,20 @@ function CVTemplateDocument({
     >
       <Page size="A4" style={s.page}>
         {/* Header */}
-        <View style={s.header}>
+        <View
+          style={[
+            s.header,
+            {
+              borderBottomColor: accentColor,
+            },
+          ]}
+        >
           <View style={s.headerIdentity}>
             <Text style={s.name}>{basics.name || "Untitled CV"}</Text>
             {basics.headline && (
-              <Text style={s.headline}>{basics.headline}</Text>
+              <Text style={isModern ? [s.headline, { color: accentColor }] : s.headline}>
+                {basics.headline}
+              </Text>
             )}
           </View>
           <View style={s.contact}>
@@ -595,108 +757,7 @@ function CVTemplateDocument({
 
         {/* Body */}
         <View style={s.body}>
-          {profile.summary && (
-            <Section title={labels.about} s={s}>
-              <View style={s.item}>
-                <Text style={s.summary}>
-                  {profile.summary}
-                </Text>
-              </View>
-            </Section>
-          )}
-          {hasItems(profile.experience) && (
-            <Section title={labels.experience} s={s}>
-              {profile.experience?.map((item, index) => (
-                <ExperiencePDF key={index} item={item} s={s} companyFirst={isModern} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.skills) && (
-            <Section title={labels.skills} s={s}>
-              {isClassic ? (
-                <Text style={s.skillItems}>
-                  {profile.skills?.flatMap((g) => g.items || []).join(", ")}
-                </Text>
-              ) : (
-                <View style={s.skillsGrid}>
-                  {profile.skills?.map((group, index) => (
-                    <View key={index} style={s.skillGroup}>
-                      {group.name && (
-                        <Text style={s.skillTitle}>{group.name}</Text>
-                      )}
-                      <Text style={s.skillItems}>
-                        {group.items?.join(skillSeparator)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </Section>
-          )}
-          {hasItems(profile.education) && (
-            <Section title={labels.education} s={s}>
-              {profile.education?.map((item, index) => (
-                <EducationPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.projects) && (
-            <Section title={labels.projects} s={s}>
-              {profile.projects?.map((item, index) => (
-                <NamedPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.technicalSkills) && (
-            <Section title={labels.technicalSkills} s={s}>
-              <View style={s.tagsContainer}>
-                {profile.technicalSkills?.map((skill, index) => (
-                  <Text key={index} style={s.tag}>
-                    {skill}
-                  </Text>
-                ))}
-              </View>
-            </Section>
-          )}
-          {hasItems(profile.languages) && (
-            <Section title={labels.languages} s={s}>
-              <View style={s.tagsContainer}>
-                {profile.languages?.map((language, index) => (
-                  <Text key={index} style={s.tag}>
-                    {[language.name, language.level].filter(Boolean).join(" · ")}
-                  </Text>
-                ))}
-              </View>
-            </Section>
-          )}
-          {hasItems(profile.certifications) && (
-            <Section title={labels.certifications} s={s}>
-              {profile.certifications?.map((item, index) => (
-                <NamedPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.awards) && (
-            <Section title={labels.awards} s={s}>
-              {profile.awards?.map((item, index) => (
-                <NamedPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.publications) && (
-            <Section title={labels.publications} s={s}>
-              {profile.publications?.map((item, index) => (
-                <NamedPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
-          {hasItems(profile.volunteering) && (
-            <Section title={labels.volunteering} s={s}>
-              {profile.volunteering?.map((item, index) => (
-                <NamedPDF key={index} item={item} s={s} />
-              ))}
-            </Section>
-          )}
+          {getOrderedRenderableSections(profile).map(renderSection)}
         </View>
       </Page>
     </Document>

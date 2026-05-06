@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -34,7 +35,18 @@ import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { ManualEditor } from "@/components/cv-manual-editor/manual-editor";
-import { PDFPreview } from "@/components/pdf-preview";
+
+const PDFPreview = dynamic(
+  () => import("@/components/pdf-preview").then((mod) => mod.PDFPreview),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    ),
+  }
+);
 
 interface CVEditorViewProps {
   cvs: CVSummary[];
@@ -85,7 +97,7 @@ export default function CVEditorView({
   const [savingLocale, setSavingLocale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editorTab, setEditorTab] = useState<"ai" | "manual">("ai");
-  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewVersion, setPreviewVersion] = useState(0);
 
   const currentVersionId = manuallySelectedVersionId ?? activeVersionId;
   const currentVersionFromList = useMemo(() =>
@@ -95,11 +107,9 @@ export default function CVEditorView({
   const currentVersion = editedVersion?.id === currentVersionFromList?.id ? editedVersion : currentVersionFromList;
   const activeTemplate = currentVersion?.template_id ? getCVTemplate(currentVersion.template_id) : null;
   const locale = (currentVersion?.template_locale ?? "es") as CVTemplateLocale;
-
-  useEffect(() => {
-    if (!currentVersion?.id) return;
-    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}`);
-  }, [currentVersion?.id]);
+  const previewSrc = currentVersion?.id
+    ? `/api/cvs/${currentVersion.id}/template-pdf?v=${previewVersion}`
+    : "";
 
   useEffect(() => {
     if (!currentVersion?.source_cv_id) return;
@@ -210,9 +220,8 @@ export default function CVEditorView({
   };
 
   const reloadPreview = useCallback(() => {
-    if (!currentVersion?.id) return;
-    setPreviewSrc(`/api/cvs/${currentVersion.id}/template-pdf?v=${Date.now()}`);
-  }, [currentVersion?.id]);
+    setPreviewVersion((version) => version + 1);
+  }, []);
 
   if (!currentVersion || !activeTemplate) {
     return (
@@ -370,6 +379,8 @@ CV Original
                     <ManualEditor
                       profile={currentVersion.profile}
                       cvId={currentVersion.id}
+                      templateId={activeTemplate.templateId}
+                      locale={locale}
                       onProfileUpdated={reloadPreview}
                     />
                   )}
