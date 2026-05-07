@@ -27,3 +27,7 @@ Never push to `main`. Commit locally or push to a non-main branch if requested, 
 Work directly on `main` (the primary checkout) by default. Do not create git worktrees or switch to alternate branches unless the user explicitly asks for it in the same turn. If worktrees were created in earlier turns, clean them up and continue on `main`.
 
 Do not add [extensions] worktreeConfig = true" to .git/config because it breaks antigravity IDE
+
+## shadcn/ui
+
+Utilizaremos shadcn/ui cuando exista algún componente en la librería que sea de utilidad. No reinventaremos la rueda y preferiremos los componentes existentes de shadcn antes que crear componentes UI personalizados desde cero.

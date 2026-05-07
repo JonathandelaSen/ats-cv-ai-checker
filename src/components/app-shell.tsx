@@ -8,7 +8,7 @@ import TemplatesView from "@/components/templates-view";
 import CVEditorView from "@/components/cv-editor-view";
 import InterviewQuestionsView from "@/components/interview-questions-view";
 import ExtractionView from "@/components/extraction-view";
-import AIAnalysisView from "@/components/ai-analysis-view";
+import AIAnalysisView from "@/components/analysis/analysis-view";
 import SettingsView from "@/components/settings-view";
 import AdminObservabilityDashboard from "@/components/admin-observability-dashboard";
 import { motion, AnimatePresence } from "framer-motion";
