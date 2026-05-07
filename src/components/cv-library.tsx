@@ -11,28 +11,34 @@ import {
   FileSearch,
   FileText,
   Loader2,
+  MessageSquareQuote,
   Pencil,
+  Plus,
   Save,
   Trash2,
   X,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { AnalysisSummary, CVSummary } from "@/lib/db";
+import type { AnalysisSummary, CVSummary, InterviewQuestionSummary } from "@/lib/db";
 
 interface CVLibraryProps {
   cvs: CVSummary[];
   analyses: AnalysisSummary[];
+  interviewQuestions: InterviewQuestionSummary[];
   onRefresh: () => void;
   onOpenAnalysis: (id: string) => void;
   onOpenEditor: (cvId: string) => void;
+  onOpenQuestions: (cvId: string) => void;
 }
 
 export default function CVLibrary({
   cvs,
   analyses,
+  interviewQuestions,
   onRefresh,
   onOpenAnalysis,
   onOpenEditor,
+  onOpenQuestions,
 }: CVLibraryProps) {
   const [selectedId, setSelectedId] = useState(cvs[0]?.id ?? "");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,6 +68,14 @@ export default function CVLibrary({
   const selectedAnalyses = useMemo(
     () => (selected ? (analysesByCv.get(selected.id) ?? []) : []),
     [analysesByCv, selected]
+  );
+
+  const selectedQuestions = useMemo(
+    () =>
+      selected
+        ? interviewQuestions.filter((question) => question.cv_id === selected.id)
+        : [],
+    [interviewQuestions, selected]
   );
 
   const formatDate = (dateStr: string) =>
@@ -131,19 +145,6 @@ export default function CVLibrary({
         className="grid h-full w-full gap-6 lg:grid-cols-[360px_1fr]"
       >
         <section className="flex min-h-0 flex-col">
-          <div className="mb-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-300">
-              <FileText className="h-3.5 w-3.5" />
-              Mis CVs
-            </div>
-            <h1 className="mt-3 text-3xl font-bold text-zinc-100">
-              Versiones guardadas
-            </h1>
-            <p className="mt-2 text-sm text-zinc-500">
-              Gestiona los CVs que puedes usar en futuros análisis.
-            </p>
-          </div>
-
           {error && (
             <div className="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
               <p>{error}</p>
@@ -384,6 +385,48 @@ export default function CVLibrary({
                 ) : (
                   <p className="rounded-lg border border-white/[0.04] bg-[#0a0a12]/70 px-3 py-2 text-xs text-zinc-600">
                     Este CV todavía no tiene análisis asociados.
+                  </p>
+                )}
+                <div className="mt-4 mb-2 flex items-center justify-between gap-3">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-300">
+                    <MessageSquareQuote className="h-3.5 w-3.5 text-fuchsia-300" />
+                    Preguntas asociadas
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onOpenQuestions(selected.id)}
+                    className="inline-flex items-center gap-1 rounded-md border border-fuchsia-500/20 bg-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-fuchsia-300 hover:bg-fuchsia-500/20"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Crear
+                  </button>
+                </div>
+                {selectedQuestions.length > 0 ? (
+                  <div className="grid max-h-32 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+                    {selectedQuestions.map((question) => (
+                      <button
+                        key={question.id}
+                        type="button"
+                        onClick={() => onOpenQuestions(selected.id)}
+                        className="group flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.05] bg-[#0a0a12] px-3 py-2 text-left transition-colors hover:border-fuchsia-500/25 hover:bg-fuchsia-500/10"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800/70 text-zinc-500 group-hover:text-fuchsia-300">
+                          <MessageSquareQuote className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-semibold text-zinc-200">
+                            {question.question}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-zinc-600">
+                            {question.answer ? "Con respuesta" : "Pendiente"}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-white/[0.04] bg-[#0a0a12]/70 px-3 py-2 text-xs text-zinc-600">
+                    Este CV todavía no tiene preguntas asociadas.
                   </p>
                 )}
               </div>

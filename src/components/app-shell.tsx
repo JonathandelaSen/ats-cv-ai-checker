@@ -6,6 +6,7 @@ import NewAnalysisFlow from "@/components/new-analysis-flow";
 import CVLibrary from "@/components/cv-library";
 import TemplatesView from "@/components/templates-view";
 import CVEditorView from "@/components/cv-editor-view";
+import InterviewQuestionsView from "@/components/interview-questions-view";
 import ExtractionView from "@/components/extraction-view";
 import AIAnalysisView from "@/components/ai-analysis-view";
 import SettingsView from "@/components/settings-view";
@@ -17,6 +18,7 @@ import type {
   AnalysisMode,
   AIContext,
   CVSummary,
+  InterviewQuestionSummary,
   OfferStatus,
 } from "@/lib/db";
 import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
@@ -28,6 +30,7 @@ type AppView =
   | "cvs"
   | "templates"
   | "editor"
+  | "questions"
   | "settings"
   | "admin";
 
@@ -85,6 +88,9 @@ export default function AppShell({
 }: AppShellProps) {
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [cvs, setCVs] = useState<CVSummary[]>([]);
+  const [interviewQuestions, setInterviewQuestions] = useState<
+    InterviewQuestionSummary[]
+  >([]);
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [activeAnalysis, setActiveAnalysis] = useState<FullAnalysis | null>(
     null
@@ -92,6 +98,8 @@ export default function AppShell({
   const [viewTab, setViewTab] = useState<ViewTab>("extraction");
   const [activeView, setActiveView] = useState<AppView>(initialView);
   const [activeEditorCvId, setActiveEditorCvId] = useState<string | null>(null);
+  const [activeQuestionCvId, setActiveQuestionCvId] = useState<string | null>(null);
+  const [activeQuestionAnalysisId, setActiveQuestionAnalysisId] = useState<string | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(initialUserEmail);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
@@ -122,11 +130,23 @@ export default function AppShell({
     }
   }, []);
 
+  const fetchInterviewQuestions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/interview-questions");
+      if (res.ok) {
+        const data = await res.json();
+        setInterviewQuestions(data);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
   useEffect(() => {
     void Promise.resolve().then(() =>
-      Promise.all([fetchAnalyses(), fetchCVs()])
+      Promise.all([fetchAnalyses(), fetchCVs(), fetchInterviewQuestions()])
     );
-  }, [fetchAnalyses, fetchCVs]);
+  }, [fetchAnalyses, fetchCVs, fetchInterviewQuestions]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -199,6 +219,14 @@ export default function AppShell({
         setActiveAnalysis(null);
         setActiveEditorCvId(params.get("cv"));
       });
+    } else if (view === "questions") {
+      queueMicrotask(() => {
+        setActiveView("questions");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+        setActiveQuestionCvId(params.get("cv"));
+        setActiveQuestionAnalysisId(params.get("offer"));
+      });
     } else if (view === "settings") {
       queueMicrotask(() => {
         setActiveView("settings");
@@ -261,6 +289,24 @@ export default function AppShell({
     fetchCVs();
   };
 
+  const handleOpenQuestions = (options?: {
+    cvId?: string | null;
+    analysisId?: string | null;
+  }) => {
+    const cvId = options?.cvId ?? null;
+    const analysisId = options?.analysisId ?? null;
+    setActiveView("questions");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    setActiveQuestionCvId(cvId);
+    setActiveQuestionAnalysisId(analysisId);
+    const params = new URLSearchParams("view=questions");
+    if (cvId) params.set("cv", cvId);
+    if (analysisId) params.set("offer", analysisId);
+    window.history.replaceState(null, "", `/?${params.toString()}`);
+    void fetchInterviewQuestions();
+  };
+
   const handleOpenSettings = () => {
     setActiveView("settings");
     setActiveAnalysisId(null);
@@ -287,6 +333,7 @@ export default function AppShell({
     fetchAnalysisDetail(id);
     fetchAnalyses();
     fetchCVs();
+    fetchInterviewQuestions();
   };
 
   // Handle AI analysis complete
@@ -333,6 +380,7 @@ export default function AppShell({
         onOpenCVs={handleOpenCVs}
         onOpenTemplates={handleOpenTemplates}
         onOpenEditor={() => handleOpenEditor()}
+        onOpenQuestions={() => handleOpenQuestions()}
         onOpenSettings={handleOpenSettings}
         onOpenAdmin={handleOpenAdmin}
         onDelete={handleDelete}
@@ -372,6 +420,8 @@ export default function AppShell({
                 onRefresh={fetchCVs}
                 onOpenAnalysis={handleSelect}
                 onOpenEditor={handleOpenEditor}
+                interviewQuestions={interviewQuestions}
+                onOpenQuestions={(cvId) => handleOpenQuestions({ cvId })}
               />
             </motion.div>
           ) : activeView === "templates" ? (
@@ -411,6 +461,28 @@ export default function AppShell({
                 onStartAnalysis={handleNewAnalysis}
                 onCVUpdated={fetchCVs}
                 onBackToLibrary={handleOpenCVs}
+              />
+            </motion.div>
+          ) : activeView === "questions" ? (
+            <motion.div
+              key="interview-questions"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <InterviewQuestionsView
+                key={`${activeQuestionCvId ?? "all"}:${activeQuestionAnalysisId ?? "all"}`}
+                questions={interviewQuestions}
+                cvs={cvs}
+                analyses={analyses}
+                geminiApiKey={geminiApiKey}
+                hasGeminiApiKey={geminiApiKey.length > 0}
+                initialCvId={activeQuestionCvId}
+                initialAnalysisId={activeQuestionAnalysisId}
+                onRefresh={fetchInterviewQuestions}
+                onOpenSettings={handleOpenSettings}
+                onOpenAnalysis={handleSelect}
               />
             </motion.div>
           ) : activeView === "settings" ? (
@@ -547,8 +619,20 @@ export default function AppShell({
                         title: activeAnalysis.title,
                         filename: activeAnalysis.filename,
                       }}
+                      geminiApiKey={geminiApiKey}
+                      hasGeminiApiKey={geminiApiKey.length > 0}
                       onDelete={handleDelete}
                       onUpdate={() => fetchAnalysisDetail(activeAnalysis.id)}
+                      interviewQuestions={interviewQuestions.filter(
+                        (question) => question.analysis_id === activeAnalysis.id
+                      )}
+                      onInterviewQuestionCreated={fetchInterviewQuestions}
+                      onOpenQuestions={() =>
+                        handleOpenQuestions({
+                          cvId: activeAnalysis.cv_id,
+                          analysisId: activeAnalysis.id,
+                        })
+                      }
                     />
                   </motion.div>
                 ) : null}

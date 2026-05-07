@@ -19,6 +19,7 @@ import {
   Menu,
   LayoutTemplate,
   Wand2,
+  MessageSquareQuote,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/db";
 
@@ -63,6 +64,7 @@ interface SidebarProps {
     | "cvs"
     | "templates"
     | "editor"
+    | "questions"
     | "settings"
     | "admin";
   onSelect: (id: string) => void;
@@ -70,6 +72,7 @@ interface SidebarProps {
   onOpenCVs: () => void;
   onOpenTemplates: () => void;
   onOpenEditor: () => void;
+  onOpenQuestions: () => void;
   onOpenSettings: () => void;
   onOpenAdmin: () => void;
   onDelete: (id: string) => void;
@@ -87,6 +90,7 @@ export default function Sidebar({
   onOpenCVs,
   onOpenTemplates,
   onOpenEditor,
+  onOpenQuestions,
   onOpenSettings,
   onOpenAdmin,
   onDelete,
@@ -258,6 +262,17 @@ export default function Sidebar({
         >
           <Wand2 className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Editor</span>}
+        </button>
+        <button
+          onClick={onOpenQuestions}
+          className={`
+            w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
+            ${activeView === "questions" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
+            ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
+          `}
+        >
+          <MessageSquareQuote className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Preguntas</span>}
         </button>
       </div>
 

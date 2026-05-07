@@ -141,6 +141,41 @@ export interface AnalysisSummary {
   offer_next_action_at: string | null;
 }
 
+export interface InterviewQuestionRelatedCV {
+  id: string;
+  name: string;
+  filename: string | null;
+  type: CVType;
+}
+
+export interface InterviewQuestionRelatedAnalysis {
+  id: string;
+  cv_id: string | null;
+  title: string;
+  filename: string;
+  analysis_mode: AnalysisMode;
+  job_url: string | null;
+  offer_status: OfferStatus | null;
+}
+
+export interface InterviewQuestion {
+  id: string;
+  user_id: string;
+  question: string;
+  context: string | null;
+  answer: string | null;
+  cv_id: string | null;
+  analysis_id: string | null;
+  ai_model: string | null;
+  ai_generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  cv?: InterviewQuestionRelatedCV | null;
+  analysis?: InterviewQuestionRelatedAnalysis | null;
+}
+
+export type InterviewQuestionSummary = InterviewQuestion;
+
 export interface CVRecommendationAnalysis extends AnalysisSummary {
   ai_improvements: string | null;
   missing_keywords: string | null;
@@ -189,6 +224,19 @@ function normalizeAnalysis(row: Record<string, unknown>): Analysis {
     cv_keywords: stringifyJson(row.cv_keywords),
     matching_keywords: stringifyJson(row.matching_keywords),
     missing_keywords: stringifyJson(row.missing_keywords),
+  };
+}
+
+function normalizeInterviewQuestion(
+  row: Record<string, unknown>
+): InterviewQuestion {
+  return {
+    ...(row as unknown as InterviewQuestion),
+    cv: ((row.cv ?? row.cvs ?? null) as InterviewQuestionRelatedCV | null) ?? null,
+    analysis:
+      ((row.analysis ?? row.analyses ?? null) as
+        | InterviewQuestionRelatedAnalysis
+        | null) ?? null,
   };
 }
 
@@ -412,6 +460,146 @@ export async function deleteCV(
   const { error } = await supabase.from("cvs").delete().eq("id", id);
   if (error) throw error;
   return { status: "deleted" };
+}
+
+// ---------------------------------------------------------------------------
+// Interview Question Helpers
+// ---------------------------------------------------------------------------
+
+const INTERVIEW_QUESTION_SELECT = `
+  *,
+  cv:cvs(id, name, filename, type),
+  analysis:analyses(id, cv_id, title, filename, analysis_mode, job_url, offer_status)
+`;
+
+export interface ListInterviewQuestionFilters {
+  search?: string | null;
+  cvId?: string | null;
+  analysisId?: string | null;
+  answered?: boolean | null;
+}
+
+export interface CreateInterviewQuestionInput {
+  user_id: string;
+  question: string;
+  context?: string | null;
+  answer?: string | null;
+  cv_id?: string | null;
+  analysis_id?: string | null;
+  ai_model?: string | null;
+  ai_generated_at?: string | null;
+}
+
+export interface UpdateInterviewQuestionInput {
+  question?: string;
+  context?: string | null;
+  answer?: string | null;
+  cv_id?: string | null;
+  analysis_id?: string | null;
+  ai_model?: string | null;
+  ai_generated_at?: string | null;
+}
+
+export async function listInterviewQuestions(
+  supabase: SupabaseClient,
+  userId: string,
+  filters: ListInterviewQuestionFilters = {}
+): Promise<InterviewQuestionSummary[]> {
+  let query = supabase
+    .from("interview_questions")
+    .select(INTERVIEW_QUESTION_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim().replaceAll("%", "\\%");
+    query = query.or(`question.ilike.%${search}%,answer.ilike.%${search}%`);
+  }
+
+  if (filters.cvId) {
+    query = query.eq("cv_id", filters.cvId);
+  }
+
+  if (filters.analysisId) {
+    query = query.eq("analysis_id", filters.analysisId);
+  }
+
+  if (filters.answered === true) {
+    query = query.not("answer", "is", null);
+  } else if (filters.answered === false) {
+    query = query.is("answer", null);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) =>
+    normalizeInterviewQuestion(row as Record<string, unknown>)
+  );
+}
+
+export async function getInterviewQuestion(
+  supabase: SupabaseClient,
+  id: string,
+  userId: string
+): Promise<InterviewQuestion | null> {
+  const { data, error } = await supabase
+    .from("interview_questions")
+    .select(INTERVIEW_QUESTION_SELECT)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? normalizeInterviewQuestion(data as Record<string, unknown>) : null;
+}
+
+export async function createInterviewQuestion(
+  supabase: SupabaseClient,
+  data: CreateInterviewQuestionInput
+): Promise<InterviewQuestion> {
+  const { data: question, error } = await supabase
+    .from("interview_questions")
+    .insert(data)
+    .select(INTERVIEW_QUESTION_SELECT)
+    .single();
+
+  if (error) throw error;
+  return normalizeInterviewQuestion(question as Record<string, unknown>);
+}
+
+export async function updateInterviewQuestion(
+  supabase: SupabaseClient,
+  id: string,
+  userId: string,
+  data: UpdateInterviewQuestionInput
+): Promise<InterviewQuestion | null> {
+  const { data: question, error } = await supabase
+    .from("interview_questions")
+    .update(data)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select(INTERVIEW_QUESTION_SELECT)
+    .maybeSingle();
+
+  if (error) throw error;
+  return question
+    ? normalizeInterviewQuestion(question as Record<string, unknown>)
+    : null;
+}
+
+export async function deleteInterviewQuestion(
+  supabase: SupabaseClient,
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const { error, count } = await supabase
+    .from("interview_questions")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return (count ?? 0) > 0;
 }
 
 // ---------------------------------------------------------------------------
