@@ -392,11 +392,173 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           </div>
         </div>
 
+        {/* Results Sections: Improvements & Keywords */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Improvements (Moved up and highlighted) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-6 shadow-lg shadow-amber-500/[0.02]"
+          >
+            <h4 className="text-sm font-semibold text-amber-400 flex items-center gap-2 mb-4">
+              <Star className="w-4 h-4" />
+              Áreas de Mejora
+            </h4>
+            <ul className="space-y-3">
+              {improvements.length > 0 ? (
+                improvements.map((imp, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.05 }}
+                    className="flex items-start gap-2.5 text-sm text-zinc-300"
+                  >
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-amber-500/70 shrink-0" />
+                    <span>{imp}</span>
+                  </motion.li>
+                ))
+              ) : (
+                <span className="text-zinc-500 text-sm italic">
+                  Sin sugerencias de mejora.
+                </span>
+              )}
+            </ul>
+          </motion.div>
+
+          {/* Keywords */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
+          >
+            <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
+              <CheckCircle2 className="w-4 h-4" />
+              Keywords Encontradas
+            </h4>
+            {analysis.analysis_mode === "job_match" && (
+              <div className="mb-4 grid gap-3">
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-zinc-500">
+                    Oferta
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {jobKeywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-zinc-500">
+                    CV
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {cvKeywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-300"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {keywords.length > 0 ? (
+                keywords.map((kw, i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + i * 0.05 }}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium"
+                  >
+                    {kw}
+                  </motion.span>
+                ))
+              ) : (
+                <span className="text-zinc-500 text-sm italic">
+                  No se detectaron palabras clave destacadas.
+                </span>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Matches & Missing Keywords (Also moved up) */}
+        {analysis.analysis_mode === "job_match" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
+            >
+              <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
+                <CheckCircle2 className="w-4 h-4" />
+                Coincidencias CV ↔ oferta
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {matchingKeywords.length > 0 ? (
+                  matchingKeywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300"
+                    >
+                      {kw}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm italic text-zinc-500">
+                    No se detectaron coincidencias destacadas.
+                  </span>
+                )}
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
+            >
+              <h4 className="text-sm font-semibold text-rose-400 flex items-center gap-2 mb-4">
+                <XCircle className="w-4 h-4" />
+                Keywords faltantes
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {missingKeywords.length > 0 ? (
+                  missingKeywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300"
+                    >
+                      {kw}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm italic text-zinc-500">
+                    No hay keywords críticas faltantes.
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {analysis.analysis_mode === "job_match" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06 }}
+            transition={{ delay: 0.3 }}
             className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-5"
           >
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -490,7 +652,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 }}
+            transition={{ delay: 0.35 }}
             className="flex flex-col gap-3 rounded-2xl border border-sky-500/10 bg-sky-500/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-center gap-3">
@@ -532,7 +694,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.09 }}
+            transition={{ delay: 0.4 }}
             className="flex flex-col gap-3 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-center gap-3">
@@ -629,7 +791,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.45 }}
             className="rounded-2xl border border-violet-500/10 bg-violet-500/[0.03] p-6"
           >
             <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
@@ -646,7 +808,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
+            transition={{ delay: 0.5 }}
             className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
           >
             <h4 className="text-sm font-semibold text-sky-300 flex items-center gap-2 mb-4">
@@ -721,7 +883,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.55 }}
             className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-6"
           >
             <h4 className="text-sm font-semibold text-emerald-300 flex items-center gap-2 mb-3">
@@ -734,166 +896,6 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           </motion.div>
         )}
 
-        {analysis.analysis_mode === "job_match" && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.16 }}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
-            >
-              <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
-                <CheckCircle2 className="w-4 h-4" />
-                Coincidencias CV ↔ oferta
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {matchingKeywords.length > 0 ? (
-                  matchingKeywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300"
-                    >
-                      {kw}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm italic text-zinc-500">
-                    No se detectaron coincidencias destacadas.
-                  </span>
-                )}
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
-            >
-              <h4 className="text-sm font-semibold text-rose-400 flex items-center gap-2 mb-4">
-                <XCircle className="w-4 h-4" />
-                Keywords faltantes
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {missingKeywords.length > 0 ? (
-                  missingKeywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300"
-                    >
-                      {kw}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm italic text-zinc-500">
-                    No hay keywords críticas faltantes.
-                  </span>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Keywords & Improvements Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Keywords */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
-          >
-            <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
-              <CheckCircle2 className="w-4 h-4" />
-              Keywords Encontradas
-            </h4>
-            {analysis.analysis_mode === "job_match" && (
-              <div className="mb-4 grid gap-3">
-                <div>
-                  <p className="mb-2 text-xs font-semibold text-zinc-500">
-                    Oferta
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {jobKeywords.map((kw) => (
-                      <span
-                        key={kw}
-                        className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300"
-                      >
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-semibold text-zinc-500">
-                    CV
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {cvKeywords.map((kw) => (
-                      <span
-                        key={kw}
-                        className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-300"
-                      >
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {keywords.length > 0 ? (
-                keywords.map((kw, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 + i * 0.05 }}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium"
-                  >
-                    {kw}
-                  </motion.span>
-                ))
-              ) : (
-                <span className="text-zinc-500 text-sm italic">
-                  No se detectaron palabras clave destacadas.
-                </span>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Improvements */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
-          >
-            <h4 className="text-sm font-semibold text-amber-400 flex items-center gap-2 mb-4">
-              <Star className="w-4 h-4" />
-              Áreas de Mejora
-            </h4>
-            <ul className="space-y-3">
-              {improvements.length > 0 ? (
-                improvements.map((imp, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.08 }}
-                    className="flex items-start gap-2.5 text-sm text-zinc-300"
-                  >
-                    <ChevronRight className="w-4 h-4 mt-0.5 text-amber-500/70 shrink-0" />
-                    <span>{imp}</span>
-                  </motion.li>
-                ))
-              ) : (
-                <span className="text-zinc-500 text-sm italic">
-                  Sin sugerencias de mejora.
-                </span>
-              )}
-            </ul>
-          </motion.div>
-        </div>
       </div>
     </motion.div>
   );
