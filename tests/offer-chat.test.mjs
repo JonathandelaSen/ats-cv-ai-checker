@@ -35,16 +35,21 @@ test("offer chat migration creates owned messages linked to analyses", () => {
   assert.match(migration, /analysis_chat_messages_user_analysis_created_idx/);
 });
 
-test("DB helpers expose analysis chat messages with user scoping", () => {
+test("DB helpers expose analysis chat messages and conversations with user scoping", () => {
   const db = read("src/lib/db.ts");
 
   assert.match(db, /export type AnalysisChatRole = "user" \| "assistant"/);
   assert.match(db, /export interface AnalysisChatMessage/);
+  assert.match(db, /export interface AnalysisChatConversation/);
   assert.match(db, /export async function listAnalysisChatMessages/);
   assert.match(db, /export async function createAnalysisChatMessage/);
+  assert.match(db, /export async function listAnalysisChatConversations/);
+  assert.match(db, /export async function createAnalysisChatConversation/);
+  assert.match(db, /export async function deleteAnalysisChatConversation/);
   assert.match(db, /\.from\("analysis_chat_messages"\)/);
+  assert.match(db, /\.from\("analysis_chat_conversations"\)/);
   assert.match(db, /\.eq\("user_id", userId\)/);
-  assert.match(db, /\.eq\("analysis_id", analysisId\)/);
+  assert.match(db, /\.eq\("conversation_id", conversationId\)/);
 });
 
 test("offer chat prompts include CV, offer, analysis, and recent history without model calls", () => {
@@ -67,7 +72,7 @@ test("offer chat prompts include CV, offer, analysis, and recent history without
   assert.match(controller, /generateOfferChatAnswer/);
 });
 
-test("analysis chat route validates auth, offer mode, API key, and persists both messages", () => {
+test("analysis chat route validates auth, offer mode, API key, and supports conversations", () => {
   const route = read("src/app/api/analyses/[id]/chat/route.ts");
 
   assert.match(route, /export async function GET/);
@@ -75,7 +80,6 @@ test("analysis chat route validates auth, offer mode, API key, and persists both
   assert.match(route, /listAnalysisChatMessages/);
   assert.match(route, /createAnalysisChatMessage/);
   assert.match(route, /generateOfferChatAnswer/);
-  assert.match(route, /analysis\.analysis_mode !== "job_match"/);
   assert.match(route, /Only job match analyses can use offer chat/);
   assert.match(route, /Message is required/);
   assert.match(route, /Configura tu API key de Gemini/);
@@ -84,9 +88,16 @@ test("analysis chat route validates auth, offer mode, API key, and persists both
   assert.match(route, /createRequestId\("offer_chat"\)/);
   assert.match(route, /stage: "offer_chat_generate"/);
   assert.match(route, /recordProcessingEvent/);
+  assert.match(route, /listAnalysisChatConversations/);
+  assert.match(route, /createAnalysisChatConversation/);
+  assert.match(route, /deleteAnalysisChatConversation/);
+  assert.match(route, /action === "create_conversation"/);
+  assert.match(route, /action === "rename_conversation"/);
+  assert.match(route, /action === "delete_conversation"/);
+  assert.match(route, /conversationId/);
 });
 
-test("analysis UI exposes a persistent offer chat tab", () => {
+test("analysis UI exposes a persistent offer chat tab with conversations", () => {
   const analysisView = read("src/components/analysis/analysis-view.tsx");
   const tabChat = read("src/components/analysis/tab-chat-oferta.tsx");
 
@@ -97,8 +108,11 @@ test("analysis UI exposes a persistent offer chat tab", () => {
   assert.match(analysisView, /hasGeminiApiKey=\{hasGeminiApiKey\}/);
   assert.match(tabChat, /\/api\/analyses\/\$\{analysisId\}\/chat/);
   assert.match(tabChat, /role === "assistant"/);
-  assert.match(tabChat, /placeholder="Pregunta sobre esta oferta"/);
-  assert.match(tabChat, /Enviar/);
+  assert.match(tabChat, /Pregunta sobre esta oferta/);
   assert.match(tabChat, /Loader2/);
   assert.match(tabChat, /Send/);
+  assert.match(tabChat, /ConversationList/);
+  assert.match(tabChat, /createConversation/);
+  assert.match(tabChat, /ReactMarkdown/);
+  assert.match(tabChat, /AnalysisChatConversation/);
 });

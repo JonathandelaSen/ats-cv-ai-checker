@@ -10,6 +10,10 @@ Never apply migrations or schema changes to the production Supabase project. Pre
 
 Keep prompts and model-call logic/controllers in separate files. La lógica/controladores que llaman a modelos debe mantenerse en archivos separados de los prompts. Prompt builders/system instructions belong in prompt-only modules, and files that instantiate SDK clients or call model APIs must import those prompts instead of defining them inline. This reduces the risk that prompt edits break API integration code.
 
+## AI prompt documentation
+
+Every AI prompt family must have documentation under `docs/prompts/<prompt-type>/prompt.md`. The document must include the current prompt, the source file link/path, how it is fed with data, the runtime flow, and maintenance notes. When changing a prompt, prompt builder, model input data, response shape, or controller behavior that affects a prompt, actualizar la documentación del prompt en el mismo cambio.
+
 ## Git main branch
 
 Never push to `main`. Commit locally or push to a non-main branch if requested, but leave `main` pushes to the user unless they explicitly instruct otherwise in the same turn.

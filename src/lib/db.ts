@@ -177,10 +177,20 @@ export interface InterviewQuestion {
 
 export type InterviewQuestionSummary = InterviewQuestion;
 
+export interface AnalysisChatConversation {
+  id: string;
+  user_id: string;
+  analysis_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AnalysisChatMessage {
   id: string;
   user_id: string;
   analysis_id: string;
+  conversation_id: string;
   role: AnalysisChatRole;
   content: string;
   model: string | null;
@@ -618,9 +628,76 @@ export async function deleteInterviewQuestion(
 // Analysis Chat Helpers
 // ---------------------------------------------------------------------------
 
+export async function listAnalysisChatConversations(
+  supabase: SupabaseClient,
+  userId: string,
+  analysisId: string
+): Promise<AnalysisChatConversation[]> {
+  const { data, error } = await supabase
+    .from("analysis_chat_conversations")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("analysis_id", analysisId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as AnalysisChatConversation[];
+}
+
+export async function createAnalysisChatConversation(
+  supabase: SupabaseClient,
+  input: { user_id: string; analysis_id: string; title?: string }
+): Promise<AnalysisChatConversation> {
+  const { data, error } = await supabase
+    .from("analysis_chat_conversations")
+    .insert({
+      user_id: input.user_id,
+      analysis_id: input.analysis_id,
+      title: input.title ?? "Nueva conversación",
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as AnalysisChatConversation;
+}
+
+export async function updateAnalysisChatConversation(
+  supabase: SupabaseClient,
+  conversationId: string,
+  userId: string,
+  updates: { title?: string }
+): Promise<AnalysisChatConversation> {
+  const { data, error } = await supabase
+    .from("analysis_chat_conversations")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", conversationId)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as AnalysisChatConversation;
+}
+
+export async function deleteAnalysisChatConversation(
+  supabase: SupabaseClient,
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("analysis_chat_conversations")
+    .delete()
+    .eq("id", conversationId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
 export interface CreateAnalysisChatMessageInput {
   user_id: string;
   analysis_id: string;
+  conversation_id: string;
   role: AnalysisChatRole;
   content: string;
   model?: string | null;
@@ -630,13 +707,13 @@ export interface CreateAnalysisChatMessageInput {
 export async function listAnalysisChatMessages(
   supabase: SupabaseClient,
   userId: string,
-  analysisId: string
+  conversationId: string
 ): Promise<AnalysisChatMessage[]> {
   const { data, error } = await supabase
     .from("analysis_chat_messages")
     .select("*")
     .eq("user_id", userId)
-    .eq("analysis_id", analysisId)
+    .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
@@ -658,6 +735,12 @@ export async function createAnalysisChatMessage(
     .single();
 
   if (error) throw error;
+
+  await supabase
+    .from("analysis_chat_conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", data.conversation_id);
+
   return message as AnalysisChatMessage;
 }
 
