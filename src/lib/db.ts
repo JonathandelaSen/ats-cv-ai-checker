@@ -13,6 +13,7 @@ export const CV_PDFS_BUCKET = "cv-pdfs";
 // ---------------------------------------------------------------------------
 
 export type AnalysisMode = "general" | "job_match";
+export type AnalysisChatRole = "user" | "assistant";
 export type OfferStatus =
   | "interesante"
   | "aplicado"
@@ -175,6 +176,17 @@ export interface InterviewQuestion {
 }
 
 export type InterviewQuestionSummary = InterviewQuestion;
+
+export interface AnalysisChatMessage {
+  id: string;
+  user_id: string;
+  analysis_id: string;
+  role: AnalysisChatRole;
+  content: string;
+  model: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
 
 export interface CVRecommendationAnalysis extends AnalysisSummary {
   ai_improvements: string | null;
@@ -600,6 +612,53 @@ export async function deleteInterviewQuestion(
 
   if (error) throw error;
   return (count ?? 0) > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Analysis Chat Helpers
+// ---------------------------------------------------------------------------
+
+export interface CreateAnalysisChatMessageInput {
+  user_id: string;
+  analysis_id: string;
+  role: AnalysisChatRole;
+  content: string;
+  model?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export async function listAnalysisChatMessages(
+  supabase: SupabaseClient,
+  userId: string,
+  analysisId: string
+): Promise<AnalysisChatMessage[]> {
+  const { data, error } = await supabase
+    .from("analysis_chat_messages")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("analysis_id", analysisId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as AnalysisChatMessage[];
+}
+
+export async function createAnalysisChatMessage(
+  supabase: SupabaseClient,
+  data: CreateAnalysisChatMessageInput
+): Promise<AnalysisChatMessage> {
+  const { data: message, error } = await supabase
+    .from("analysis_chat_messages")
+    .insert({
+      ...data,
+      model: data.model ?? null,
+      metadata: data.metadata ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return message as AnalysisChatMessage;
 }
 
 // ---------------------------------------------------------------------------

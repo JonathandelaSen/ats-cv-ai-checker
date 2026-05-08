@@ -6,12 +6,12 @@ import { motion } from "framer-motion";
 import {
   Briefcase,
   FileSearch,
+  MessageCircle,
   MessageSquareQuote,
   CalendarClock,
   Sparkles,
 } from "lucide-react";
 import {
-  OFFER_STATUSES,
   type AnalysisMode,
   type AIContext,
   type InterviewQuestionSummary,
@@ -24,6 +24,7 @@ import TabResumen from "./tab-resumen";
 import TabOferta from "./tab-oferta";
 import TabEntrevista from "./tab-entrevista";
 import TabSeguimiento from "./tab-seguimiento";
+import TabChatOferta from "./tab-chat-oferta";
 
 interface AIAnalysisViewProps {
   analysis: {
@@ -384,6 +385,13 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       )}
                     </TabsTrigger>
                     <TabsTrigger
+                      value="chat"
+                      className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                    >
+                      <MessageCircle className="size-4" />
+                      Chat
+                    </TabsTrigger>
+                    <TabsTrigger
                       value="seguimiento"
                       className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                     >
@@ -439,6 +447,14 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       onQuickQuestionModelChange={setQuickQuestionModel}
                       isCreatingQuestion={isCreatingQuestion}
                       onCreateQuestion={handleCreateInterviewQuestion}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="chat">
+                    <TabChatOferta
+                      analysisId={analysis.id}
+                      geminiApiKey={geminiApiKey}
+                      hasGeminiApiKey={hasGeminiApiKey}
                     />
                   </TabsContent>
 
