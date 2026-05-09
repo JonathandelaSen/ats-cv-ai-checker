@@ -71,6 +71,11 @@ test("proxy does not convert API auth errors into login HTML", () => {
   assert.doesNotMatch(proxyConfigSource, /matcher:[\s\S]*\/api\/:path/);
 });
 
+test("proxy allows public CV pages without an authenticated session", () => {
+  assert.match(proxySource, /"\/cv"/);
+  assert.match(proxySource, /isPublicPath/);
+});
+
 test("password reset email is requested from the browser Supabase client", () => {
   assert.match(authFormSource, /@\/lib\/supabase\/client/);
   assert.match(authFormSource, /resetPasswordForEmail/);

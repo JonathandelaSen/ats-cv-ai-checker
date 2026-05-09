@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteCV, getCV, updateCVName, updateCVProfile } from "@/lib/db";
+import {
+  deleteCV,
+  getCV,
+  updateCVName,
+  updateCVProfile,
+  updateCVPublicSettings,
+} from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  generatePublicCVId,
+  normalizePublicCVSlug,
+  type PublicCVSettingsRequest,
+} from "@/lib/public-cv";
 import { createClient } from "@/lib/supabase/server";
 
 async function getAuthedSupabase() {
@@ -49,7 +60,50 @@ export async function PATCH(
       name?: string;
       profile?: Record<string, unknown>;
       template_locale?: string;
-    };
+    } & PublicCVSettingsRequest;
+
+    if (
+      body.public_enabled !== undefined ||
+      body.public_slug !== undefined ||
+      body.confirmPublicExposure !== undefined
+    ) {
+      const existing = await getCV(supabase, id, user.id);
+      if (!existing || existing.type !== "template") {
+        return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
+      }
+
+      const nextEnabled = body.public_enabled ?? existing.public_enabled;
+      if (
+        body.public_enabled === true &&
+        !existing.public_enabled &&
+        body.confirmPublicExposure !== true
+      ) {
+        return NextResponse.json(
+          { error: "Debes confirmar que entiendes que el CV será público." },
+          { status: 400 }
+        );
+      }
+
+      const normalizedSlug = normalizePublicCVSlug(
+        body.public_slug ?? existing.public_slug ?? existing.name
+      );
+      if (!normalizedSlug) {
+        return NextResponse.json(
+          { error: "Elige una URL pública válida." },
+          { status: 400 }
+        );
+      }
+
+      const updated = await updateCVPublicSettings(supabase, id, user.id, {
+        public_enabled: nextEnabled,
+        public_id: existing.public_id ?? generatePublicCVId(),
+        public_slug: normalizedSlug,
+      });
+      if (!updated) {
+        return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
+      }
+      return NextResponse.json(updated);
+    }
 
     if (body.profile || body.template_locale) {
       const updated = await updateCVProfile(supabase, id, user.id, {

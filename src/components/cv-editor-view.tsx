@@ -5,7 +5,12 @@ import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
+  AlertTriangle,
+  Check,
+  Copy,
   Download,
+  ExternalLink,
+  Globe2,
   KeyRound,
   LayoutTemplate,
   Lightbulb,
@@ -23,6 +28,10 @@ import type {
 } from "@/lib/db";
 import { getCVTemplate, type CVTemplateLocale } from "@/lib/cv-templates";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  buildPublicCVPath,
+  normalizePublicCVSlug,
+} from "@/lib/public-cv";
 import {
   normalizeStandardCVProfile,
   type StandardCVProfile,
@@ -86,8 +95,15 @@ export default function CVEditorView({
 }: CVEditorViewProps) {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
+  const [isPublicModalOpen, setIsPublicModalOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [savingAsCv, setSavingAsCv] = useState(false);
+  const [savingPublicSettings, setSavingPublicSettings] = useState(false);
+  const [publicSlugDraft, setPublicSlugDraft] = useState<{
+    cvId: string | null;
+    value: string;
+  }>({ cvId: null, value: "" });
+  const [publicCopied, setPublicCopied] = useState(false);
   const [manuallySelectedVersionId, setManuallySelectedVersionId] = useState<string | null>(null);
   const [editedVersion, setEditedVersion] = useState<CVSummary | null>(null);
   const [recommendationAnalysis, setRecommendationAnalysis] = useState<CVRecommendationAnalysis | null>(null);
@@ -126,6 +142,40 @@ export default function CVEditorView({
   const previewSrc = currentVersion?.id
     ? `/api/cvs/${currentVersion.id}/template-pdf?v=${previewVersion}`
     : "";
+  const defaultPublicSlug =
+    currentVersion?.public_slug ?? normalizePublicCVSlug(currentVersion?.name) ?? "";
+  const publicSlug =
+    publicSlugDraft.cvId === currentVersion?.id
+      ? publicSlugDraft.value
+      : defaultPublicSlug;
+  const normalizedPublicSlug =
+    normalizePublicCVSlug(publicSlug || currentVersion?.name) ?? "";
+  const savedPublicSlug = currentVersion?.public_slug ?? "";
+  const hasPublicSlugChanges = Boolean(
+    currentVersion?.public_enabled &&
+    normalizedPublicSlug &&
+    normalizedPublicSlug !== savedPublicSlug
+  );
+  const sharePublicSlug =
+    currentVersion?.public_enabled && hasPublicSlugChanges
+      ? savedPublicSlug
+      : normalizedPublicSlug;
+  const publicPath =
+    currentVersion?.public_id && sharePublicSlug
+      ? buildPublicCVPath(currentVersion.public_id, sharePublicSlug)
+      : "";
+  const publicDraftPath =
+    currentVersion?.public_id && normalizedPublicSlug
+      ? buildPublicCVPath(currentVersion.public_id, normalizedPublicSlug)
+      : "";
+  const publicUrl =
+    typeof window !== "undefined" && publicPath
+      ? `${window.location.origin}${publicPath}`
+      : publicPath;
+  const publicDraftUrl =
+    typeof window !== "undefined" && publicDraftPath
+      ? `${window.location.origin}${publicDraftPath}`
+      : publicDraftPath;
 
   useEffect(() => {
     if (!currentVersion?.source_cv_id) return;
@@ -345,6 +395,43 @@ export default function CVEditorView({
     } finally {
       setSavingLocale(false);
     }
+  };
+
+  const updatePublicSettings = async (enabled: boolean, confirmPublicExposure = false) => {
+    if (!currentVersion?.id || !normalizedPublicSlug) return;
+    setSavingPublicSettings(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/cvs/${currentVersion.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          public_enabled: enabled,
+          public_slug: normalizedPublicSlug,
+          confirmPublicExposure: confirmPublicExposure,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo actualizar la página pública");
+      setEditedVersion(data);
+      setPublicSlugDraft({
+        cvId: data.id,
+        value: data.public_slug ?? normalizedPublicSlug,
+      });
+      setIsPublicModalOpen(false);
+      onCVUpdated();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSavingPublicSettings(false);
+    }
+  };
+
+  const copyPublicUrl = async () => {
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    setPublicCopied(true);
+    setTimeout(() => setPublicCopied(false), 1800);
   };
 
   if (!currentVersion || !activeTemplate) {
@@ -639,6 +726,112 @@ CV Original
                     )}
                   </section>
 
+                  <section className="space-y-4 border-t border-white/5 pt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-400">
+                          <Globe2 className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-white">Página pública</h3>
+                          <p className="text-[11px] text-zinc-600">
+                            {currentVersion.public_enabled ? "Activa por enlace" : "Desactivada"}
+                          </p>
+                        </div>
+                      </div>
+                      {currentVersion.public_enabled ? (
+                        <Button
+                          variant="ghost"
+                          disabled={savingPublicSettings}
+                          onClick={() => void updatePublicSettings(false)}
+                          className="h-8 border border-rose-500/20 bg-rose-500/5 px-3 text-[11px] text-rose-300 hover:bg-rose-500/10"
+                        >
+                          Despublicar
+                        </Button>
+                      ) : (
+                        <Button
+                          disabled={savingPublicSettings || !normalizedPublicSlug}
+                          onClick={() => setIsPublicModalOpen(true)}
+                          className="h-8 bg-sky-500 px-3 text-[11px] font-bold text-black hover:bg-sky-400"
+                        >
+                          Publicar
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                        URL editable
+                      </label>
+                      <div className="flex min-w-0 items-center gap-2 rounded-xl border border-white/5 bg-white/5 p-1.5">
+                        <span className="hidden shrink-0 pl-2 text-[11px] text-zinc-600 sm:inline">
+                          /cv/{currentVersion.public_id ?? "id"}/
+                        </span>
+                        <input
+                          value={publicSlug}
+                          onChange={(event) =>
+                            setPublicSlugDraft({
+                              cvId: currentVersion.id,
+                              value: event.target.value,
+                            })
+                          }
+                          onBlur={() =>
+                            setPublicSlugDraft({
+                              cvId: currentVersion.id,
+                              value: normalizedPublicSlug,
+                            })
+                          }
+                          className="min-w-0 flex-1 bg-transparent px-2 text-xs text-white outline-none placeholder:text-zinc-700"
+                          placeholder="nombre-del-cv"
+                        />
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-zinc-600">
+                        El identificador es único y estable. Puedes cambiar el nombre visible de la URL.
+                      </p>
+                    </div>
+
+                    {currentVersion.public_enabled && publicUrl && (
+                      <div className="space-y-2">
+                        {hasPublicSlugChanges && (
+                          <Button
+                            disabled={savingPublicSettings || !normalizedPublicSlug}
+                            onClick={() => void updatePublicSettings(true)}
+                            className="h-8 w-full bg-sky-500 px-3 text-[11px] font-bold text-black hover:bg-sky-400"
+                          >
+                            {savingPublicSettings ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              "Guardar URL"
+                            )}
+                          </Button>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            disabled={savingPublicSettings}
+                            onClick={() => void copyPublicUrl()}
+                            className="h-8 flex-1 border border-white/5 bg-white/5 text-xs text-zinc-300 hover:bg-white/10"
+                          >
+                            {publicCopied ? (
+                              <Check className="mr-2 h-3.5 w-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="mr-2 h-3.5 w-3.5" />
+                            )}
+                            {publicCopied ? "Copiada" : "Copiar URL"}
+                          </Button>
+                          <a
+                            href={publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-8 items-center justify-center rounded-md border border-white/5 bg-white/5 px-3 text-xs text-zinc-300 hover:bg-white/10"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
                   {/* Settings Section */}
                   <section className="pt-4 border-t border-white/5 space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-600">Configuración</h3>
@@ -691,6 +884,54 @@ CV Original
       </div>
 
       <AnimatePresence>
+        {isPublicModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-3xl border border-rose-500/20 bg-[#0a0a12] p-6 shadow-2xl"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-300">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Publicar este CV</h3>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                Cualquiera con este enlace podrá ver el CV completo dentro de la plataforma,
+                incluidos email, teléfono, enlaces, experiencia y cualquier otro dato que hayas
+                escrito en esta versión.
+              </p>
+              <div className="mt-4 rounded-2xl border border-rose-500/15 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200">
+                No lo haremos indexable por buscadores, pero el enlace público se podrá reenviar
+                y la página permite descargar una copia en PDF.
+              </div>
+              <div className="mt-6 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs text-zinc-300">
+                {publicDraftUrl || `/cv/id/${normalizedPublicSlug}`}
+              </div>
+              <div className="mt-6 flex gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsPublicModalOpen(false)}
+                  className="flex-1 text-zinc-400 hover:bg-white/5"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={savingPublicSettings || !normalizedPublicSlug}
+                  onClick={() => void updatePublicSettings(true, true)}
+                  className="flex-1 bg-rose-500 text-white hover:bg-rose-400"
+                >
+                  {savingPublicSettings ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Entiendo y publicar"
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {isSavingModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <motion.div

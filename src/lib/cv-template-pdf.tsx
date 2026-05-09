@@ -349,6 +349,7 @@ const modernStyles = StyleSheet.create({
     paddingLeft: 8,
     paddingBottom: 0,
     marginBottom: 9,
+    lineHeight: 1,
   },
   summary: { color: "#2d2d2d", fontSize: 9.5, lineHeight: 1.5 },
   item: { marginBottom: 13 },

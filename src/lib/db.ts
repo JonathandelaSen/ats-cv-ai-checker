@@ -66,6 +66,10 @@ export interface CVRecord extends ExtractedPdfText {
   source_text_hash: string | null;
   ai_model: string | null;
   profile: StandardCVProfile | null;
+  public_enabled: boolean;
+  public_id: string | null;
+  public_slug: string | null;
+  public_published_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +84,10 @@ export interface CVSummary {
   template_id: string | null;
   template_locale: string | null;
   profile: StandardCVProfile | null;
+  public_enabled: boolean;
+  public_id: string | null;
+  public_slug: string | null;
+  public_published_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -303,7 +311,7 @@ export async function listCVs(
 ): Promise<CVSummary[]> {
   const { data, error } = await supabase
     .from("cvs")
-    .select("id, name, filename, file_size, type, source_cv_id, template_id, template_locale, profile, created_at, updated_at")
+    .select("id, name, filename, file_size, type, source_cv_id, template_id, template_locale, profile, public_enabled, public_id, public_slug, public_published_at, created_at, updated_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -391,6 +399,60 @@ export async function updateCVProfile(
 
   if (error) throw error;
   return (cv as CVRecord | null) ?? null;
+}
+
+export async function updateCVPublicSettings(
+  supabase: SupabaseClient,
+  id: string,
+  userId: string,
+  data: {
+    public_enabled?: boolean;
+    public_id?: string | null;
+    public_slug?: string | null;
+  }
+): Promise<CVRecord | null> {
+  const updates: Record<string, unknown> = {};
+
+  if (data.public_enabled !== undefined) {
+    updates.public_enabled = data.public_enabled;
+    updates.public_published_at = data.public_enabled ? new Date().toISOString() : null;
+  }
+
+  if (data.public_id !== undefined) {
+    updates.public_id = data.public_id;
+  }
+
+  if (data.public_slug !== undefined) {
+    updates.public_slug = data.public_slug;
+  }
+
+  const { data: cv, error } = await supabase
+    .from("cvs")
+    .update(updates)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .eq("type", "template")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  return (cv as CVRecord | null) ?? null;
+}
+
+export async function getPublishedCVByPublicId(
+  supabase: SupabaseClient,
+  publicId: string
+): Promise<CVRecord | null> {
+  const { data, error } = await supabase
+    .from("cvs")
+    .select("*")
+    .eq("public_id", publicId)
+    .eq("public_enabled", true)
+    .eq("type", "template")
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as CVRecord | null) ?? null;
 }
 
 export async function updateCVExtraction(

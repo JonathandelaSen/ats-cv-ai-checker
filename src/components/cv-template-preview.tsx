@@ -146,7 +146,7 @@ export default function CVTemplatePreview({
       return (
         <Section key={section} title={title}>
           <p className="cvp-summary">
-            {isModern && basics.headline ? `${basics.headline}. ${profile.summary}` : profile.summary}
+            {profile.summary}
           </p>
         </Section>
       );
@@ -299,7 +299,7 @@ export default function CVTemplatePreview({
       <header className="cvp-header">
         <div>
           <h1>{basics.name || "Untitled CV"}</h1>
-          {basics.headline && !isModern && <p className="cvp-headline">{basics.headline}</p>}
+          {basics.headline && <p className="cvp-headline">{basics.headline}</p>}
         </div>
         <div className="cvp-contact">
           {basics.email && (
