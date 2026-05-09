@@ -20,6 +20,7 @@ import {
   LayoutTemplate,
   Wand2,
   MessageSquareQuote,
+  BookOpenText,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/db";
 
@@ -65,6 +66,7 @@ interface SidebarProps {
     | "templates"
     | "editor"
     | "questions"
+    | "journal"
     | "settings"
     | "admin";
   onSelect: (id: string) => void;
@@ -73,6 +75,7 @@ interface SidebarProps {
   onOpenTemplates: () => void;
   onOpenEditor: () => void;
   onOpenQuestions: () => void;
+  onOpenJournal: () => void;
   onOpenSettings: () => void;
   onOpenAdmin: () => void;
   onDelete: (id: string) => void;
@@ -91,6 +94,7 @@ export default function Sidebar({
   onOpenTemplates,
   onOpenEditor,
   onOpenQuestions,
+  onOpenJournal,
   onOpenSettings,
   onOpenAdmin,
   onDelete,
@@ -273,6 +277,17 @@ export default function Sidebar({
         >
           <MessageSquareQuote className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Preguntas</span>}
+        </button>
+        <button
+          onClick={onOpenJournal}
+          className={`
+            w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
+            ${activeView === "journal" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
+            ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
+          `}
+        >
+          <BookOpenText className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Diario</span>}
         </button>
       </div>
 

@@ -7,6 +7,7 @@ import CVLibrary from "@/components/cv-library";
 import TemplatesView from "@/components/templates-view";
 import CVEditorView from "@/components/cv-editor-view";
 import InterviewQuestionsView from "@/components/interview-questions-view";
+import WorkJournalView from "@/components/work-journal-view";
 import ExtractionView from "@/components/extraction-view";
 import AIAnalysisView from "@/components/analysis/analysis-view";
 import SettingsView from "@/components/settings-view";
@@ -31,6 +32,7 @@ type AppView =
   | "templates"
   | "editor"
   | "questions"
+  | "journal"
   | "settings"
   | "admin";
 
@@ -227,6 +229,12 @@ export default function AppShell({
         setActiveQuestionCvId(params.get("cv"));
         setActiveQuestionAnalysisId(params.get("offer"));
       });
+    } else if (view === "journal") {
+      queueMicrotask(() => {
+        setActiveView("journal");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
     } else if (view === "settings") {
       queueMicrotask(() => {
         setActiveView("settings");
@@ -307,6 +315,13 @@ export default function AppShell({
     void fetchInterviewQuestions();
   };
 
+  const handleOpenJournal = () => {
+    setActiveView("journal");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    window.history.replaceState(null, "", "/?view=journal");
+  };
+
   const handleOpenSettings = () => {
     setActiveView("settings");
     setActiveAnalysisId(null);
@@ -381,6 +396,7 @@ export default function AppShell({
         onOpenTemplates={handleOpenTemplates}
         onOpenEditor={() => handleOpenEditor()}
         onOpenQuestions={() => handleOpenQuestions()}
+        onOpenJournal={handleOpenJournal}
         onOpenSettings={handleOpenSettings}
         onOpenAdmin={handleOpenAdmin}
         onDelete={handleDelete}
@@ -483,6 +499,20 @@ export default function AppShell({
                 onRefresh={fetchInterviewQuestions}
                 onOpenSettings={handleOpenSettings}
                 onOpenAnalysis={handleSelect}
+              />
+            </motion.div>
+          ) : activeView === "journal" ? (
+            <motion.div
+              key="work-journal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <WorkJournalView
+                geminiApiKey={geminiApiKey}
+                hasGeminiApiKey={geminiApiKey.length > 0}
+                onOpenSettings={handleOpenSettings}
               />
             </motion.div>
           ) : activeView === "settings" ? (
