@@ -8,11 +8,11 @@ Never apply migrations or schema changes to the production Supabase project. Pre
 
 ## AI prompts and model controllers
 
-Keep prompts and model-call logic/controllers in separate files. La lógica/controladores que llaman a modelos debe mantenerse en archivos separados de los prompts. Prompt builders/system instructions belong in prompt-only modules, and files that instantiate SDK clients or call model APIs must import those prompts instead of defining them inline. This reduces the risk that prompt edits break API integration code.
+Keep prompts and model-call logic/controllers in separate files. Prompt builders/system instructions belong in prompt-only modules, and files that instantiate SDK clients or call model APIs must import those prompts instead of defining them inline. This reduces the risk that prompt edits break API integration code.
 
 ## AI prompt documentation
 
-Every AI prompt family must have documentation under `docs/prompts/<prompt-type>/prompt.md`. The document must include the current prompt, the source file link/path, how it is fed with data, the runtime flow, and maintenance notes. When changing a prompt, prompt builder, model input data, response shape, or controller behavior that affects a prompt, actualizar la documentación del prompt en el mismo cambio.
+Every AI prompt family must have documentation under `docs/prompts/<prompt-type>/prompt.md`. The document must include the current prompt, the source file link/path, how it is fed with data, the runtime flow, and maintenance notes. When changing a prompt, prompt builder, model input data, response shape, or controller behavior that affects a prompt, update the prompt documentation in the same change.
 
 ## Git main branch
 
@@ -26,4 +26,8 @@ Do not add [extensions] worktreeConfig = true" to .git/config because it breaks 
 
 ## shadcn/ui
 
-Utilizaremos shadcn/ui cuando exista algún componente en la librería que sea de utilidad. No reinventaremos la rueda y preferiremos los componentes existentes de shadcn antes que crear componentes UI personalizados desde cero.
+We will use shadcn/ui whenever there is a useful component in the library. We will not reinvent the wheel and will prefer existing shadcn components over creating custom UI components from scratch.
+
+## Observability
+
+All new or edited actions that occur on the platform and have backend interaction must be added to observability.
