@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   BriefcaseBusiness,
@@ -46,9 +46,8 @@ const emptyEntryDraft = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-teal-400/50";
-const labelClass =
-  "text-[11px] font-semibold uppercase tracking-wider text-zinc-500";
+  "w-full bg-transparent border-b border-white/10 px-0 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-300 focus:ring-0";
+const labelClass = "text-xs font-medium text-zinc-500 mb-1 block";
 
 export default function WorkJournalView({
   geminiApiKey,
@@ -67,23 +66,21 @@ export default function WorkJournalView({
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [contextFilter, setContextFilter] = useState<string>("");
 
   const activeContexts = contexts.filter((context) => context.status === "active");
-  const selectedContext =
-    activeContexts.find((context) => context.id === draft.context_id) ??
-    activeContexts[0] ??
-    null;
 
   const filteredEntries = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return entries.filter((entry) => {
-      if (draft.context_id && entry.context_id !== draft.context_id) return false;
+      if (contextFilter && entry.context_id !== contextFilter) return false;
       if (!needle) return true;
       return [entry.topic, entry.raw_notes, entry.final_text, entry.context?.name]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(needle));
     });
-  }, [draft.context_id, entries, search]);
+  }, [contextFilter, entries, search]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -197,6 +194,7 @@ export default function WorkJournalView({
       context_id: current.context_id,
       date_start: today(),
     }));
+    setShowForm(false);
     await fetchAll();
   };
 
@@ -260,289 +258,274 @@ export default function WorkJournalView({
     await fetchAll();
   };
 
-  const ContextIcon =
-    selectedContext?.type === "project" ? FolderKanban : BriefcaseBusiness;
-
   return (
-    <div className="flex-1 overflow-y-auto p-6 md:p-8">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mx-auto flex max-w-7xl flex-col gap-6"
-      >
-        <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="flex-1 overflow-y-auto px-6 md:px-16 lg:px-24 py-12 pb-32">
+      <div className="flex flex-col w-full">
+        {/* Header */}
+        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b border-white/5 pb-8 mb-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300/80">
-              Diario
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold text-zinc-50">
-              Captura lo que haces en tu trabajo sin convertirlo en burocracia.
+            <h1 className="text-3xl lg:text-4xl font-light tracking-tight text-zinc-50 flex items-center gap-4">
+              Diario de Trabajo
+              {loading && <Loader2 className="h-5 w-5 animate-spin text-zinc-700" />}
             </h1>
           </div>
-          {loading && <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />}
+          
+          <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+            <div className="relative group">
+              <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 transition-colors group-focus-within:text-zinc-300" />
+              <input 
+                placeholder="Buscar en el diario..."
+                className="pl-7 pr-4 py-2 bg-transparent border-b border-transparent text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 outline-none w-48 transition-all focus:w-64"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            
+            <div className="h-4 w-px bg-white/10 hidden md:block" />
+
+            <select
+              className="bg-transparent text-sm font-medium text-zinc-400 hover:text-zinc-200 border-none focus:ring-0 outline-none cursor-pointer transition-colors"
+              value={contextFilter}
+              onChange={(e) => setContextFilter(e.target.value)}
+            >
+              <option value="" className="bg-zinc-900">Todos los contextos</option>
+              {activeContexts.map((context) => (
+                <option key={`filter-${context.id}`} value={context.id} className="bg-zinc-900">
+                  {context.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className={`flex items-center gap-2 text-sm font-medium transition-colors px-4 py-2 rounded-full ${showForm ? "bg-white/10 text-white hover:bg-white/20" : "bg-white text-black hover:bg-zinc-200"}`}
+            >
+              {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showForm ? "Cerrar" : "Nueva entrada"}
+            </button>
+          </div>
         </header>
 
         {error && (
-          <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mb-8 text-sm text-rose-400 bg-rose-500/10 px-4 py-3 rounded-lg border border-rose-500/20">
             {error}
           </div>
         )}
 
-        <section className="rounded-lg border border-white/10 bg-[#101018] p-4 shadow-2xl shadow-black/20">
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-[1fr_160px_160px]">
-                <label className="space-y-1.5">
-                  <span className={labelClass}>Contexto</span>
-                  <select
-                    className={inputClass}
-                    value={draft.context_id}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        context_id: event.target.value,
-                      }))
-                    }
-                  >
-                    {activeContexts.map((context) => (
-                      <option key={context.id} value={context.id}>
-                        {context.name} ·{" "}
-                        {context.type === "employment" ? "Empleo" : "Proyecto"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className={labelClass}>Desde</span>
-                  <input
-                    type="date"
-                    className={inputClass}
-                    value={draft.date_start}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        date_start: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className={labelClass}>Hasta</span>
-                  <input
-                    type="date"
-                    className={inputClass}
-                    value={draft.date_end}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        date_end: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-              </div>
+        {/* Animated Form */}
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="pb-16 pt-4 mb-8 border-b border-white/5">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-12 lg:gap-24">
+                  
+                  {/* Left Col: Editor */}
+                  <div className="space-y-6">
+                    <div className="flex gap-4 mb-2">
+                      {(["manual", "ai_assisted"] as WorkJournalEntryInputMode[]).map(
+                        (mode) => (
+                          <button
+                            key={`mode-${mode}`}
+                            type="button"
+                            onClick={() =>
+                              setDraft((current) => ({ ...current, input_mode: mode }))
+                            }
+                            className={`text-sm font-medium transition-colors pb-1 border-b-2 ${
+                              draft.input_mode === mode
+                                ? "text-zinc-100 border-zinc-100"
+                                : "text-zinc-600 border-transparent hover:text-zinc-400"
+                            }`}
+                          >
+                            {mode === "manual" ? "Escritura libre" : "Redacción con IA"}
+                          </button>
+                        )
+                      )}
+                    </div>
 
-              <label className="space-y-1.5">
-                <span className={labelClass}>Tema opcional</span>
-                <input
-                  className={inputClass}
-                  placeholder="Integracion LTI, performance, onboarding..."
-                  value={draft.topic}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, topic: event.target.value }))
-                  }
-                />
-              </label>
-
-              <div className="flex gap-2">
-                {(["manual", "ai_assisted"] as WorkJournalEntryInputMode[]).map(
-                  (mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() =>
-                        setDraft((current) => ({ ...current, input_mode: mode }))
+                    <textarea
+                      className="w-full bg-transparent text-xl font-light leading-relaxed text-zinc-200 placeholder:text-zinc-700 outline-none resize-none min-h-[160px]"
+                      placeholder="¿Qué has hecho hoy? Notas rápidas, bloqueos, decisiones, avances..."
+                      value={draft.raw_notes}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, raw_notes: event.target.value }))
                       }
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                        draft.input_mode === mode
-                          ? "bg-teal-500/15 text-teal-200"
-                          : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200"
-                      }`}
-                    >
-                      {mode === "manual" ? "Escribir tal cual" : "Ayudame a redactarlo"}
-                    </button>
-                  )
-                )}
-              </div>
+                    />
 
-              <textarea
-                className={`${inputClass} min-h-32 resize-y`}
-                placeholder="Notas rapidas, bullets sueltos, decisiones, bloqueos, avances..."
-                value={draft.raw_notes}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, raw_notes: event.target.value }))
-                }
-              />
-
-              {draft.input_mode === "ai_assisted" && (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={draftWithAI}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-2 rounded-lg bg-teal-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-teal-400 disabled:opacity-60"
-                  >
-                    {aiLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
-                    )}
-                    Redactar preview
-                  </button>
-                  <textarea
-                    className={`${inputClass} min-h-32 resize-y border-teal-500/20`}
-                    placeholder="Aqui aparecera el preview editable generado por IA."
-                    value={draft.final_text}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        final_text: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={saveEntry}
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
-              >
-                <Save className="h-4 w-4" />
-                Guardar entrada
-              </button>
-            </div>
-
-            <aside className="space-y-4 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300">
-                  <ContextIcon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-zinc-100">
-                    {selectedContext?.name ?? "Sin contexto"}
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {selectedContext?.type === "project" ? "Proyecto" : "Empleo"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-[120px_1fr_auto] gap-2">
-                <select
-                  className={inputClass}
-                  value={newContextType}
-                  onChange={(event) =>
-                    setNewContextType(event.target.value as WorkJournalContextType)
-                  }
-                >
-                  <option value="employment">Empleo</option>
-                  <option value="project">Proyecto</option>
-                </select>
-                <input
-                  className={inputClass}
-                  placeholder="Nuevo contexto"
-                  value={newContextName}
-                  onChange={(event) => setNewContextName(event.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => void createContext()}
-                  className="rounded-lg bg-white/[0.08] p-2 text-zinc-200 hover:bg-white/[0.12]"
-                  title="Crear contexto"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-
-              {suggestions.length > 0 && (
-                <div className="space-y-2">
-                  <p className={labelClass}>Sugeridos desde tus CVs</p>
-                  {suggestions.slice(0, 5).map((suggestion) => (
-                    <div
-                      key={`${suggestion.type}:${suggestion.name}`}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.04] px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm text-zinc-200">
-                          {suggestion.name}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {suggestion.type === "employment" ? "Empleo" : "Proyecto"}
-                          {suggestion.is_current ? " actual" : ""}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
+                    {draft.input_mode === "ai_assisted" && (
+                      <motion.div initial={{opacity:0}} animate={{opacity:1}} className="space-y-4 pt-4 border-t border-white/5">
                         <button
                           type="button"
-                          onClick={() => void promoteSuggestion(suggestion)}
-                          className="rounded-md p-1.5 text-teal-300 hover:bg-teal-500/10"
-                          title="Usar"
+                          onClick={draftWithAI}
+                          disabled={aiLoading}
+                          className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50"
                         >
-                          <Check className="h-4 w-4" />
+                          {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                          Generar redacción profesional
                         </button>
+                        
+                        {draft.final_text && (
+                          <textarea
+                            className="w-full bg-teal-950/20 text-teal-50/90 rounded-xl p-4 text-base leading-relaxed outline-none resize-none min-h-[160px] border border-teal-900/50"
+                            value={draft.final_text}
+                            onChange={(event) =>
+                              setDraft((current) => ({ ...current, final_text: event.target.value }))
+                            }
+                          />
+                        )}
+                      </motion.div>
+                    )}
+
+                    <div className="flex items-center gap-4 pt-6">
+                      <button
+                        type="button"
+                        onClick={saveEntry}
+                        className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Guardar entrada
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(false)}
+                        className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Col: Metadata & Context */}
+                  <div className="space-y-8">
+                    <div>
+                      <label className={labelClass}>Contexto</label>
+                      <select
+                        className={inputClass}
+                        value={draft.context_id}
+                        onChange={(event) =>
+                          setDraft((current) => ({ ...current, context_id: event.target.value }))
+                        }
+                      >
+                        <option value="" disabled className="bg-zinc-900 text-zinc-500">Selecciona un contexto</option>
+                        {activeContexts.map((context) => (
+                          <option key={`form-ctx-${context.id}`} value={context.id} className="bg-zinc-900 text-zinc-200">
+                            {context.name} {context.type === 'project' ? '(Proyecto)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className={labelClass}>Desde</label>
+                        <input
+                          type="date"
+                          className={inputClass}
+                          value={draft.date_start}
+                          onChange={(event) => setDraft((current) => ({ ...current, date_start: event.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Hasta</label>
+                        <input
+                          type="date"
+                          className={inputClass}
+                          value={draft.date_end}
+                          onChange={(event) => setDraft((current) => ({ ...current, date_end: event.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Tema / Etiqueta (opcional)</label>
+                      <input
+                        className={inputClass}
+                        placeholder="Ej: Integración LTI, Onboarding..."
+                        value={draft.topic}
+                        onChange={(event) => setDraft((current) => ({ ...current, topic: event.target.value }))}
+                      />
+                    </div>
+
+                    {/* Create new context subtly integrated */}
+                    <div className="pt-6 border-t border-white/5 space-y-4">
+                      <p className="text-xs font-medium text-zinc-500">Crear nuevo contexto</p>
+                      <div className="flex gap-2">
+                        <select
+                          className="bg-transparent border-b border-white/10 text-sm text-zinc-400 focus:border-zinc-300 focus:ring-0 outline-none w-24 py-1"
+                          value={newContextType}
+                          onChange={(e) => setNewContextType(e.target.value as WorkJournalContextType)}
+                        >
+                          <option value="employment" className="bg-zinc-900">Empleo</option>
+                          <option value="project" className="bg-zinc-900">Proyecto</option>
+                        </select>
+                        <input
+                          className="flex-1 bg-transparent border-b border-white/10 text-sm text-zinc-100 placeholder:text-zinc-700 focus:border-zinc-300 focus:ring-0 outline-none py-1"
+                          placeholder="Nombre..."
+                          value={newContextName}
+                          onChange={(e) => setNewContextName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && void createContext()}
+                        />
                         <button
                           type="button"
-                          onClick={() => void hideSuggestion(suggestion)}
-                          className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[0.06]"
-                          title="Ocultar"
+                          onClick={() => void createContext()}
+                          className="text-zinc-400 hover:text-white transition-colors p-1"
                         >
-                          <X className="h-4 w-4" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Suggestions */}
+                    {suggestions.length > 0 && (
+                      <div className="pt-6 border-t border-white/5 space-y-3">
+                         <p className="text-xs font-medium text-zinc-500">Sugeridos desde tus CVs</p>
+                         <div className="flex flex-wrap gap-2">
+                           {suggestions.slice(0, 3).map((suggestion) => (
+                              <div key={`sugg-${suggestion.name}`} className="flex items-center gap-1 bg-white/5 rounded-full pl-3 pr-1 py-1">
+                                 <span className="text-xs text-zinc-300 truncate max-w-[120px]">{suggestion.name}</span>
+                                 <button onClick={() => void promoteSuggestion(suggestion)} className="p-1 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white">
+                                    <Check className="h-3 w-3" />
+                                 </button>
+                                 <button onClick={() => void hideSuggestion(suggestion)} className="p-1 hover:bg-white/10 rounded-full text-zinc-500 hover:text-rose-400">
+                                    <X className="h-3 w-3" />
+                                 </button>
+                              </div>
+                           ))}
+                         </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </aside>
-          </div>
-        </section>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <section className="flex flex-col gap-4 rounded-lg border border-white/10 bg-[#101018] p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <h2 className="text-sm font-semibold text-zinc-100">Entradas</h2>
-            <div className="relative max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-600" />
-              <input
-                className={`${inputClass} pl-9`}
-                placeholder="Buscar"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            {filteredEntries.map((entry) => (
-              <EntryCard
-                key={`${entry.id}:${entry.updated_at}:${
-                  editingEntryId === entry.id ? "editing" : "view"
-                }`}
+        {/* Timeline */}
+        <div className="pl-4 md:pl-8 py-4 relative">
+          {filteredEntries.length === 0 ? (
+            <EmptyState icon={FilePenLine} text="No hay entradas para mostrar." />
+          ) : (
+            filteredEntries.map((entry, index) => (
+              <TimelineEntry
+                key={`${entry.id}:${entry.updated_at}:${editingEntryId === entry.id ? "editing" : "view"}`}
                 entry={entry}
+                isLast={index === filteredEntries.length - 1}
                 isEditing={editingEntryId === entry.id}
                 onEdit={() => setEditingEntryId(entry.id)}
                 onCancel={() => setEditingEntryId(null)}
                 onSave={(updates) => patchEntry(entry, updates)}
                 onDelete={() => void deleteEntry(entry)}
               />
-            ))}
-            {filteredEntries.length === 0 && (
-              <EmptyState icon={FilePenLine} text="Aun no hay entradas para este contexto." />
-            )}
-          </div>
-        </section>
-      </motion.div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -555,15 +538,16 @@ function EmptyState({
   text: string;
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 py-10 text-sm text-zinc-500">
-      <Icon className="h-4 w-4" />
-      {text}
+    <div className="flex flex-col items-center justify-center gap-4 py-24 text-zinc-600">
+      <Icon className="h-8 w-8 stroke-1 text-zinc-700" />
+      <p className="text-sm font-light tracking-wide">{text}</p>
     </div>
   );
 }
 
-function EntryCard({
+function TimelineEntry({
   entry,
+  isLast,
   isEditing,
   onEdit,
   onCancel,
@@ -571,6 +555,7 @@ function EntryCard({
   onDelete,
 }: {
   entry: WorkJournalEntry;
+  isLast: boolean;
   isEditing: boolean;
   onEdit: () => void;
   onCancel: () => void;
@@ -581,117 +566,106 @@ function EntryCard({
 
   if (isEditing) {
     return (
-      <div className="space-y-3 rounded-lg border border-teal-500/20 bg-teal-500/[0.04] p-4">
-        <div className="grid gap-2 md:grid-cols-2">
-          <label className="space-y-1.5">
-            <span className={labelClass}>Desde</span>
-            <input
-              className={inputClass}
-              type="date"
-              value={edit.date_start}
-              onChange={(event) =>
-                setEdit({ ...edit, date_start: event.target.value })
-              }
-            />
-          </label>
-          <label className="space-y-1.5">
-            <span className={labelClass}>Hasta</span>
-            <input
-              className={inputClass}
-              type="date"
-              value={edit.date_end ?? ""}
-              onChange={(event) =>
-                setEdit({ ...edit, date_end: event.target.value || null })
-              }
-            />
-          </label>
-        </div>
-        <label className="space-y-1.5">
-          <span className={labelClass}>Tema</span>
-          <input
-            className={inputClass}
-            value={edit.topic ?? ""}
-            onChange={(event) =>
-              setEdit({ ...edit, topic: event.target.value || null })
-            }
-            placeholder="Tema"
-          />
-        </label>
-        <label className="space-y-1.5">
-          <span className={labelClass}>Notas originales</span>
-          <textarea
-            className={`${inputClass} min-h-24`}
-            value={edit.raw_notes}
-            onChange={(event) => setEdit({ ...edit, raw_notes: event.target.value })}
-          />
-        </label>
-        <label className="space-y-1.5">
-          <span className={labelClass}>Texto final</span>
-          <textarea
-            className={`${inputClass} min-h-24`}
-            value={edit.final_text}
-            onChange={(event) => setEdit({ ...edit, final_text: event.target.value })}
-          />
-        </label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSave(edit)}
-            className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-zinc-950"
-          >
-            Guardar
-          </button>
-          <button
-            onClick={onCancel}
-            className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-zinc-300"
-          >
-            Cancelar
-          </button>
+      <div className="relative pl-10 md:pl-16 pb-12 group">
+        {!isLast && <div className="absolute left-[11px] md:left-[19px] top-6 bottom-[-2rem] w-px bg-white/5" />}
+        <div className="absolute left-0 md:left-2 top-1.5 h-6 w-6 rounded-full bg-black border-[3px] border-zinc-800 flex items-center justify-center z-10" />
+        
+        <div className="space-y-6 w-full">
+          <div className="flex flex-wrap gap-4">
+             <input type="date" className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1" value={edit.date_start} onChange={e => setEdit({...edit, date_start: e.target.value})} />
+             <input type="date" className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1" value={edit.date_end || ''} onChange={e => setEdit({...edit, date_end: e.target.value || null})} />
+             <input placeholder="Tema..." className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1 flex-1 min-w-[200px]" value={edit.topic || ''} onChange={e => setEdit({...edit, topic: e.target.value || null})} />
+          </div>
+          
+          <div className="space-y-4">
+             <div>
+                <label className="text-xs font-medium text-zinc-500 mb-2 block">Redacción Final</label>
+                <textarea
+                  className="w-full bg-transparent text-[17px] md:text-lg font-light leading-relaxed text-zinc-200 placeholder:text-zinc-700 outline-none resize-y min-h-[240px] border border-white/10 rounded-xl p-4 focus:border-white/20 transition-colors"
+                  value={edit.final_text}
+                  onChange={(event) => setEdit({ ...edit, final_text: event.target.value })}
+                />
+             </div>
+             
+             <div>
+                <label className="text-xs font-medium text-zinc-500 mb-2 block">Notas Crudas (Opcional)</label>
+                <textarea
+                  className="w-full bg-transparent text-[15px] font-light leading-relaxed text-zinc-400 placeholder:text-zinc-700 outline-none resize-y min-h-[120px] border border-white/5 rounded-xl p-4 focus:border-white/20 transition-colors"
+                  value={edit.raw_notes}
+                  onChange={(event) => setEdit({ ...edit, raw_notes: event.target.value })}
+                />
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <button onClick={() => onSave(edit)} className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-zinc-200 transition-colors">Guardar cambios</button>
+             <button onClick={onCancel} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">Cancelar</button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <article className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-            <CalendarDays className="h-3.5 w-3.5" />
-            <span>
-              {entry.date_start}
-              {entry.date_end ? ` - ${entry.date_end}` : ""}
-            </span>
-            {entry.topic && (
-              <span className="rounded-md bg-white/[0.06] px-2 py-0.5">
-                {entry.topic}
-              </span>
-            )}
-          </div>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
-            {entry.final_text}
-          </p>
-          {entry.raw_notes !== entry.final_text && (
-            <p className="mt-3 whitespace-pre-wrap border-l border-white/10 pl-3 text-xs leading-5 text-zinc-500">
-              {entry.raw_notes}
-            </p>
+    <article className="relative pl-10 md:pl-16 pb-16 group w-full">
+      {!isLast && <div className="absolute left-[11px] md:left-[19px] top-6 bottom-[-1rem] w-px bg-white/[0.08]" />}
+      <div className="absolute left-0 md:left-2 top-1.5 h-6 w-6 rounded-full bg-black border-[3px] border-zinc-800 flex items-center justify-center z-10 transition-colors group-hover:border-zinc-600">
+         <div className="h-1.5 w-1.5 rounded-full bg-zinc-700 group-hover:bg-zinc-400 transition-colors" />
+      </div>
+
+      <div className="flex items-center justify-between mb-3 w-full gap-4">
+        <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-zinc-500 tracking-wide">
+          <span className="flex items-center gap-1.5">
+             <CalendarDays className="h-3.5 w-3.5" />
+             {entry.date_start}
+             {entry.date_end ? ` → ${entry.date_end}` : ""}
+          </span>
+          {entry.topic && (
+            <>
+               <span className="text-zinc-700 hidden sm:inline">•</span>
+               <span className="text-zinc-400">{entry.topic}</span>
+            </>
+          )}
+          {entry.context && (
+             <>
+               <span className="text-zinc-700 hidden sm:inline">•</span>
+               <span className="text-zinc-500 opacity-70 flex items-center gap-1">
+                  {entry.context.type === 'project' ? <FolderKanban className="h-3 w-3" /> : <BriefcaseBusiness className="h-3 w-3" />}
+                  {entry.context.name}
+               </span>
+             </>
           )}
         </div>
-        <div className="flex shrink-0 gap-1">
-          <button
-            onClick={onEdit}
-            className="rounded-md p-2 text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200"
-            title="Editar entrada"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="rounded-md p-2 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300"
-            title="Borrar entrada"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+
+        {/* Actions (fade in on hover) */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+           <button
+             onClick={onEdit}
+             className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors"
+             title="Editar entrada"
+           >
+             <Pencil className="h-3.5 w-3.5" />
+           </button>
+           <button
+             onClick={onDelete}
+             className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
+             title="Borrar entrada"
+           >
+             <Trash2 className="h-3.5 w-3.5" />
+           </button>
         </div>
+      </div>
+
+      <div className="relative w-full">
+         <p className="text-[17px] md:text-lg font-light text-zinc-200 leading-[1.7] whitespace-pre-wrap w-full">
+           {entry.final_text}
+         </p>
+
+         {entry.raw_notes !== entry.final_text && (
+           <p className="mt-6 border-l-2 border-white/5 pl-4 text-[14px] leading-relaxed text-zinc-500 whitespace-pre-wrap w-full">
+             {entry.raw_notes}
+           </p>
+         )}
       </div>
     </article>
   );
