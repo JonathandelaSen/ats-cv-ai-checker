@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   WorkJournalContextType,
   WorkJournalEntryInputMode,
-  WorkJournalHighlightStatus,
 } from "@/lib/db";
 
 export async function getAuthedSupabase(): Promise<{
@@ -48,14 +47,6 @@ export function normalizeInputMode(value: unknown): WorkJournalEntryInputMode | 
   return value === "manual" || value === "ai_assisted" ? value : null;
 }
 
-export function normalizeHighlightStatus(
-  value: unknown
-): WorkJournalHighlightStatus | null {
-  return value === "proposed" || value === "saved" || value === "discarded"
-    ? value
-    : null;
-}
-
 export function normalizeStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
@@ -63,4 +54,3 @@ export function normalizeStringArray(value: unknown): string[] | undefined {
     .map((item) => item.trim())
     .filter(Boolean);
 }
-

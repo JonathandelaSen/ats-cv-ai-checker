@@ -17,7 +17,6 @@ export type AnalysisChatRole = "user" | "assistant";
 export type WorkJournalContextType = "employment" | "project";
 export type WorkJournalContextStatus = "active" | "archived";
 export type WorkJournalEntryInputMode = "manual" | "ai_assisted";
-export type WorkJournalHighlightStatus = "proposed" | "saved" | "discarded";
 export type OfferStatus =
   | "interesante"
   | "aplicado"
@@ -220,27 +219,6 @@ export interface WorkJournalEntry {
   input_mode: WorkJournalEntryInputMode;
   raw_notes: string;
   final_text: string;
-  created_at: string;
-  updated_at: string;
-  context?: WorkJournalContext | null;
-}
-
-export interface WorkJournalHighlight {
-  id: string;
-  user_id: string;
-  context_id: string;
-  title: string;
-  summary: string;
-  date_start: string | null;
-  date_end: string | null;
-  status: WorkJournalHighlightStatus;
-  source_entry_ids: string[];
-  candidate_bullets: string[];
-  detected_topics: string[];
-  follow_up_questions: string[];
-  additional_evidence: string[];
-  ai_model: string | null;
-  ai_generated_at: string | null;
   created_at: string;
   updated_at: string;
   context?: WorkJournalContext | null;
@@ -752,41 +730,13 @@ export async function deleteInterviewQuestion(
 // ---------------------------------------------------------------------------
 
 const WORK_JOURNAL_ENTRY_SELECT = "*, context:work_journal_contexts(*)";
-const WORK_JOURNAL_HIGHLIGHT_SELECT = "*, context:work_journal_contexts(*)";
 
 const contextKey = (type: WorkJournalContextType, name: string) =>
   `${type}:${name.trim().toLowerCase().replace(/\s+/g, " ")}`;
 
-function jsonStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
-}
-
 function normalizeWorkJournalEntry(row: Record<string, unknown>): WorkJournalEntry {
   return {
     ...(row as unknown as WorkJournalEntry),
-    context:
-      ((row.context ?? row.work_journal_contexts ?? null) as
-        | WorkJournalContext
-        | null) ?? null,
-  };
-}
-
-function normalizeWorkJournalHighlight(
-  row: Record<string, unknown>
-): WorkJournalHighlight {
-  return {
-    ...(row as unknown as WorkJournalHighlight),
-    source_entry_ids: Array.isArray(row.source_entry_ids)
-      ? (row.source_entry_ids as string[])
-      : [],
-    candidate_bullets: jsonStringArray(row.candidate_bullets),
-    detected_topics: Array.isArray(row.detected_topics)
-      ? (row.detected_topics as string[])
-      : [],
-    follow_up_questions: jsonStringArray(row.follow_up_questions),
-    additional_evidence: jsonStringArray(row.additional_evidence),
     context:
       ((row.context ?? row.work_journal_contexts ?? null) as
         | WorkJournalContext
@@ -897,35 +847,16 @@ export async function ensureDefaultWorkJournalContext(
   const active = contexts.filter((context) => context.status === "active");
   const activeIds = new Set(active.map((context) => context.id));
 
-  const [{ data: latestEntry }, { data: latestHighlight }] = await Promise.all([
-    supabase
-      .from("work_journal_entries")
-      .select("context_id, updated_at")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("work_journal_highlights")
-      .select("context_id, updated_at")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const { data: latestEntry } = await supabase
+    .from("work_journal_entries")
+    .select("context_id, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  const latestEntryTime =
-    typeof latestEntry?.updated_at === "string"
-      ? new Date(latestEntry.updated_at).getTime()
-      : 0;
-  const latestHighlightTime =
-    typeof latestHighlight?.updated_at === "string"
-      ? new Date(latestHighlight.updated_at).getTime()
-      : 0;
   const latestContextId =
-    latestEntryTime >= latestHighlightTime
-      ? ((latestEntry?.context_id as string | undefined) ?? null)
-      : ((latestHighlight?.context_id as string | undefined) ?? null);
+    (latestEntry?.context_id as string | undefined) ?? null;
 
   if (latestContextId && activeIds.has(latestContextId)) {
     const latestContext = active.find((context) => context.id === latestContextId);
@@ -1153,99 +1084,6 @@ export async function deleteWorkJournalEntry(
 ): Promise<boolean> {
   const { error, count } = await supabase
     .from("work_journal_entries")
-    .delete({ count: "exact" })
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return (count ?? 0) > 0;
-}
-
-export interface ListWorkJournalHighlightsFilters {
-  contextId?: string | null;
-  status?: WorkJournalHighlightStatus | "all" | null;
-}
-
-export async function listWorkJournalHighlights(
-  supabase: SupabaseClient,
-  userId: string,
-  filters: ListWorkJournalHighlightsFilters = {}
-): Promise<WorkJournalHighlight[]> {
-  let query = supabase
-    .from("work_journal_highlights")
-    .select(WORK_JOURNAL_HIGHLIGHT_SELECT)
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
-
-  if (filters.contextId) query = query.eq("context_id", filters.contextId);
-  if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []).map((row) =>
-    normalizeWorkJournalHighlight(row as Record<string, unknown>)
-  );
-}
-
-export async function createWorkJournalHighlight(
-  supabase: SupabaseClient,
-  data: Omit<WorkJournalHighlight, "id" | "created_at" | "updated_at" | "context">
-): Promise<WorkJournalHighlight> {
-  const { data: highlight, error } = await supabase
-    .from("work_journal_highlights")
-    .insert(data)
-    .select(WORK_JOURNAL_HIGHLIGHT_SELECT)
-    .single();
-
-  if (error) throw error;
-  return normalizeWorkJournalHighlight(highlight as Record<string, unknown>);
-}
-
-export async function updateWorkJournalHighlight(
-  supabase: SupabaseClient,
-  id: string,
-  userId: string,
-  data: Partial<
-    Pick<
-      WorkJournalHighlight,
-      | "title"
-      | "summary"
-      | "date_start"
-      | "date_end"
-      | "status"
-      | "source_entry_ids"
-      | "candidate_bullets"
-      | "detected_topics"
-      | "follow_up_questions"
-      | "additional_evidence"
-      | "ai_model"
-      | "ai_generated_at"
-    >
-  >
-): Promise<WorkJournalHighlight | null> {
-  const { data: highlight, error } = await supabase
-    .from("work_journal_highlights")
-    .update(data)
-    .eq("id", id)
-    .eq("user_id", userId)
-    .select(WORK_JOURNAL_HIGHLIGHT_SELECT)
-    .maybeSingle();
-
-  if (error) throw error;
-  return highlight
-    ? normalizeWorkJournalHighlight(highlight as Record<string, unknown>)
-    : null;
-}
-
-export async function deleteWorkJournalHighlight(
-  supabase: SupabaseClient,
-  id: string,
-  userId: string
-): Promise<boolean> {
-  const { error, count } = await supabase
-    .from("work_journal_highlights")
     .delete({ count: "exact" })
     .eq("id", id)
     .eq("user_id", userId);
