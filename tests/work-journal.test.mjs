@@ -58,6 +58,8 @@ test("work journal DB helpers expose contexts, suggestions, entries, and highlig
   assert.match(db, /\.from\("work_journal_contexts"\)/);
   assert.match(db, /\.from\("work_journal_entries"\)/);
   assert.match(db, /\.from\("work_journal_highlights"\)/);
+  assert.match(db, /select\("context_id, updated_at"\)/);
+  assert.match(db, /latestContextId/);
   assert.match(db, /profile\.experience/);
   assert.match(db, /profile\.projects/);
 });
@@ -94,9 +96,11 @@ test("work journal routes and UI are wired into the app", () => {
   assert.match(view, /Redactar preview/);
   assert.match(view, /Generar highlights/);
   assert.match(view, /Sugeridos desde tus CVs/);
+  assert.match(view, /is_default: true/);
   assert.match(contextsRoute, /ensureDefaultWorkJournalContext/);
   assert.match(entriesRoute, /createWorkJournalEntry/);
+  assert.match(entriesRoute, /updateWorkJournalContext/);
   assert.match(draftRoute, /draftWorkJournalEntry/);
   assert.match(generateRoute, /generateWorkJournalHighlights/);
+  assert.match(generateRoute, /updateWorkJournalContext/);
 });
-

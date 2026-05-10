@@ -895,6 +895,48 @@ export async function ensureDefaultWorkJournalContext(
 ): Promise<WorkJournalContext | null> {
   const contexts = await listWorkJournalContexts(supabase, userId);
   const active = contexts.filter((context) => context.status === "active");
+  const activeIds = new Set(active.map((context) => context.id));
+
+  const [{ data: latestEntry }, { data: latestHighlight }] = await Promise.all([
+    supabase
+      .from("work_journal_entries")
+      .select("context_id, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("work_journal_highlights")
+      .select("context_id, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const latestEntryTime =
+    typeof latestEntry?.updated_at === "string"
+      ? new Date(latestEntry.updated_at).getTime()
+      : 0;
+  const latestHighlightTime =
+    typeof latestHighlight?.updated_at === "string"
+      ? new Date(latestHighlight.updated_at).getTime()
+      : 0;
+  const latestContextId =
+    latestEntryTime >= latestHighlightTime
+      ? ((latestEntry?.context_id as string | undefined) ?? null)
+      : ((latestHighlight?.context_id as string | undefined) ?? null);
+
+  if (latestContextId && activeIds.has(latestContextId)) {
+    const latestContext = active.find((context) => context.id === latestContextId);
+    if (latestContext && !latestContext.is_default) {
+      return updateWorkJournalContext(supabase, latestContext.id, userId, {
+        is_default: true,
+      });
+    }
+    if (latestContext) return latestContext;
+  }
+
   const currentDefault = active.find((context) => context.is_default);
   if (currentDefault) return currentDefault;
   if (active[0]) return active[0];

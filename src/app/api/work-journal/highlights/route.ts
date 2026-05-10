@@ -3,6 +3,7 @@ import {
   createWorkJournalHighlight,
   getWorkJournalContext,
   listWorkJournalHighlights,
+  updateWorkJournalContext,
 } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest) {
     }
     const context = await getWorkJournalContext(supabase, context_id, user.id);
     if (!context) return NextResponse.json({ error: "Context not found" }, { status: 404 });
+    await updateWorkJournalContext(supabase, context_id, user.id, {
+      is_default: true,
+    });
 
     const highlight = await createWorkJournalHighlight(supabase, {
       user_id: user.id,
@@ -78,4 +82,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
-

@@ -4,6 +4,7 @@ import {
   getWorkJournalContext,
   listWorkJournalEntries,
   listWorkJournalHighlights,
+  updateWorkJournalContext,
   updateWorkJournalHighlight,
 } from "@/lib/db";
 import { generateWorkJournalHighlights } from "@/lib/ai-work-journal";
@@ -41,6 +42,9 @@ export async function POST(req: NextRequest) {
 
     const context = await getWorkJournalContext(supabase, contextId, user.id);
     if (!context) return NextResponse.json({ error: "Context not found" }, { status: 404 });
+    await updateWorkJournalContext(supabase, contextId, user.id, {
+      is_default: true,
+    });
 
     const [entries, existingHighlights] = await Promise.all([
       listWorkJournalEntries(supabase, user.id, {
@@ -126,4 +130,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
-

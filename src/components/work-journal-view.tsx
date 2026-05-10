@@ -152,7 +152,7 @@ export default function WorkJournalView({
     const res = await fetch("/api/work-journal/contexts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, name, is_default: activeContexts.length === 0 }),
+      body: JSON.stringify({ type, name, is_default: true }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -168,7 +168,7 @@ export default function WorkJournalView({
     const res = await fetch("/api/work-journal/contexts/suggestions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...suggestion, action: "promote" }),
+      body: JSON.stringify({ ...suggestion, action: "promote", is_default: true }),
     });
     const data = await res.json();
     if (!res.ok) {

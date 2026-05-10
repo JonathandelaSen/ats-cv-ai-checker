@@ -3,6 +3,7 @@ import {
   createWorkJournalEntry,
   getWorkJournalContext,
   listWorkJournalEntries,
+  updateWorkJournalContext,
 } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest) {
     if (!context || context.status !== "active") {
       return NextResponse.json({ error: "Context not found" }, { status: 404 });
     }
+    await updateWorkJournalContext(supabase, context_id, user.id, {
+      is_default: true,
+    });
 
     const entry = await createWorkJournalEntry(supabase, {
       user_id: user.id,
