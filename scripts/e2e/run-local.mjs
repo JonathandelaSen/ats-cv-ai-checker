@@ -1,0 +1,409 @@
+import { createWriteStream } from "node:fs";
+import {
+  cp,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import http from "node:http";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const rootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../.."
+);
+const e2eDir = path.join(rootDir, ".e2e");
+const logsDir = path.join(e2eDir, "logs");
+const appWorkdir = path.join(e2eDir, "app-workdir");
+const supabaseProjectRoot = path.join(e2eDir, "supabase-workdir");
+const supabaseDir = path.join(supabaseProjectRoot, "supabase");
+const envJsonPath = path.join(e2eDir, "env.json");
+const projectId = "ats-cv-ai-checker-e2e";
+const parserContainerName = "ats-cv-ai-checker-pdf-parser-e2e";
+const parserImageName = "ats-cv-ai-checker-pdf-parser:e2e";
+const parserSecret = "e2e-parser-secret";
+
+const ports = {
+  app: 3100,
+  parser: 8101,
+  api: 56431,
+  db: 56432,
+  shadow: 56430,
+  pooler: 56429,
+  studio: 56433,
+  mailpit: 56434,
+  analytics: 56427,
+  edgeInspector: 56483,
+};
+
+const args = new Set(process.argv.slice(2));
+const isUi = args.has("--ui");
+const keepStack = args.has("--keep-stack");
+
+const children = new Set();
+
+function logPath(name) {
+  return path.join(logsDir, `${name}.log`);
+}
+
+function run(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd ?? rootDir,
+      env: { ...process.env, ...(options.env ?? {}) },
+      stdio: options.stdio ?? "pipe",
+      shell: false,
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    if (options.logName) {
+      const logStream = createWriteStream(logPath(options.logName), {
+        flags: "a",
+      });
+      child.stdout?.pipe(logStream, { end: false });
+      child.stderr?.pipe(logStream, { end: false });
+      child.on("close", () => logStream.end());
+    }
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += chunk.toString();
+      if (options.pipeOutput) process.stdout.write(chunk);
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+      if (options.pipeOutput) process.stderr.write(chunk);
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0 || options.allowFailure) {
+        resolve({ stdout, stderr, code });
+        return;
+      }
+      const error = new Error(
+        `${command} ${args.join(" ")} failed with exit code ${code}`
+      );
+      error.stdout = stdout;
+      error.stderr = stderr;
+      reject(error);
+    });
+  });
+}
+
+function spawnManaged(command, args, options = {}) {
+  const child = spawn(command, args, {
+    cwd: options.cwd ?? rootDir,
+    env: { ...process.env, ...(options.env ?? {}) },
+    stdio: "pipe",
+    shell: false,
+  });
+  children.add(child);
+
+  if (options.logName) {
+    const logStream = createWriteStream(logPath(options.logName), {
+      flags: "a",
+    });
+    child.stdout.pipe(logStream, { end: false });
+    child.stderr.pipe(logStream, { end: false });
+    child.on("close", () => logStream.end());
+  }
+
+  child.on("close", () => children.delete(child));
+  child.on("error", (error) => {
+    console.error(`[e2e] ${command} failed to start:`, error);
+  });
+  return child;
+}
+
+async function waitForHttp(url, label, timeoutMs = 120_000, processToWatch) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (processToWatch && processToWatch.exitCode !== null) {
+      throw new Error(`${label} process exited before ${url} was ready.`);
+    }
+    if (await canReach(url)) return;
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  throw new Error(`Timed out waiting for ${label} at ${url}`);
+}
+
+function canReach(url) {
+  return new Promise((resolve) => {
+    const request = http.get(url, (response) => {
+      response.resume();
+      resolve(response.statusCode !== undefined && response.statusCode < 500);
+    });
+    request.on("error", () => resolve(false));
+    request.setTimeout(2_000, () => {
+      request.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function prepareSupabaseWorkdir() {
+  await rm(supabaseProjectRoot, { recursive: true, force: true });
+  await mkdir(supabaseDir, { recursive: true });
+  await cp(path.join(rootDir, "supabase", "migrations"), path.join(supabaseDir, "migrations"), {
+    recursive: true,
+  });
+  await cp(path.join(rootDir, "supabase", "templates"), path.join(supabaseDir, "templates"), {
+    recursive: true,
+  });
+
+  const sourceConfig = await readFile(
+    path.join(rootDir, "supabase", "config.toml"),
+    "utf8"
+  );
+  const config = sourceConfig
+    .replace(/project_id = ".*?"/, `project_id = "${projectId}"`)
+    .replace(/port = 55431/, `port = ${ports.api}`)
+    .replace(/port = 55432/, `port = ${ports.db}`)
+    .replace(/shadow_port = 55430/, `shadow_port = ${ports.shadow}`)
+    .replace(/port = 55429/, `port = ${ports.pooler}`)
+    .replace(/port = 55433/, `port = ${ports.studio}`)
+    .replace(/port = 55434/, `port = ${ports.mailpit}`)
+    .replace(/inspector_port = 55483/, `inspector_port = ${ports.edgeInspector}`)
+    .replace(/port = 55427/, `port = ${ports.analytics}`)
+    .replace(
+      /additional_redirect_urls = \[.*?\]/s,
+      `additional_redirect_urls = ["http://127.0.0.1:${ports.app}/auth/callback**", "http://localhost:${ports.app}/auth/callback**"]`
+    )
+    .replace(/enabled = true\n# Specifies an ordered list of seed files/s, "enabled = false\n# Specifies an ordered list of seed files");
+
+  await writeFile(path.join(supabaseDir, "config.toml"), config);
+}
+
+async function symlinkFromRoot(relativePath, type) {
+  await symlink(
+    path.join(rootDir, relativePath),
+    path.join(appWorkdir, relativePath),
+    type
+  );
+}
+
+async function prepareAppWorkdir() {
+  await rm(appWorkdir, { recursive: true, force: true });
+  await mkdir(appWorkdir, { recursive: true });
+
+  await cp(path.join(rootDir, "src"), path.join(appWorkdir, "src"), {
+    recursive: true,
+  });
+  await cp(path.join(rootDir, "public"), path.join(appWorkdir, "public"), {
+    recursive: true,
+  });
+  await symlinkFromRoot("node_modules", "dir");
+
+  for (const file of [
+    "package.json",
+    "package-lock.json",
+    "next.config.ts",
+    "tsconfig.json",
+    "postcss.config.mjs",
+    "components.json",
+  ]) {
+    await cp(path.join(rootDir, file), path.join(appWorkdir, file));
+  }
+}
+
+function parseSupabaseEnv(output) {
+  const env = {};
+  for (const line of output.split(/\r?\n/)) {
+    const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (match) env[match[1]] = match[2].trim().replace(/^"|"$/g, "");
+  }
+
+  return {
+    supabaseUrl: env.API_URL ?? `http://127.0.0.1:${ports.api}`,
+    anonKey: env.ANON_KEY,
+    serviceRoleKey: env.SERVICE_ROLE_KEY,
+    dbUrl: env.DB_URL,
+    mailpitUrl: env.INBUCKET_URL ?? `http://127.0.0.1:${ports.mailpit}`,
+  };
+}
+
+async function startSupabase() {
+  await run("npx", [
+    "supabase",
+    "stop",
+    "--workdir",
+    supabaseProjectRoot,
+    "--project-id",
+    projectId,
+    "--no-backup",
+  ], { allowFailure: true, logName: "supabase-stop" });
+
+  await run("npx", [
+    "supabase",
+    "start",
+    "--workdir",
+    supabaseProjectRoot,
+  ], { pipeOutput: true, logName: "supabase-start" });
+
+  const { stdout } = await run("npx", [
+    "supabase",
+    "status",
+    "--workdir",
+    supabaseProjectRoot,
+    "-o",
+    "env",
+  ], { logName: "supabase-status" });
+  const env = parseSupabaseEnv(stdout);
+  if (!env.anonKey || !env.serviceRoleKey) {
+    throw new Error("Could not read Supabase E2E anon/service-role keys.");
+  }
+  return env;
+}
+
+async function startParser(supabaseEnv) {
+  await run("docker", ["rm", "-f", parserContainerName], {
+    allowFailure: true,
+    logName: "parser-rm",
+  });
+  await run("docker", [
+    "build",
+    "-t",
+    parserImageName,
+    path.join(rootDir, "services", "pdf-parser"),
+  ], { pipeOutput: true, logName: "parser-build" });
+  await run("docker", [
+    "run",
+    "-d",
+    "--name",
+    parserContainerName,
+    "--add-host=host.docker.internal:host-gateway",
+    "-p",
+    `${ports.parser}:8001`,
+    "-e",
+    `PYTHON_PARSER_SECRET=${parserSecret}`,
+    "-e",
+    `SUPABASE_URL=http://host.docker.internal:${ports.api}`,
+    "-e",
+    `SUPABASE_SERVICE_ROLE_KEY=${supabaseEnv.serviceRoleKey}`,
+    parserImageName,
+  ], { pipeOutput: true, logName: "parser-run" });
+  await waitForHttp(`http://127.0.0.1:${ports.parser}/docs`, "PDF parser");
+}
+
+async function startNext(supabaseEnv) {
+  const appEnv = {
+    NEXT_PUBLIC_SUPABASE_URL: supabaseEnv.supabaseUrl,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: supabaseEnv.anonKey,
+    SUPABASE_SERVICE_ROLE_KEY: supabaseEnv.serviceRoleKey,
+    PYTHON_PARSER_URL: `http://127.0.0.1:${ports.parser}`,
+    PYTHON_PARSER_SECRET: parserSecret,
+    PYTHON_PARSER_TIMEOUT_MS: "15000",
+    GEMINI_API_KEY: "",
+  };
+  const child = spawnManaged("npm", [
+    "run",
+    "dev",
+    "--",
+    "--hostname",
+    "127.0.0.1",
+    "--port",
+    String(ports.app),
+  ], { cwd: appWorkdir, env: appEnv, logName: "next-dev" });
+  await waitForHttp(
+    `http://127.0.0.1:${ports.app}/login`,
+    "Next.js app",
+    120_000,
+    child
+  );
+}
+
+async function writeE2EEnv(supabaseEnv) {
+  await writeFile(
+    envJsonPath,
+    JSON.stringify(
+      {
+        baseUrl: `http://127.0.0.1:${ports.app}`,
+        parserUrl: `http://127.0.0.1:${ports.parser}`,
+        supabaseUrl: supabaseEnv.supabaseUrl,
+        anonKey: supabaseEnv.anonKey,
+        serviceRoleKey: supabaseEnv.serviceRoleKey,
+        dbUrl: supabaseEnv.dbUrl,
+        mailpitUrl: supabaseEnv.mailpitUrl,
+      },
+      null,
+      2
+    )
+  );
+}
+
+async function stopManagedProcesses() {
+  for (const child of children) {
+    child.kill("SIGTERM");
+  }
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+  for (const child of children) {
+    if (!child.killed) child.kill("SIGKILL");
+  }
+}
+
+async function cleanup() {
+  await stopManagedProcesses();
+  await run("docker", ["rm", "-f", parserContainerName], {
+    allowFailure: true,
+    logName: "parser-cleanup",
+  });
+  if (!keepStack) {
+    await run("npx", [
+      "supabase",
+      "stop",
+      "--workdir",
+      supabaseProjectRoot,
+      "--project-id",
+      projectId,
+      "--no-backup",
+    ], { allowFailure: true, logName: "supabase-cleanup" });
+  }
+}
+
+async function main() {
+  await mkdir(logsDir, { recursive: true });
+  await prepareSupabaseWorkdir();
+  await prepareAppWorkdir();
+  const supabaseEnv = await startSupabase();
+  await startParser(supabaseEnv);
+  await startNext(supabaseEnv);
+  await writeE2EEnv(supabaseEnv);
+
+  await run("npx", ["playwright", "install", "chromium"], {
+    pipeOutput: true,
+    logName: "playwright-install",
+  });
+
+  const playwrightArgs = ["playwright", "test"];
+  if (isUi) playwrightArgs.push("--ui");
+  await run("npx", playwrightArgs, {
+    pipeOutput: true,
+    env: {
+      E2E_BASE_URL: `http://127.0.0.1:${ports.app}`,
+    },
+    logName: "playwright",
+  });
+}
+
+process.on("SIGINT", async () => {
+  await cleanup();
+  process.exit(130);
+});
+process.on("SIGTERM", async () => {
+  await cleanup();
+  process.exit(143);
+});
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await cleanup();
+  });

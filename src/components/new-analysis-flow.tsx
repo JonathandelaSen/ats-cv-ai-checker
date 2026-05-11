@@ -158,6 +158,7 @@ export default function NewAnalysisFlow({
           <button
             type="button"
             onClick={() => setSource("upload")}
+            data-testid="new-analysis-upload-source"
             className={`rounded-xl border p-5 text-left transition-all ${
               source === "upload"
                 ? "border-emerald-500/40 bg-emerald-500/10 text-zinc-100"
@@ -230,6 +231,7 @@ export default function NewAnalysisFlow({
                 ref={fileInputRef}
                 type="file"
                 accept="application/pdf"
+                data-testid="new-analysis-file-input"
                 className="hidden"
                 onChange={(event) => {
                   const nextFile = event.target.files?.[0];
@@ -286,6 +288,7 @@ export default function NewAnalysisFlow({
           type="button"
           onClick={handleSubmit}
           disabled={loading}
+          data-testid="new-analysis-submit"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4 text-sm font-semibold text-white shadow-xl shadow-indigo-900/30 transition-all hover:from-indigo-500 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
