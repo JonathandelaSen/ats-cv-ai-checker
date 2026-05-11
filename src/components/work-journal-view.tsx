@@ -21,10 +21,10 @@ import {
 import type {
   WorkJournalContext,
   WorkJournalContextSuggestion,
-  WorkJournalContextType,
+  ContextType as WorkJournalContextType,
   WorkJournalEntry,
-  WorkJournalEntryInputMode,
-} from "@/lib/db";
+  EntryInputMode as WorkJournalEntryInputMode,
+} from "@/modules/work-journal";
 import { getErrorMessage } from "@/lib/errors";
 
 interface WorkJournalViewProps {

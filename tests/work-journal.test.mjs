@@ -34,28 +34,28 @@ test("work journal migration creates private owned journal tables", () => {
   assert.doesNotMatch(migration, /work_journal_highlights/);
 });
 
-test("work journal DB helpers expose contexts, suggestions, and entries", () => {
-  const db = read("src/lib/db.ts");
+test("work journal module exposes domain entities, repositories, and use cases", () => {
+  const barrel = read("src/modules/work-journal/index.ts");
+  assert.match(barrel, /createWorkJournalModule/);
+  assert.match(barrel, /WorkJournalContext/);
+  assert.match(barrel, /WorkJournalEntry/);
+  assert.match(barrel, /ContextNotFoundError/);
+  assert.match(barrel, /EntryNotFoundError/);
 
-  for (const name of [
-    "WorkJournalContext",
-    "WorkJournalEntry",
-    "suggestWorkJournalContextsFromCVs",
-    "ensureDefaultWorkJournalContext",
-    "listWorkJournalEntries",
-    "createWorkJournalEntry",
-    "updateWorkJournalEntry",
-  ]) {
-    assert.match(db, new RegExp(name));
-  }
-  assert.match(db, /\.from\("work_journal_contexts"\)/);
-  assert.match(db, /\.from\("work_journal_entries"\)/);
-  assert.doesNotMatch(db, /work_journal_highlights/);
-  assert.doesNotMatch(db, /WorkJournalHighlight/);
-  assert.match(db, /select\("context_id, updated_at"\)/);
-  assert.match(db, /latestContextId/);
-  assert.match(db, /profile\.experience/);
-  assert.match(db, /profile\.projects/);
+  const contextRepo = read("src/modules/work-journal/infrastructure/repositories/supabase-work-journal-context.repository.ts");
+  assert.match(contextRepo, /\.from\("work_journal_contexts"\)/);
+  assert.match(contextRepo, /findLatestEntryContextId/);
+
+  const entryRepo = read("src/modules/work-journal/infrastructure/repositories/supabase-work-journal-entry.repository.ts");
+  assert.match(entryRepo, /\.from\("work_journal_entries"\)/);
+
+  const suggestService = read("src/modules/work-journal/domain/services/suggest-contexts.service.ts");
+  assert.match(suggestService, /suggestWorkJournalContextsFromCVs/);
+  assert.match(suggestService, /profile\.experience/);
+  assert.match(suggestService, /profile\.projects/);
+
+  const ensureUC = read("src/modules/work-journal/application/use-cases/ensure-default-context.use-case.ts");
+  assert.match(ensureUC, /EnsureDefaultContextUseCase/);
 });
 
 test("work journal AI prompts and controllers are separated and documented", () => {
@@ -73,7 +73,7 @@ test("work journal AI prompts and controllers are separated and documented", () 
   assert.match(docs, /src\/lib\/ai-work-journal-prompts\.ts/);
 });
 
-test("work journal routes and UI are wired into the app", () => {
+test("work journal routes use the hexagonal module and UI is wired into the app", () => {
   const appShell = read("src/components/app-shell.tsx");
   const sidebar = read("src/components/sidebar.tsx");
   const view = read("src/components/work-journal-view.tsx");
@@ -84,16 +84,15 @@ test("work journal routes and UI are wired into the app", () => {
   assert.match(appShell, /WorkJournalView/);
   assert.match(appShell, /view=journal/);
   assert.match(sidebar, /Diario/);
-  assert.match(view, /Escribir tal cual/);
-  assert.match(view, /Ayudame a redactarlo/);
-  assert.match(view, /Redactar preview/);
+  assert.match(view, /Escritura libre/);
+  assert.match(view, /Redacción con IA/);
   assert.doesNotMatch(view, /highlight/i);
   assert.match(view, /Sugeridos desde tus CVs/);
   assert.match(view, /is_default: true/);
-  assert.match(contextsRoute, /ensureDefaultWorkJournalContext/);
-  assert.match(entriesRoute, /createWorkJournalEntry/);
-  assert.match(entriesRoute, /updateWorkJournalContext/);
-  assert.match(draftRoute, /draftWorkJournalEntry/);
+  assert.match(contextsRoute, /createWorkJournalModule/);
+  assert.match(contextsRoute, /ensureDefaultContext/);
+  assert.match(entriesRoute, /createEntry/);
+  assert.match(draftRoute, /createDraftEntryUseCase/);
 });
 
 test("work journal highlight routes are removed", () => {
@@ -101,4 +100,14 @@ test("work journal highlight routes are removed", () => {
     recursive: true,
   }).map(String);
   assert.ok(!files.some((file) => file.includes("highlights")));
+});
+
+test("db.ts no longer contains work journal code", () => {
+  const db = read("src/lib/db.ts");
+  assert.doesNotMatch(db, /WorkJournalContext\b/);
+  assert.doesNotMatch(db, /WorkJournalEntry\b/);
+  assert.doesNotMatch(db, /suggestWorkJournalContextsFromCVs/);
+  assert.doesNotMatch(db, /ensureDefaultWorkJournalContext/);
+  assert.doesNotMatch(db, /listWorkJournalEntries/);
+  assert.doesNotMatch(db, /createWorkJournalEntry/);
 });

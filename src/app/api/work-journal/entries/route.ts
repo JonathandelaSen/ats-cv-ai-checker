@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createWorkJournalEntry,
-  getWorkJournalContext,
-  listWorkJournalEntries,
-  updateWorkJournalContext,
-} from "@/lib/db";
-import { getErrorMessage } from "@/lib/errors";
+import { createWorkJournalModule } from "@/modules/work-journal";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeInputMode,
@@ -20,8 +15,11 @@ export async function GET(req: NextRequest) {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+
     const params = req.nextUrl.searchParams;
-    const entries = await listWorkJournalEntries(supabase, user.id, {
+    const entries = await mod.listEntries.execute(user.id, {
       contextId: params.get("contextId"),
       search: params.get("q"),
       topic: params.get("topic"),
@@ -30,7 +28,7 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(entries);
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
 
@@ -52,15 +50,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid entry payload" }, { status: 400 });
     }
 
-    const context = await getWorkJournalContext(supabase, context_id, user.id);
-    if (!context || context.status !== "active") {
-      return NextResponse.json({ error: "Context not found" }, { status: 404 });
-    }
-    await updateWorkJournalContext(supabase, context_id, user.id, {
-      is_default: true,
-    });
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
 
-    const entry = await createWorkJournalEntry(supabase, {
+    const entry = await mod.createEntry.execute({
       user_id: user.id,
       context_id,
       date_start,
@@ -73,6 +66,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(entry, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }

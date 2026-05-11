@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateWorkJournalContext } from "@/lib/db";
-import { getErrorMessage } from "@/lib/errors";
+import { createWorkJournalModule } from "@/modules/work-journal";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeOptionalText, normalizeRequiredText } from "../../validation";
 
 export async function PATCH(
@@ -12,7 +12,8 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
     const body = (await req.json()) as Record<string, unknown>;
-    const updates: Parameters<typeof updateWorkJournalContext>[3] = {};
+
+    const updates: Record<string, unknown> = {};
 
     if (body.name !== undefined) {
       const name = normalizeRequiredText(body.name);
@@ -32,11 +33,11 @@ export async function PATCH(
     }
     if (body.is_default !== undefined) updates.is_default = Boolean(body.is_default);
 
-    const context = await updateWorkJournalContext(supabase, id, user.id, updates);
-    if (!context) return NextResponse.json({ error: "Context not found" }, { status: 404 });
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+    const context = await mod.updateContext.execute(id, user.id, updates);
     return NextResponse.json(context);
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
-

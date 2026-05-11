@@ -1,9 +1,9 @@
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type {
-  WorkJournalContextType,
-  WorkJournalEntryInputMode,
-} from "@/lib/db";
+  ContextType as WorkJournalContextType,
+  EntryInputMode as WorkJournalEntryInputMode,
+} from "@/modules/work-journal";
 
 export async function getAuthedSupabase(): Promise<{
   supabase: Awaited<ReturnType<typeof createClient>>;

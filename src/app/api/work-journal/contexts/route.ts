@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createWorkJournalContext,
-  ensureDefaultWorkJournalContext,
-  listWorkJournalContexts,
-  listWorkJournalContextSuggestions,
-} from "@/lib/db";
-import { getErrorMessage } from "@/lib/errors";
+import { createWorkJournalModule } from "@/modules/work-journal";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeContextType,
@@ -18,15 +13,18 @@ export async function GET() {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await ensureDefaultWorkJournalContext(supabase, user.id);
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+
+    await mod.ensureDefaultContext.execute(user.id);
     const [contexts, suggestions] = await Promise.all([
-      listWorkJournalContexts(supabase, user.id),
-      listWorkJournalContextSuggestions(supabase, user.id),
+      mod.listContexts.execute(user.id),
+      mod.listContextSuggestions.execute(user.id),
     ]);
 
     return NextResponse.json({ contexts, suggestions });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
 
@@ -45,7 +43,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid context payload" }, { status: 400 });
     }
 
-    const context = await createWorkJournalContext(supabase, {
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+
+    const context = await mod.createContext.execute({
       user_id: user.id,
       type,
       name,
@@ -56,6 +57,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(context, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }

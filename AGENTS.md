@@ -31,3 +31,54 @@ We will use shadcn/ui whenever there is a useful component in the library. We wi
 ## Observability
 
 All new or edited actions that occur on the platform and have backend interaction must be added to observability.
+
+## Hexagonal architecture (DDD modules)
+
+The backend is being migrated progressively from `src/lib/db.ts` to hexagonal architecture under `src/modules/`. **Work Journal** is the first migrated module and serves as the reference pattern for future modules.
+
+### Module structure
+
+```
+src/modules/
+  shared/                              ← Cross-module infrastructure
+    domain/repositories/               ← Interfaces (EventTracker)
+    infrastructure/repositories/       ← Implementations (SupabaseEventTracker)
+    infrastructure/http/               ← HTTP helpers (handleDomainError)
+  <module-name>/
+    domain/
+      entities/                        ← Type definitions (interfaces, type aliases)
+      repositories/                    ← Port interfaces (repository + service contracts)
+      services/                        ← Pure domain logic (no I/O)
+      errors/                          ← Domain-specific error classes extending Error
+    application/
+      use-cases/                       ← One class per use case, receives deps via constructor
+    infrastructure/
+      repositories/                    ← Supabase implementations of domain ports
+      services/                        ← External service implementations (AI, etc.)
+    <module-name>.module.ts            ← Composition root / factory function
+    index.ts                           ← Barrel file exporting public API
+```
+
+### Key conventions
+
+- **Entities use snake_case fields** matching the DB schema — no camelCase mappers.
+- **Use cases** receive dependencies via constructor injection (`{ repo, tracker, ... }`).
+- **Route handlers** create the module via `createWorkJournalModule(supabase, tracker)` and call use case `.execute()`. HTTP validation (`normalize*` functions) stays in the route handlers.
+- **Domain errors** are caught by `handleDomainError()` which maps them to HTTP status codes.
+- **AI prompts** stay in `src/lib/ai-*-prompts.ts` — the infrastructure service imports them.
+- **Cross-module dependencies** use minimal port interfaces (e.g., `CVDataRepository` exposes only what the consuming module needs).
+- **`getAuthedSupabase()`** and `validation.ts` helpers stay in the route handler layer, not in the module.
+
+### When adding features to a migrated module
+
+1. Add the domain type/error if needed.
+2. Extend the repository interface if the use case needs new data access.
+3. Implement the repository method in the Supabase infrastructure class.
+4. Create a new use case class.
+5. Wire it in the module factory (`<module>.module.ts`).
+6. Call it from the route handler via `mod.<useCase>.execute(...)`.
+7. Record observability events via the `EventTracker` in the use case.
+
+### When migrating a new module
+
+Follow the Work Journal migration as a template. Create all new files first (steps 1-7 are zero-risk), then switchover route handlers in a single step, then clean up `db.ts`. Each step should be a separate commit.

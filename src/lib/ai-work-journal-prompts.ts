@@ -1,4 +1,4 @@
-import type { WorkJournalContext } from "@/lib/db";
+import type { WorkJournalContext } from "@/modules/work-journal";
 
 export const WORK_JOURNAL_ENTRY_SYSTEM_PROMPT = `
 You help users keep a private work journal.

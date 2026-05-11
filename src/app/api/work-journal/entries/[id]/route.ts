@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteWorkJournalEntry,
-  getWorkJournalContext,
-  updateWorkJournalEntry,
-} from "@/lib/db";
-import { getErrorMessage } from "@/lib/errors";
+import { createWorkJournalModule } from "@/modules/work-journal";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeInputMode,
@@ -23,13 +19,11 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
     const body = (await req.json()) as Record<string, unknown>;
-    const updates: Parameters<typeof updateWorkJournalEntry>[3] = {};
+    const updates: Record<string, unknown> = {};
 
     if (body.context_id !== undefined) {
       const contextId = normalizeRequiredText(body.context_id);
       if (!contextId) return NextResponse.json({ error: "Context is required" }, { status: 400 });
-      const context = await getWorkJournalContext(supabase, contextId, user.id);
-      if (!context) return NextResponse.json({ error: "Context not found" }, { status: 404 });
       updates.context_id = contextId;
     }
     if (body.date_start !== undefined) {
@@ -63,11 +57,12 @@ export async function PATCH(
       updates.final_text = text;
     }
 
-    const entry = await updateWorkJournalEntry(supabase, id, user.id, updates);
-    if (!entry) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+    const entry = await mod.updateEntry.execute(id, user.id, updates);
     return NextResponse.json(entry);
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
 
@@ -79,11 +74,12 @@ export async function DELETE(
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
-    const deleted = await deleteWorkJournalEntry(supabase, id, user.id);
-    if (!deleted) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+    await mod.deleteEntry.execute(id, user.id);
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
-

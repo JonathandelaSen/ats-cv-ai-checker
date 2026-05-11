@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkJournalContext } from "@/lib/db";
-import { draftWorkJournalEntry } from "@/lib/ai-work-journal";
-import { getErrorMessage } from "@/lib/errors";
+import { createWorkJournalModule } from "@/modules/work-journal";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeOptionalDate,
@@ -36,13 +35,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid draft payload" }, { status: 400 });
     }
 
-    const context = await getWorkJournalContext(supabase, contextId, user.id);
-    if (!context) return NextResponse.json({ error: "Context not found" }, { status: 404 });
+    const tracker = new SupabaseEventTracker();
+    const mod = createWorkJournalModule(supabase, tracker);
+    const draftUseCase = mod.createDraftEntryUseCase({ apiKey: geminiApiKey, model });
 
-    const finalText = await draftWorkJournalEntry({
-      apiKey: geminiApiKey,
-      model,
-      context,
+    const finalText = await draftUseCase.execute(user.id, contextId, {
       dateStart,
       dateEnd,
       topic,
@@ -51,7 +48,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ final_text: finalText });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleDomainError(error);
   }
 }
-
