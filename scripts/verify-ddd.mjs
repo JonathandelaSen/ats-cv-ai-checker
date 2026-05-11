@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 const checks = [
   ["node", ["scripts/verify-ddd-tests.mjs"]],
   ["node", ["scripts/verify-ddd-imports.mjs"]],
+  ["node", ["scripts/verify-ddd-entities.mjs"]],
 ];
 
 function run(command, args) {

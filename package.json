@@ -12,6 +12,7 @@
     "ddd:check": "node scripts/verify-ddd.mjs",
     "ddd:check:tests": "node scripts/verify-ddd-tests.mjs",
     "ddd:check:imports": "node scripts/verify-ddd-imports.mjs",
+    "ddd:check:entities": "node scripts/verify-ddd-entities.mjs",
     "test:e2e:local": "node scripts/e2e/run-local.mjs",
     "test:e2e:ui": "node scripts/e2e/run-local.mjs --ui",
     "test:bundle": "npm run build && node scripts/verify-pdf-parser-bundle.mjs",
