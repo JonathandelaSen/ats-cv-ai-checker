@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  createFeedbackNotesModule,
+  presentFeedbackEntry,
+} from "@/modules/feedback-notes";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { getAuthedSupabase, normalizeRequiredText } from "../../../validation";
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { id } = await params;
+    const tracker = new SupabaseEventTracker();
+    const mod = createFeedbackNotesModule(supabase, tracker);
+    const entries = await mod.listEntries.execute(user.id, id);
+    return NextResponse.json(entries.map(presentFeedbackEntry));
+  } catch (error: unknown) {
+    return handleDomainError(error);
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { id } = await params;
+    const body = (await req.json()) as Record<string, unknown>;
+    const content = normalizeRequiredText(body.content);
+    if (!content) {
+      return NextResponse.json({ error: "Entry content is required" }, { status: 400 });
+    }
+    const tracker = new SupabaseEventTracker();
+    const mod = createFeedbackNotesModule(supabase, tracker);
+    const entry = await mod.createEntry.execute({
+      user_id: user.id,
+      feedback_id: id,
+      content,
+    });
+    return NextResponse.json(presentFeedbackEntry(entry), { status: 201 });
+  } catch (error: unknown) {
+    return handleDomainError(error);
+  }
+}

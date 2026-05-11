@@ -11,6 +11,18 @@ export function handleDomainError(error: unknown): NextResponse {
   if (hasErrorName(error, "EntryNotFoundError")) {
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
+  if (hasErrorName(error, "FeedbackNotFoundError")) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
+  if (hasErrorName(error, "FeedbackEntryNotFoundError")) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
+  if (
+    hasErrorName(error, "FeedbackClosedError") ||
+    hasErrorName(error, "FeedbackEntriesRequiredError")
+  ) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
   return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
 }
 
