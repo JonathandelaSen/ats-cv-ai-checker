@@ -1,38 +1,24 @@
-import type { EntryInputMode, WorkJournalEntry } from "../entities/journal-entry.entity";
+import type { UserId } from "@/modules/shared";
+import type { WorkJournalEntry } from "../entities/journal-entry.entity";
+import type {
+  WorkJournalContextId,
+  WorkJournalDate,
+  WorkJournalEntryId,
+  WorkJournalTopic,
+} from "../value-objects/work-journal.value-object";
 
-export interface CreateEntryInput {
-  user_id: string;
-  context_id: string;
-  date_start: string;
-  date_end: string | null;
-  topic: string | null;
-  input_mode: EntryInputMode;
-  raw_notes: string;
-  final_text: string;
-}
-
-export interface UpdateEntryInput {
-  context_id?: string;
-  date_start?: string;
-  date_end?: string | null;
-  topic?: string | null;
-  input_mode?: EntryInputMode;
-  raw_notes?: string;
-  final_text?: string;
-}
-
-export interface ListEntriesFilters {
-  contextId?: string | null;
-  search?: string | null;
-  topic?: string | null;
-  dateFrom?: string | null;
-  dateTo?: string | null;
+export interface WorkJournalEntrySearchCriteria {
+  userId: UserId;
+  contextId?: WorkJournalContextId | null;
+  search?: WorkJournalTopic | null;
+  topic?: WorkJournalTopic | null;
+  dateFrom?: WorkJournalDate | null;
+  dateTo?: WorkJournalDate | null;
 }
 
 export interface WorkJournalEntryRepository {
-  list(userId: string, filters?: ListEntriesFilters): Promise<WorkJournalEntry[]>;
-  getById(id: string, userId: string): Promise<WorkJournalEntry | null>;
-  create(data: CreateEntryInput): Promise<WorkJournalEntry>;
-  update(id: string, userId: string, data: UpdateEntryInput): Promise<WorkJournalEntry | null>;
-  delete(id: string, userId: string): Promise<boolean>;
+  search(criteria: WorkJournalEntrySearchCriteria): Promise<WorkJournalEntry[]>;
+  findById(id: WorkJournalEntryId, userId: UserId): Promise<WorkJournalEntry | null>;
+  save(entry: WorkJournalEntry): Promise<WorkJournalEntry>;
+  delete(id: WorkJournalEntryId, userId: UserId): Promise<void>;
 }

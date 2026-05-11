@@ -28,10 +28,10 @@ describe("UpdateContextUseCase", () => {
       is_default: true,
     });
 
-    expect(updated).toMatchObject({
+    expect(updated.toPrimitives()).toMatchObject({
       id: context.id,
       name: "Renamed context",
-      is_default: true,
+      isDefault: true,
     });
     expect(tracker.record).toHaveBeenCalledWith(
       expect.objectContaining({

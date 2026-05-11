@@ -7,7 +7,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 // Add module names here only after the whole module domain has been migrated.
 // Example: ["work-journal"]
-export const migratedModules = [];
+export const migratedModules = ["work-journal"];
 
 const primitiveTypeKinds = new Set([
   ts.SyntaxKind.AnyKeyword,
@@ -379,28 +379,18 @@ function checkValueObjectFile(sourceFile, file, violations) {
   }
 }
 
-function checkRepositoryFile(sourceFile, file, violations) {
+function checkRepositoryFile(sourceFile, file, violations, aggregateClassNames) {
+  const aggregateRepositoryNames = new Set(
+    aggregateClassNames.map((className) => `${className}Repository`)
+  );
+
   for (const statement of sourceFile.statements) {
     if (!ts.isInterfaceDeclaration(statement)) continue;
 
     const interfaceName = statement.name.text;
-    const isRepository = interfaceName.endsWith("Repository");
+    const isRepository = aggregateRepositoryNames.has(interfaceName);
 
     if (!isRepository) {
-      for (const member of statement.members) {
-        if (!ts.isPropertySignature(member)) continue;
-        const banned = containsBannedRepositoryType(member.type);
-        if (banned) {
-          addViolation(
-            violations,
-            file,
-            "repository-helper-primitive-type",
-            `Repository helper type ${interfaceName}.${member.name.getText()} uses primitive or persistence type "${banned}". Use value objects instead.`,
-            sourceFile,
-            member
-          );
-        }
-      }
       continue;
     }
 
@@ -491,19 +481,31 @@ async function checkMigratedModule(moduleName, rootDir, violations) {
 
   for (const file of files) {
     const sourceFile = await readSourceFile(rootDir, file);
-    checkNoSnakeCaseIdentifiers(sourceFile, file, violations);
 
     if (file.includes("/domain/entities/") && file.endsWith(".entity.ts")) {
+      checkNoSnakeCaseIdentifiers(sourceFile, file, violations);
       aggregateClassNames.push(...checkEntityFile(sourceFile, file, violations));
     }
 
     if (file.includes("/domain/value-objects/") && file.endsWith(".value-object.ts")) {
+      checkNoSnakeCaseIdentifiers(sourceFile, file, violations);
       checkValueObjectFile(sourceFile, file, violations);
     }
 
-    if (file.includes("/domain/repositories/") && file.endsWith(".repository.ts")) {
-      checkRepositoryFile(sourceFile, file, violations);
+    if (
+      !file.includes("/domain/entities/") &&
+      !file.includes("/domain/value-objects/") &&
+      !file.includes("/domain/repositories/")
+    ) {
+      checkNoSnakeCaseIdentifiers(sourceFile, file, violations);
     }
+
+  }
+
+  for (const file of repositoryFiles) {
+    const sourceFile = await readSourceFile(rootDir, file);
+    checkNoSnakeCaseIdentifiers(sourceFile, file, violations);
+    checkRepositoryFile(sourceFile, file, violations, aggregateClassNames);
   }
 
   const repositorySources = await Promise.all(

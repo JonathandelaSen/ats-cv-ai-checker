@@ -73,20 +73,16 @@ describe("SupabaseWorkJournalEntryRepository", () => {
     expect(result.map((entry) => entry.id)).toEqual([matching.id]);
   });
 
-  it("getById returns an entry with its context expanded", async () => {
+  it("getById returns a matching entry", async () => {
     const user = await createTestUser("wj-entry-get");
     const context = await createContext(user.id);
     const entry = await createEntry(user.id, context.id);
 
     const result = await entryRepo.getById(entry.id, user.id);
 
-    expect(result).toMatchObject({
+    expect(result?.toPrimitives()).toMatchObject({
       id: entry.id,
-      context_id: context.id,
-      context: {
-        id: context.id,
-        name: context.name,
-      },
+      contextId: context.id,
     });
   });
 
@@ -103,16 +99,15 @@ describe("SupabaseWorkJournalEntryRepository", () => {
       final_text: "Final text",
     });
 
-    expect(entry).toMatchObject({
-      user_id: user.id,
-      context_id: context.id,
-      date_start: "2026-04-01",
-      date_end: "2026-04-02",
+    expect(entry.toPrimitives()).toMatchObject({
+      userId: user.id,
+      contextId: context.id,
+      dateStart: "2026-04-01",
+      dateEnd: "2026-04-02",
       topic: "Delivery",
-      input_mode: "ai_assisted",
-      raw_notes: "Raw notes",
-      final_text: "Final text",
-      context: { id: context.id },
+      inputMode: "ai_assisted",
+      rawNotes: "Raw notes",
+      finalText: "Final text",
     });
   });
 
@@ -126,10 +121,10 @@ describe("SupabaseWorkJournalEntryRepository", () => {
       final_text: "Updated final text",
     });
 
-    expect(updated).toMatchObject({
+    expect(updated?.toPrimitives()).toMatchObject({
       id: entry.id,
       topic: "Updated topic",
-      final_text: "Updated final text",
+      finalText: "Updated final text",
     });
   });
 
@@ -138,8 +133,8 @@ describe("SupabaseWorkJournalEntryRepository", () => {
     const context = await createContext(user.id);
     const entry = await createEntry(user.id, context.id);
 
-    await expect(entryRepo.delete(entry.id, user.id)).resolves.toBe(true);
+    await expect(entryRepo.delete(entry.id, user.id)).resolves.toBeUndefined();
     await expect(entryRepo.getById(entry.id, user.id)).resolves.toBeNull();
-    await expect(entryRepo.delete(crypto.randomUUID(), user.id)).resolves.toBe(false);
+    await expect(entryRepo.delete(crypto.randomUUID(), user.id)).resolves.toBeUndefined();
   });
 });

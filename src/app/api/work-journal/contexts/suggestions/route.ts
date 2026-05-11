@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
+import { createWorkJournalModule, presentWorkJournalContext } from "@/modules/work-journal";
 import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     if ("ok" in result) return NextResponse.json(result);
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(presentWorkJournalContext(result), { status: 201 });
   } catch (error: unknown) {
     return handleDomainError(error);
   }

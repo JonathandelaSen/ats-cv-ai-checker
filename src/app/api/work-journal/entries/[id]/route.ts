@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
+import { createWorkJournalModule, presentWorkJournalEntry } from "@/modules/work-journal";
 import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
@@ -60,7 +60,9 @@ export async function PATCH(
     const tracker = new SupabaseEventTracker();
     const mod = createWorkJournalModule(supabase, tracker);
     const entry = await mod.updateEntry.execute(id, user.id, updates);
-    return NextResponse.json(entry);
+    const contexts = await mod.listContexts.execute(user.id);
+    const context = contexts.find((item) => item.id === entry.contextId);
+    return NextResponse.json(presentWorkJournalEntry(entry, context));
   } catch (error: unknown) {
     return handleDomainError(error);
   }

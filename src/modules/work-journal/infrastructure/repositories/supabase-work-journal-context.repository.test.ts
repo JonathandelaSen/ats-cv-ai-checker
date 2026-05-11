@@ -41,16 +41,18 @@ describe("SupabaseWorkJournalContextRepository", () => {
       expect.arrayContaining([first.id, second.id])
     );
     expect(result).toHaveLength(2);
-    expect(result.every((context) => context.user_id === user.id)).toBe(true);
+    expect(result.every((context) => context.userId === user.id)).toBe(true);
   });
 
   it("getById returns a matching context and null for a missing context", async () => {
     const user = await createTestUser("wj-context-get");
     const context = await createContext(user.id);
 
-    await expect(contextRepo.getById(context.id, user.id)).resolves.toMatchObject({
+    await expect(
+      contextRepo.getById(context.id, user.id).then((result) => result?.toPrimitives())
+    ).resolves.toMatchObject({
       id: context.id,
-      user_id: user.id,
+      userId: user.id,
     });
     await expect(contextRepo.getById(crypto.randomUUID(), user.id)).resolves.toBeNull();
   });
@@ -68,14 +70,14 @@ describe("SupabaseWorkJournalContextRepository", () => {
       created_from_cv: true,
     });
 
-    expect(context).toMatchObject({
-      user_id: user.id,
+    expect(context.toPrimitives()).toMatchObject({
+      userId: user.id,
       type: "project",
       name,
-      role_or_label: "Launch",
+      roleOrLabel: "Launch",
       status: "active",
-      is_default: true,
-      created_from_cv: true,
+      isDefault: true,
+      createdFromCv: true,
     });
   });
 
@@ -89,7 +91,7 @@ describe("SupabaseWorkJournalContextRepository", () => {
       status: "archived",
     });
 
-    expect(updated).toMatchObject({
+    expect(updated?.toPrimitives()).toMatchObject({
       id: context.id,
       name,
       status: "archived",
@@ -104,9 +106,11 @@ describe("SupabaseWorkJournalContextRepository", () => {
       name: "  Big   Company ",
     });
 
-    await expect(contextRepo.listHiddenSuggestionKeys(user.id)).resolves.toEqual(
-      new Set(["employment:big company"])
-    );
+    await expect(
+      contextRepo
+        .listHiddenSuggestionKeys(user.id)
+        .then((keys) => new Set(Array.from(keys).map((key) => key.toPrimitives())))
+    ).resolves.toEqual(new Set(["employment:big company"]));
   });
 
   it("hideSuggestion inserts a hidden suggestion row", async () => {
@@ -165,8 +169,8 @@ describe("SupabaseWorkJournalContextRepository", () => {
       .update({ updated_at: "2026-01-03T00:00:00.000Z" })
       .eq("id", newerEntry.id);
 
-    await expect(contextRepo.findLatestEntryContextId(user.id)).resolves.toBe(
-      newerContext.id
-    );
+    await expect(
+      contextRepo.findLatestEntryContextId(user.id).then((id) => id?.toPrimitives())
+    ).resolves.toBe(newerContext.id);
   });
 });

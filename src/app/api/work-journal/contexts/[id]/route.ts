@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
+import { createWorkJournalModule, presentWorkJournalContext } from "@/modules/work-journal";
 import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeOptionalText, normalizeRequiredText } from "../../validation";
 
@@ -36,7 +36,7 @@ export async function PATCH(
     const tracker = new SupabaseEventTracker();
     const mod = createWorkJournalModule(supabase, tracker);
     const context = await mod.updateContext.execute(id, user.id, updates);
-    return NextResponse.json(context);
+    return NextResponse.json(presentWorkJournalContext(context));
   } catch (error: unknown) {
     return handleDomainError(error);
   }

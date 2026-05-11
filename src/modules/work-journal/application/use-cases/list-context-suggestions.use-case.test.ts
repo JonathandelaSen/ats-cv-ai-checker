@@ -57,17 +57,17 @@ describe("ListContextSuggestionsUseCase", () => {
 
     const result = await useCase.execute(user.id);
 
-    expect(result).toEqual([
+    expect(result.map((suggestion) => suggestion.toPrimitives())).toEqual([
       expect.objectContaining({
         type: "employment",
         name: "Suggested Company",
-        role_or_label: "Lead",
-        is_current: true,
+        roleOrLabel: "Lead",
+        isCurrent: true,
       }),
       expect.objectContaining({
         type: "project",
         name: "Visible Project",
-        role_or_label: "Lab",
+        roleOrLabel: "Lab",
       }),
     ]);
   });

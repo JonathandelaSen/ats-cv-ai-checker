@@ -25,14 +25,16 @@ describe("HandleSuggestionActionUseCase", () => {
       is_default: true,
     });
 
+    if ("ok" in context) throw new Error("Expected promoted suggestion to return a context.");
+
     expect(context).toMatchObject({
-      user_id: user.id,
+      userId: user.id,
       type: "employment",
       name: "Acme",
-      role_or_label: "Engineer",
-      is_default: true,
-      created_from_cv: true,
+      roleOrLabel: "Engineer",
+      isDefault: true,
     });
+
     expect(tracker.record).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: user.id,
@@ -66,9 +68,11 @@ describe("HandleSuggestionActionUseCase", () => {
       })
     ).resolves.toEqual({ ok: true });
 
-    await expect(contextRepo.listHiddenSuggestionKeys(user.id)).resolves.toEqual(
-      new Set(["project:internal tools"])
-    );
+    await expect(
+      contextRepo
+        .listHiddenSuggestionKeys(user.id)
+        .then((keys) => new Set(Array.from(keys).map((key) => key.toPrimitives())))
+    ).resolves.toEqual(new Set(["project:internal tools"]));
     expect(tracker.record).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: user.id,

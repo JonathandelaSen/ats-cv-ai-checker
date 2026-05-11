@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
+import { createWorkJournalModule, presentWorkJournalEntry } from "@/modules/work-journal";
 import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
@@ -19,14 +19,20 @@ export async function GET(req: NextRequest) {
     const mod = createWorkJournalModule(supabase, tracker);
 
     const params = req.nextUrl.searchParams;
-    const entries = await mod.listEntries.execute(user.id, {
-      contextId: params.get("contextId"),
-      search: params.get("q"),
-      topic: params.get("topic"),
-      dateFrom: params.get("dateFrom"),
-      dateTo: params.get("dateTo"),
-    });
-    return NextResponse.json(entries);
+    const [entries, contexts] = await Promise.all([
+      mod.listEntries.execute(user.id, {
+        contextId: params.get("contextId"),
+        search: params.get("q"),
+        topic: params.get("topic"),
+        dateFrom: params.get("dateFrom"),
+        dateTo: params.get("dateTo"),
+      }),
+      mod.listContexts.execute(user.id),
+    ]);
+    const contextsById = new Map(contexts.map((context) => [context.id, context]));
+    return NextResponse.json(
+      entries.map((entry) => presentWorkJournalEntry(entry, contextsById.get(entry.contextId)))
+    );
   } catch (error: unknown) {
     return handleDomainError(error);
   }
@@ -64,7 +70,9 @@ export async function POST(req: NextRequest) {
       final_text,
     });
 
-    return NextResponse.json(entry, { status: 201 });
+    const contexts = await mod.listContexts.execute(user.id);
+    const context = contexts.find((item) => item.id === entry.contextId);
+    return NextResponse.json(presentWorkJournalEntry(entry, context), { status: 201 });
   } catch (error: unknown) {
     return handleDomainError(error);
   }

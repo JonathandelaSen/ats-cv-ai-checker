@@ -1,3 +1,4 @@
+import { UserId } from "@/modules/shared";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type {
   DraftEntryInput,
@@ -6,6 +7,7 @@ import type {
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { createRequestId } from "@/lib/observability";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal.value-object";
 
 export class DraftEntryUseCase {
   constructor(
@@ -21,7 +23,10 @@ export class DraftEntryUseCase {
     contextId: string,
     input: Omit<DraftEntryInput, "context">
   ): Promise<string> {
-    const context = await this.deps.contextRepo.getById(contextId, userId);
+    const context = await this.deps.contextRepo.findById(
+      WorkJournalContextId.fromPrimitives(contextId),
+      UserId.fromPrimitives(userId)
+    );
     if (!context) throw new ContextNotFoundError(contextId);
 
     const requestId = createRequestId("wj-draft");

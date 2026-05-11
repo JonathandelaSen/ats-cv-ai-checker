@@ -1,9 +1,20 @@
-import type { WorkJournalContext } from "../../domain/entities/journal-context.entity";
+import { UserId } from "@/modules/shared";
+import { WorkJournalContext } from "../../domain/entities/journal-context.entity";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { CVDataRepository } from "../../domain/repositories/cv-data.repository";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { suggestWorkJournalContextsFromCVs, contextKey } from "../../domain/services/suggest-contexts.service";
 import { createRequestId } from "@/lib/observability";
+import {
+  WorkJournalContextId,
+  WorkJournalContextName,
+  WorkJournalContextStatus,
+  WorkJournalContextType,
+  WorkJournalCreatedFromCv,
+  WorkJournalIsDefault,
+  WorkJournalRoleOrLabel,
+  WorkJournalTimestamp,
+} from "../../domain/value-objects/work-journal.value-object";
 
 export class EnsureDefaultContextUseCase {
   constructor(
@@ -15,35 +26,39 @@ export class EnsureDefaultContextUseCase {
   ) {}
 
   async execute(userId: string): Promise<WorkJournalContext | null> {
-    const contexts = await this.deps.contextRepo.list(userId);
-    const active = contexts.filter((c) => c.status === "active");
+    const ownerId = UserId.fromPrimitives(userId);
+    const contexts = await this.deps.contextRepo.search({ userId: ownerId });
+    const active = contexts.filter((c) => c.isActive());
     const activeIds = new Set(active.map((c) => c.id));
 
-    const latestContextId = await this.deps.contextRepo.findLatestEntryContextId(userId);
+    const latestContextId = await this.deps.contextRepo.findLatestEntryContextId(ownerId);
+    const latestContextIdValue = latestContextId?.toPrimitives() ?? null;
 
-    if (latestContextId && activeIds.has(latestContextId)) {
-      const latestContext = active.find((c) => c.id === latestContextId);
-      if (latestContext && !latestContext.is_default) {
-        return this.deps.contextRepo.update(latestContext.id, userId, {
-          is_default: true,
-        });
+    if (latestContextIdValue && activeIds.has(latestContextIdValue)) {
+      const latestContext = active.find((c) => c.id === latestContextIdValue);
+      if (latestContext && !latestContext.isDefault) {
+        latestContext.update({ isDefault: WorkJournalIsDefault.fromPrimitives(true) });
+        return this.deps.contextRepo.save(latestContext);
       }
       if (latestContext) return latestContext;
     }
 
-    const currentDefault = active.find((c) => c.is_default);
+    const currentDefault = active.find((c) => c.isDefault);
     if (currentDefault) return currentDefault;
     if (active[0]) return active[0];
 
     const [cvs, hidden] = await Promise.all([
       this.deps.cvDataRepo.listCVs(userId),
-      this.deps.contextRepo.listHiddenSuggestionKeys(userId),
+      this.deps.contextRepo.listHiddenSuggestionKeys(ownerId),
     ]);
 
     const existing = new Set(contexts.map((c) => contextKey(c.type, c.name)));
     const suggestions = suggestWorkJournalContextsFromCVs(cvs).filter((s) => {
       const key = contextKey(s.type, s.name);
-      return !existing.has(key) && !hidden.has(key);
+      return (
+        !existing.has(key) &&
+        !Array.from(hidden).some((hiddenKey) => hiddenKey.toPrimitives() === key)
+      );
     });
 
     const best = suggestions[0];
@@ -57,14 +72,21 @@ export class EnsureDefaultContextUseCase {
       status: "started",
     });
 
-    const created = await this.deps.contextRepo.create({
-      user_id: userId,
-      type: best.type,
-      name: best.name,
-      role_or_label: best.role_or_label,
-      is_default: true,
-      created_from_cv: true,
-    });
+    const now = new Date().toISOString();
+    const created = await this.deps.contextRepo.save(
+      WorkJournalContext.create({
+        id: WorkJournalContextId.fromPrimitives(crypto.randomUUID()),
+        userId: ownerId,
+        type: WorkJournalContextType.fromPrimitives(best.type),
+        name: WorkJournalContextName.fromPrimitives(best.name),
+        roleOrLabel: WorkJournalRoleOrLabel.fromPrimitives(best.roleOrLabel),
+        status: WorkJournalContextStatus.fromPrimitives("active"),
+        isDefault: WorkJournalIsDefault.fromPrimitives(true),
+        createdFromCv: WorkJournalCreatedFromCv.fromPrimitives(true),
+        createdAt: WorkJournalTimestamp.fromPrimitives(now),
+        updatedAt: WorkJournalTimestamp.fromPrimitives(now),
+      })
+    );
 
     await this.deps.tracker.record({
       userId,

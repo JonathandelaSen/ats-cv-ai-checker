@@ -46,14 +46,18 @@ describe("CreateEntryUseCase", () => {
       final_text: "Added integration tests.",
     });
 
-    await expect(entryRepo.getById(entry.id, user.id)).resolves.toMatchObject({
+    await expect(
+      entryRepo.getById(entry.id, user.id).then((result) => result?.toPrimitives())
+    ).resolves.toMatchObject({
       id: entry.id,
       topic: "Integration",
-      raw_notes: "Added integration tests",
-      final_text: "Added integration tests.",
+      rawNotes: "Added integration tests",
+      finalText: "Added integration tests.",
     });
-    await expect(contextRepo.getById(context.id, user.id)).resolves.toMatchObject({
-      is_default: true,
+    await expect(
+      contextRepo.getById(context.id, user.id).then((result) => result?.toPrimitives())
+    ).resolves.toMatchObject({
+      isDefault: true,
     });
     expect(tracker.record).toHaveBeenCalledWith(
       expect.objectContaining({

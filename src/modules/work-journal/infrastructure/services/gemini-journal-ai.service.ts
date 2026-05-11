@@ -11,7 +11,15 @@ export class GeminiJournalAIService implements JournalAIService {
     return draftWorkJournalEntry({
       apiKey: this.config.apiKey,
       model: this.config.model,
-      ...input,
+      context: {
+        type: input.context.type,
+        name: input.context.name,
+        role_or_label: input.context.roleOrLabel,
+      },
+      dateStart: input.dateStart,
+      dateEnd: input.dateEnd,
+      topic: input.topic,
+      notes: input.notes,
     });
   }
 }

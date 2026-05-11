@@ -53,10 +53,12 @@ describe("UpdateEntryUseCase", () => {
       final_text: "New text",
     });
 
-    expect(updated).toMatchObject({ id: entry.id, topic: "New", final_text: "New text" });
-    await expect(entryRepo.getById(entry.id, user.id)).resolves.toMatchObject({
+    expect(updated.toPrimitives()).toMatchObject({ id: entry.id, topic: "New", finalText: "New text" });
+    await expect(
+      entryRepo.getById(entry.id, user.id).then((result) => result?.toPrimitives())
+    ).resolves.toMatchObject({
       topic: "New",
-      final_text: "New text",
+      finalText: "New text",
     });
   });
 

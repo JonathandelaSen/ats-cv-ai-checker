@@ -77,9 +77,11 @@ describe("EnsureDefaultContextUseCase", () => {
 
     const result = await useCase.execute(user.id);
 
-    expect(result).toMatchObject({ id: newerContext.id, is_default: true });
-    await expect(contextRepo.getById(newerContext.id, user.id)).resolves.toMatchObject({
-      is_default: true,
+    expect(result?.toPrimitives()).toMatchObject({ id: newerContext.id, isDefault: true });
+    await expect(
+      contextRepo.getById(newerContext.id, user.id).then((context) => context?.toPrimitives())
+    ).resolves.toMatchObject({
+      isDefault: true,
     });
   });
 
@@ -101,7 +103,7 @@ describe("EnsureDefaultContextUseCase", () => {
     const result = await useCase.execute(user.id);
     const contexts = await contextRepo.list(user.id);
 
-    expect(result).toMatchObject({ id: defaultContext.id, is_default: true });
-    expect(contexts.filter((context) => context.is_default)).toHaveLength(1);
+    expect(result?.toPrimitives()).toMatchObject({ id: defaultContext.id, isDefault: true });
+    expect(contexts.filter((context) => context.isDefault)).toHaveLength(1);
   });
 });

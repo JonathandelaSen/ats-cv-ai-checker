@@ -37,6 +37,6 @@ describe("ListContextsUseCase", () => {
       expect.arrayContaining([first.id, second.id])
     );
     expect(result).toHaveLength(2);
-    expect(result.every((context) => context.user_id === user.id)).toBe(true);
+    expect(result.every((context) => context.userId === user.id)).toBe(true);
   });
 });

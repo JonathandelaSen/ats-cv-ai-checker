@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
+import {
+  createWorkJournalModule,
+  presentWorkJournalContext,
+  presentWorkJournalContextSuggestion,
+} from "@/modules/work-journal";
 import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
@@ -22,7 +26,10 @@ export async function GET() {
       mod.listContextSuggestions.execute(user.id),
     ]);
 
-    return NextResponse.json({ contexts, suggestions });
+    return NextResponse.json({
+      contexts: contexts.map(presentWorkJournalContext),
+      suggestions: suggestions.map(presentWorkJournalContextSuggestion),
+    });
   } catch (error: unknown) {
     return handleDomainError(error);
   }
@@ -55,7 +62,7 @@ export async function POST(req: NextRequest) {
       created_from_cv: Boolean(body.created_from_cv),
     });
 
-    return NextResponse.json(context, { status: 201 });
+    return NextResponse.json(presentWorkJournalContext(context), { status: 201 });
   } catch (error: unknown) {
     return handleDomainError(error);
   }
