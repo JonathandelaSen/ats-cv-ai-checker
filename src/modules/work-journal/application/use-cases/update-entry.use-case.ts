@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { IsoDate, OptionalIsoDate, UserId } from "@/modules/shared";
 import type { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { WorkJournalEntryRepository } from "../../domain/repositories/work-journal-entry.repository";
@@ -6,17 +6,12 @@ import type { EventTracker } from "@/modules/shared/domain/repositories/event-tr
 import { EntryNotFoundError } from "../../domain/errors/entry-not-found.error";
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { createRequestId } from "@/lib/observability";
-import {
-  type EntryInputMode,
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalEntryId,
-  WorkJournalFinalText,
-  WorkJournalInputMode,
-  WorkJournalNotes,
-  WorkJournalOptionalDate,
-  WorkJournalTopic,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
+import { WorkJournalFinalText } from "../../domain/value-objects/work-journal-final-text.value-object";
+import { type EntryInputMode, WorkJournalInputMode } from "../../domain/value-objects/work-journal-input-mode.value-object";
+import { WorkJournalNotes } from "../../domain/value-objects/work-journal-notes.value-object";
+import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.value-object";
 
 export interface UpdateEntryInput {
   context_id?: string;
@@ -52,10 +47,10 @@ export class UpdateEntryUseCase {
     if (!entry) throw new EntryNotFoundError(id);
     entry.update({
       contextId: data.context_id ? WorkJournalContextId.fromPrimitives(data.context_id) : undefined,
-      dateStart: data.date_start ? WorkJournalDate.fromPrimitives(data.date_start) : undefined,
+      dateStart: data.date_start ? IsoDate.fromPrimitives(data.date_start) : undefined,
       dateEnd:
         data.date_end !== undefined
-          ? WorkJournalOptionalDate.fromPrimitives(data.date_end)
+          ? OptionalIsoDate.fromPrimitives(data.date_end)
           : undefined,
       topic: data.topic !== undefined ? WorkJournalTopic.fromPrimitives(data.topic) : undefined,
       inputMode: data.input_mode ? WorkJournalInputMode.fromPrimitives(data.input_mode) : undefined,

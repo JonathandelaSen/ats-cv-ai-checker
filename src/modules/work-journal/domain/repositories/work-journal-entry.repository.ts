@@ -1,19 +1,16 @@
-import type { UserId } from "@/modules/shared";
+import type { IsoDate, UserId } from "@/modules/shared";
 import type { WorkJournalEntry } from "../entities/journal-entry.entity";
-import type {
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalEntryId,
-  WorkJournalTopic,
-} from "../value-objects/work-journal.value-object";
+import type { WorkJournalContextId } from "../value-objects/work-journal-context-id.value-object";
+import type { WorkJournalEntryId } from "../value-objects/work-journal-entry-id.value-object";
+import type { WorkJournalTopic } from "../value-objects/work-journal-topic.value-object";
 
 export interface WorkJournalEntrySearchCriteria {
   userId: UserId;
   contextId?: WorkJournalContextId | null;
   search?: WorkJournalTopic | null;
   topic?: WorkJournalTopic | null;
-  dateFrom?: WorkJournalDate | null;
-  dateTo?: WorkJournalDate | null;
+  dateFrom?: IsoDate | null;
+  dateTo?: IsoDate | null;
 }
 
 export interface WorkJournalEntryRepository {

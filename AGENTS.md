@@ -46,7 +46,9 @@ src/modules/
     infrastructure/http/               ← HTTP helpers (handleDomainError)
   <module-name>/
     domain/
-      entities/                        ← Type definitions (interfaces, type aliases)
+      entities/                        ← AggregateRoot classes with identity and domain logic
+      value-objects/                   ← Immutable ValueObject classes, one per file
+      events/                          ← DomainEvent classes emitted by aggregate roots
       repositories/                    ← Port interfaces (repository + service contracts)
       services/                        ← Pure domain logic (no I/O)
       errors/                          ← Domain-specific error classes extending Error
@@ -61,7 +63,13 @@ src/modules/
 
 ### Key conventions
 
-- **Entities use snake_case fields** matching the DB schema — no camelCase mappers.
+- **Domain uses camelCase**. `snake_case` belongs to database rows and HTTP payloads only; infrastructure repositories and route presenters map between DB/API shapes and domain primitives.
+- **Entities are aggregate roots**: classes extending `AggregateRoot`, built from ValueObjects, with an ID, `static create(params)`, `static fromPrimitives(primitives)`, `toPrimitives()`, private/protected constructors, and domain methods that record domain events internally.
+- **Value objects are immutable**: one `*.value-object.ts` file per VO, `static fromPrimitives(...)`, `toPrimitives()`, private/protected state, no mutating methods. Shared concerns such as IDs, ISO dates, optional ISO dates, timestamps, and user IDs live under `src/modules/shared/domain/value-objects/`.
+- **Primitives are boundary data**: `EntityPrimitives` interfaces live with the entity and use camelCase. Only `fromPrimitives` and `toPrimitives` convert between VOs and primitives. Do not pass primitives into entity constructors or domain methods.
+- **Repositories work with aggregates and VOs**: aggregate repositories expose `search(criteria)`, `findById(id VO, userId VO)`, `save(aggregate)`, and `delete(id VO, userId VO)`. They must not accept or return `*Primitives`, `Create*Input`, `Update*Input`, or primitive entity fields. Infrastructure repositories map DB `snake_case` rows to domain camelCase primitives and hydrate aggregates.
+- **Associations use IDs in the domain**. Do not nest aggregate instances inside other aggregates. Compose read models for UI/API responses in the application/route boundary.
+- **Domain events are internal for now**. Aggregate methods record events with `recordDomainEvent`; use cases may call `pullDomainEvents()` later, but `EventTracker` observability stays separate until explicitly migrated.
 - **Use cases** receive dependencies via constructor injection (`{ repo, tracker, ... }`).
 - **Route handlers** create the module via `createWorkJournalModule(supabase, tracker)` and call use case `.execute()`. HTTP validation (`normalize*` functions) stays in the route handlers.
 - **Domain errors** are caught by `handleDomainError()` which maps them to HTTP status codes.
@@ -85,7 +93,7 @@ Follow the Work Journal migration as a template. Create all new files first (ste
 
 ### Testing conventions
 
-- **Domain layer:** No tests while entities are pure interfaces without logic. Add tests when domain services or entity validation logic is introduced.
+- **Domain layer:** Aggregate roots and value objects must have colocated tests. Test `create`, `fromPrimitives`, `toPrimitives`, validation, domain methods, and recorded events. Domain services with logic also need colocated tests.
 - **Infrastructure layer:** Backend tests (`*.test.ts`) against real Supabase E2E stack (ports 56431+). Test each repository method. One test user per test via `createConfirmedUser()`.
 - **Application layer:** Backend tests with real repositories against real DB. Mock only external services (AI) and cross-cutting concerns (EventTracker). Test happy paths, domain error cases, and orchestration logic.
 - **No mocks for database** — all DB interactions use the real Supabase E2E instance.
@@ -95,3 +103,4 @@ Follow the Work Journal migration as a template. Create all new files first (ste
 - Run `npm run ddd:check` before finishing changes under `src/modules/`. It runs:
   - `scripts/verify-ddd-tests.mjs`: every `src/modules/**/application/use-cases/*.use-case.ts` and every `src/modules/**/infrastructure/repositories/*.repository.ts` must have a colocated `*.test.ts` file with the same basename.
   - `scripts/verify-ddd-imports.mjs`: module internals must respect DDD import direction. Domain cannot import application or infrastructure, application cannot import infrastructure, infrastructure cannot import application, and feature modules cannot import another feature module's internals. Composition roots (`<module>.module.ts`), module barrels, tests, test helpers, external packages, and `src/modules/shared/**` are allowed where appropriate.
+  - `scripts/verify-ddd-entities.mjs`: modules listed in `migratedModules` must follow the AggregateRoot/ValueObject/repository rules above.

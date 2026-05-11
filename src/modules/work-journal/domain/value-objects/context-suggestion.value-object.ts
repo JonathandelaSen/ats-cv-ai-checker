@@ -1,13 +1,9 @@
 import { ValueObject } from "@/modules/shared";
-import {
-  type ContextType,
-  type SuggestionSource,
-  WorkJournalContextName,
-  WorkJournalContextType,
-  WorkJournalIsCurrent,
-  WorkJournalRoleOrLabel,
-  WorkJournalSuggestionSource,
-} from "./work-journal.value-object";
+import { WorkJournalContextName } from "./work-journal-context-name.value-object";
+import { type ContextType, WorkJournalContextType } from "./work-journal-context-type.value-object";
+import { WorkJournalIsCurrent } from "./work-journal-is-current.value-object";
+import { WorkJournalRoleOrLabel } from "./work-journal-role-or-label.value-object";
+import { type SuggestionSource, WorkJournalSuggestionSource } from "./work-journal-suggestion-source.value-object";
 
 export interface WorkJournalContextSuggestionPrimitives {
   type: ContextType;

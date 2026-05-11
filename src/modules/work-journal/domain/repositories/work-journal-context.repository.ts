@@ -1,11 +1,9 @@
 import type { UserId } from "@/modules/shared";
 import type { WorkJournalContext } from "../entities/journal-context.entity";
 import type { WorkJournalContextSuggestion } from "../value-objects/context-suggestion.value-object";
-import type {
-  ContextType,
-  WorkJournalContextId,
-  WorkJournalSuggestionKey,
-} from "../value-objects/work-journal.value-object";
+import type { WorkJournalContextId } from "../value-objects/work-journal-context-id.value-object";
+import type { ContextType } from "../value-objects/work-journal-context-type.value-object";
+import type { WorkJournalSuggestionKey } from "../value-objects/work-journal-suggestion-key.value-object";
 
 export interface WorkJournalContextSearchCriteria {
   userId: UserId;

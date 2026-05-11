@@ -1,19 +1,20 @@
-import { AggregateRoot, UserId, type UserId as UserIdType } from "@/modules/shared";
+import {
+  AggregateRoot,
+  IsoDate,
+  OptionalIsoDate,
+  Timestamp,
+  UserId,
+  type UserId as UserIdType,
+} from "@/modules/shared";
 import { WorkJournalEntryCreatedEvent } from "../events/work-journal-entry-created.event";
 import { WorkJournalEntryDeletedEvent } from "../events/work-journal-entry-deleted.event";
 import { WorkJournalEntryUpdatedEvent } from "../events/work-journal-entry-updated.event";
-import {
-  type EntryInputMode,
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalEntryId,
-  WorkJournalFinalText,
-  WorkJournalInputMode,
-  WorkJournalNotes,
-  WorkJournalOptionalDate,
-  WorkJournalTimestamp,
-  WorkJournalTopic,
-} from "../value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../value-objects/work-journal-context-id.value-object";
+import { WorkJournalEntryId } from "../value-objects/work-journal-entry-id.value-object";
+import { WorkJournalFinalText } from "../value-objects/work-journal-final-text.value-object";
+import { type EntryInputMode, WorkJournalInputMode } from "../value-objects/work-journal-input-mode.value-object";
+import { WorkJournalNotes } from "../value-objects/work-journal-notes.value-object";
+import { WorkJournalTopic } from "../value-objects/work-journal-topic.value-object";
 
 export type { EntryInputMode };
 
@@ -35,20 +36,20 @@ export interface WorkJournalEntryCreateParams {
   id: WorkJournalEntryId;
   userId: UserIdType;
   contextId: WorkJournalContextId;
-  dateStart: WorkJournalDate;
-  dateEnd: WorkJournalOptionalDate;
+  dateStart: IsoDate;
+  dateEnd: OptionalIsoDate;
   topic: WorkJournalTopic;
   inputMode: WorkJournalInputMode;
   rawNotes: WorkJournalNotes;
   finalText: WorkJournalFinalText;
-  createdAt: WorkJournalTimestamp;
-  updatedAt: WorkJournalTimestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface WorkJournalEntryUpdateParams {
   contextId?: WorkJournalContextId;
-  dateStart?: WorkJournalDate;
-  dateEnd?: WorkJournalOptionalDate;
+  dateStart?: IsoDate;
+  dateEnd?: OptionalIsoDate;
   topic?: WorkJournalTopic;
   inputMode?: WorkJournalInputMode;
   rawNotes?: WorkJournalNotes;
@@ -60,14 +61,14 @@ export class WorkJournalEntry extends AggregateRoot {
     private readonly entryId: WorkJournalEntryId,
     private readonly ownerId: UserIdType,
     private entryContextId: WorkJournalContextId,
-    private entryDateStart: WorkJournalDate,
-    private entryDateEnd: WorkJournalOptionalDate,
+    private entryDateStart: IsoDate,
+    private entryDateEnd: OptionalIsoDate,
     private entryTopic: WorkJournalTopic,
     private entryInputMode: WorkJournalInputMode,
     private entryRawNotes: WorkJournalNotes,
     private entryFinalText: WorkJournalFinalText,
-    private readonly entryCreatedAt: WorkJournalTimestamp,
-    private entryUpdatedAt: WorkJournalTimestamp
+    private readonly entryCreatedAt: Timestamp,
+    private entryUpdatedAt: Timestamp
   ) {
     super();
   }
@@ -95,14 +96,14 @@ export class WorkJournalEntry extends AggregateRoot {
       WorkJournalEntryId.fromPrimitives(primitives.id),
       UserId.fromPrimitives(primitives.userId),
       WorkJournalContextId.fromPrimitives(primitives.contextId),
-      WorkJournalDate.fromPrimitives(primitives.dateStart),
-      WorkJournalOptionalDate.fromPrimitives(primitives.dateEnd),
+      IsoDate.fromPrimitives(primitives.dateStart),
+      OptionalIsoDate.fromPrimitives(primitives.dateEnd),
       WorkJournalTopic.fromPrimitives(primitives.topic),
       WorkJournalInputMode.fromPrimitives(primitives.inputMode),
       WorkJournalNotes.fromPrimitives(primitives.rawNotes),
       WorkJournalFinalText.fromPrimitives(primitives.finalText),
-      WorkJournalTimestamp.fromPrimitives(primitives.createdAt),
-      WorkJournalTimestamp.fromPrimitives(primitives.updatedAt)
+      Timestamp.fromPrimitives(primitives.createdAt),
+      Timestamp.fromPrimitives(primitives.updatedAt)
     );
   }
 

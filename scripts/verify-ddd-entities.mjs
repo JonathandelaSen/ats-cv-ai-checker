@@ -305,7 +305,7 @@ function checkValueObjectFile(sourceFile, file, violations) {
       ts.isClassDeclaration(statement) &&
       statement.name &&
       isExported(statement) &&
-      hasHeritage(statement, "ValueObject")
+      (hasHeritage(statement, "ValueObject") || hasHeritage(statement, "EntityId"))
   );
 
   if (valueObjects.length === 0) {
@@ -334,7 +334,7 @@ function checkValueObjectFile(sourceFile, file, violations) {
       );
     }
 
-    if (!hasMethod(valueObject, "toPrimitives")) {
+    if (!hasMethod(valueObject, "toPrimitives") && !hasHeritage(valueObject, "EntityId")) {
       addViolation(
         violations,
         file,

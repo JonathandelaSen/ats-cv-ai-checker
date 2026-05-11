@@ -7,7 +7,7 @@ import type {
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { createRequestId } from "@/lib/observability";
-import { WorkJournalContextId } from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
 
 export class DraftEntryUseCase {
   constructor(

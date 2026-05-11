@@ -3,7 +3,7 @@ import type { WorkJournalEntryRepository } from "../../domain/repositories/work-
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { EntryNotFoundError } from "../../domain/errors/entry-not-found.error";
 import { createRequestId } from "@/lib/observability";
-import { WorkJournalEntryId } from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
 
 export class DeleteEntryUseCase {
   constructor(

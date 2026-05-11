@@ -1,11 +1,8 @@
-import { UserId } from "@/modules/shared";
+import { IsoDate, UserId } from "@/modules/shared";
 import type { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
 import type { WorkJournalEntryRepository } from "../../domain/repositories/work-journal-entry.repository";
-import {
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalTopic,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.value-object";
 
 export interface ListEntriesFilters {
   contextId?: string | null;
@@ -26,8 +23,8 @@ export class ListEntriesUseCase {
         : null,
       search: filters?.search ? WorkJournalTopic.fromPrimitives(filters.search) : null,
       topic: filters?.topic ? WorkJournalTopic.fromPrimitives(filters.topic) : null,
-      dateFrom: filters?.dateFrom ? WorkJournalDate.fromPrimitives(filters.dateFrom) : null,
-      dateTo: filters?.dateTo ? WorkJournalDate.fromPrimitives(filters.dateTo) : null,
+      dateFrom: filters?.dateFrom ? IsoDate.fromPrimitives(filters.dateFrom) : null,
+      dateTo: filters?.dateTo ? IsoDate.fromPrimitives(filters.dateTo) : null,
     });
   }
 }

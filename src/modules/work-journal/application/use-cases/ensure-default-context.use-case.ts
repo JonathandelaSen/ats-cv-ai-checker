@@ -1,20 +1,17 @@
-import { UserId } from "@/modules/shared";
+import { Timestamp, UserId } from "@/modules/shared";
 import { WorkJournalContext } from "../../domain/entities/journal-context.entity";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { CVDataRepository } from "../../domain/repositories/cv-data.repository";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { suggestWorkJournalContextsFromCVs, contextKey } from "../../domain/services/suggest-contexts.service";
 import { createRequestId } from "@/lib/observability";
-import {
-  WorkJournalContextId,
-  WorkJournalContextName,
-  WorkJournalContextStatus,
-  WorkJournalContextType,
-  WorkJournalCreatedFromCv,
-  WorkJournalIsDefault,
-  WorkJournalRoleOrLabel,
-  WorkJournalTimestamp,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalContextName } from "../../domain/value-objects/work-journal-context-name.value-object";
+import { WorkJournalContextStatus } from "../../domain/value-objects/work-journal-context-status.value-object";
+import { WorkJournalContextType } from "../../domain/value-objects/work-journal-context-type.value-object";
+import { WorkJournalCreatedFromCv } from "../../domain/value-objects/work-journal-created-from-cv.value-object";
+import { WorkJournalIsDefault } from "../../domain/value-objects/work-journal-is-default.value-object";
+import { WorkJournalRoleOrLabel } from "../../domain/value-objects/work-journal-role-or-label.value-object";
 
 export class EnsureDefaultContextUseCase {
   constructor(
@@ -83,8 +80,8 @@ export class EnsureDefaultContextUseCase {
         status: WorkJournalContextStatus.fromPrimitives("active"),
         isDefault: WorkJournalIsDefault.fromPrimitives(true),
         createdFromCv: WorkJournalCreatedFromCv.fromPrimitives(true),
-        createdAt: WorkJournalTimestamp.fromPrimitives(now),
-        updatedAt: WorkJournalTimestamp.fromPrimitives(now),
+        createdAt: Timestamp.fromPrimitives(now),
+        updatedAt: Timestamp.fromPrimitives(now),
       })
     );
 

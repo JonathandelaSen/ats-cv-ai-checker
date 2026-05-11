@@ -61,6 +61,24 @@ function isRepositoryImplementationSource(relativePath) {
   );
 }
 
+function isDomainEntitySource(relativePath) {
+  return (
+    relativePath.startsWith("src/modules/") &&
+    relativePath.includes("/domain/entities/") &&
+    relativePath.endsWith(".entity.ts") &&
+    !relativePath.endsWith(".test.ts")
+  );
+}
+
+function isValueObjectSource(relativePath) {
+  return (
+    relativePath.startsWith("src/modules/") &&
+    relativePath.includes("/domain/value-objects/") &&
+    relativePath.endsWith(".value-object.ts") &&
+    !relativePath.endsWith(".test.ts")
+  );
+}
+
 async function missingTestsFor(files, rootDir) {
   const missing = [];
 
@@ -81,10 +99,14 @@ export async function findMissingDddTests({ rootDir = repoRoot } = {}) {
 
   const useCases = files.filter(isUseCaseSource).sort();
   const repositories = files.filter(isRepositoryImplementationSource).sort();
+  const domainEntities = files.filter(isDomainEntitySource).sort();
+  const valueObjects = files.filter(isValueObjectSource).sort();
 
   return {
     missingUseCaseTests: await missingTestsFor(useCases, rootDir),
     missingRepositoryTests: await missingTestsFor(repositories, rootDir),
+    missingDomainEntityTests: await missingTestsFor(domainEntities, rootDir),
+    missingValueObjectTests: await missingTestsFor(valueObjects, rootDir),
   };
 }
 
@@ -113,13 +135,38 @@ export function formatMissingDddTests(result) {
     );
   }
 
+  if (result.missingDomainEntityTests.length > 0) {
+    sections.push(
+      [
+        "Domain entities without colocated tests:",
+        ...result.missingDomainEntityTests.map(
+          (item) => `- ${item.source} -> expected ${item.expectedTest}`
+        ),
+      ].join("\n")
+    );
+  }
+
+  if (result.missingValueObjectTests.length > 0) {
+    sections.push(
+      [
+        "Value objects without colocated tests:",
+        ...result.missingValueObjectTests.map(
+          (item) => `- ${item.source} -> expected ${item.expectedTest}`
+        ),
+      ].join("\n")
+    );
+  }
+
   return sections.join("\n\n");
 }
 
 async function main() {
   const result = await findMissingDddTests();
   const missingCount =
-    result.missingUseCaseTests.length + result.missingRepositoryTests.length;
+    result.missingUseCaseTests.length +
+    result.missingRepositoryTests.length +
+    result.missingDomainEntityTests.length +
+    result.missingValueObjectTests.length;
 
   if (missingCount > 0) {
     console.error(formatMissingDddTests(result));

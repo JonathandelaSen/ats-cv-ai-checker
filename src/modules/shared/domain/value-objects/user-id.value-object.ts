@@ -1,16 +1,11 @@
-import { ValueObject } from "./value-object";
+import { EntityId } from "./entity-id.value-object";
 
-export class UserId extends ValueObject<string> {
-  private constructor(private readonly value: string) {
-    super();
-    if (!value.trim()) throw new Error("UserId cannot be empty.");
+export class UserId extends EntityId {
+  private constructor(value: string) {
+    super(value, "User id");
   }
 
   static fromPrimitives(value: string): UserId {
     return new UserId(value);
-  }
-
-  toPrimitives(): string {
-    return this.value;
   }
 }

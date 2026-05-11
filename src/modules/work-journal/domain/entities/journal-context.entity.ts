@@ -1,18 +1,13 @@
-import { AggregateRoot, UserId, type UserId as UserIdType } from "@/modules/shared";
+import { AggregateRoot, Timestamp, UserId, type UserId as UserIdType } from "@/modules/shared";
 import { WorkJournalContextCreatedEvent } from "../events/work-journal-context-created.event";
 import { WorkJournalContextUpdatedEvent } from "../events/work-journal-context-updated.event";
-import {
-  type ContextStatus,
-  type ContextType,
-  WorkJournalContextId,
-  WorkJournalContextName,
-  WorkJournalContextStatus,
-  WorkJournalContextType,
-  WorkJournalCreatedFromCv,
-  WorkJournalIsDefault,
-  WorkJournalRoleOrLabel,
-  WorkJournalTimestamp,
-} from "../value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../value-objects/work-journal-context-id.value-object";
+import { WorkJournalContextName } from "../value-objects/work-journal-context-name.value-object";
+import { type ContextStatus, WorkJournalContextStatus } from "../value-objects/work-journal-context-status.value-object";
+import { type ContextType, WorkJournalContextType } from "../value-objects/work-journal-context-type.value-object";
+import { WorkJournalCreatedFromCv } from "../value-objects/work-journal-created-from-cv.value-object";
+import { WorkJournalIsDefault } from "../value-objects/work-journal-is-default.value-object";
+import { WorkJournalRoleOrLabel } from "../value-objects/work-journal-role-or-label.value-object";
 
 export type { ContextStatus, ContextType };
 
@@ -38,8 +33,8 @@ export interface WorkJournalContextCreateParams {
   status: WorkJournalContextStatus;
   isDefault: WorkJournalIsDefault;
   createdFromCv: WorkJournalCreatedFromCv;
-  createdAt: WorkJournalTimestamp;
-  updatedAt: WorkJournalTimestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface WorkJournalContextUpdateParams {
@@ -59,8 +54,8 @@ export class WorkJournalContext extends AggregateRoot {
     private contextStatus: WorkJournalContextStatus,
     private contextIsDefault: WorkJournalIsDefault,
     private readonly contextCreatedFromCv: WorkJournalCreatedFromCv,
-    private readonly contextCreatedAt: WorkJournalTimestamp,
-    private contextUpdatedAt: WorkJournalTimestamp
+    private readonly contextCreatedAt: Timestamp,
+    private contextUpdatedAt: Timestamp
   ) {
     super();
   }
@@ -94,8 +89,8 @@ export class WorkJournalContext extends AggregateRoot {
       WorkJournalContextStatus.fromPrimitives(primitives.status),
       WorkJournalIsDefault.fromPrimitives(primitives.isDefault),
       WorkJournalCreatedFromCv.fromPrimitives(primitives.createdFromCv),
-      WorkJournalTimestamp.fromPrimitives(primitives.createdAt),
-      WorkJournalTimestamp.fromPrimitives(primitives.updatedAt)
+      Timestamp.fromPrimitives(primitives.createdAt),
+      Timestamp.fromPrimitives(primitives.updatedAt)
     );
   }
 

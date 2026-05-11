@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { UserId } from "@/modules/shared";
+import { IsoDate, OptionalIsoDate, Timestamp, UserId } from "@/modules/shared";
 import {
   WorkJournalEntry,
   type WorkJournalEntryPrimitives,
@@ -8,18 +8,12 @@ import type {
   WorkJournalEntryRepository,
   WorkJournalEntrySearchCriteria,
 } from "../../domain/repositories/work-journal-entry.repository";
-import {
-  type EntryInputMode,
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalEntryId,
-  WorkJournalFinalText,
-  WorkJournalInputMode,
-  WorkJournalNotes,
-  WorkJournalOptionalDate,
-  WorkJournalTimestamp,
-  WorkJournalTopic,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
+import { WorkJournalFinalText } from "../../domain/value-objects/work-journal-final-text.value-object";
+import { type EntryInputMode, WorkJournalInputMode } from "../../domain/value-objects/work-journal-input-mode.value-object";
+import { WorkJournalNotes } from "../../domain/value-objects/work-journal-notes.value-object";
+import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.value-object";
 
 interface WorkJournalEntryRow {
   id: string;
@@ -186,8 +180,8 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
         : null,
       search: filters.search ? WorkJournalTopic.fromPrimitives(filters.search) : null,
       topic: filters.topic ? WorkJournalTopic.fromPrimitives(filters.topic) : null,
-      dateFrom: filters.dateFrom ? WorkJournalDate.fromPrimitives(filters.dateFrom) : null,
-      dateTo: filters.dateTo ? WorkJournalDate.fromPrimitives(filters.dateTo) : null,
+      dateFrom: filters.dateFrom ? IsoDate.fromPrimitives(filters.dateFrom) : null,
+      dateTo: filters.dateTo ? IsoDate.fromPrimitives(filters.dateTo) : null,
     });
   }
 
@@ -202,14 +196,14 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
         id: WorkJournalEntryId.fromPrimitives(crypto.randomUUID()),
         userId: UserId.fromPrimitives(data.user_id),
         contextId: WorkJournalContextId.fromPrimitives(data.context_id),
-        dateStart: WorkJournalDate.fromPrimitives(data.date_start),
-        dateEnd: WorkJournalOptionalDate.fromPrimitives(data.date_end),
+        dateStart: IsoDate.fromPrimitives(data.date_start),
+        dateEnd: OptionalIsoDate.fromPrimitives(data.date_end),
         topic: WorkJournalTopic.fromPrimitives(data.topic),
         inputMode: WorkJournalInputMode.fromPrimitives(data.input_mode),
         rawNotes: WorkJournalNotes.fromPrimitives(data.raw_notes),
         finalText: WorkJournalFinalText.fromPrimitives(data.final_text),
-        createdAt: WorkJournalTimestamp.fromPrimitives(now),
-        updatedAt: WorkJournalTimestamp.fromPrimitives(now),
+        createdAt: Timestamp.fromPrimitives(now),
+        updatedAt: Timestamp.fromPrimitives(now),
       })
     );
   }
@@ -223,10 +217,10 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
     if (!entry) return null;
     entry.update({
       contextId: data.context_id ? WorkJournalContextId.fromPrimitives(data.context_id) : undefined,
-      dateStart: data.date_start ? WorkJournalDate.fromPrimitives(data.date_start) : undefined,
+      dateStart: data.date_start ? IsoDate.fromPrimitives(data.date_start) : undefined,
       dateEnd:
         data.date_end !== undefined
-          ? WorkJournalOptionalDate.fromPrimitives(data.date_end)
+          ? OptionalIsoDate.fromPrimitives(data.date_end)
           : undefined,
       topic: data.topic !== undefined ? WorkJournalTopic.fromPrimitives(data.topic) : undefined,
       inputMode: data.input_mode ? WorkJournalInputMode.fromPrimitives(data.input_mode) : undefined,

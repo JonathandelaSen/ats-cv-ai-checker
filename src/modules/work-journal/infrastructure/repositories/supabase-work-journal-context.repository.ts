@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { UserId } from "@/modules/shared";
+import { Timestamp, UserId } from "@/modules/shared";
 import {
   WorkJournalContext,
   type WorkJournalContextPrimitives,
@@ -9,19 +9,14 @@ import {
   type WorkJournalContextSearchCriteria,
 } from "../../domain/repositories/work-journal-context.repository";
 import { WorkJournalContextSuggestion } from "../../domain/value-objects/context-suggestion.value-object";
-import {
-  type ContextStatus,
-  type ContextType,
-  WorkJournalContextId,
-  WorkJournalContextName,
-  WorkJournalContextStatus,
-  WorkJournalContextType,
-  WorkJournalCreatedFromCv,
-  WorkJournalIsDefault,
-  WorkJournalRoleOrLabel,
-  WorkJournalSuggestionKey,
-  WorkJournalTimestamp,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalContextName } from "../../domain/value-objects/work-journal-context-name.value-object";
+import { type ContextStatus, WorkJournalContextStatus } from "../../domain/value-objects/work-journal-context-status.value-object";
+import { type ContextType, WorkJournalContextType } from "../../domain/value-objects/work-journal-context-type.value-object";
+import { WorkJournalCreatedFromCv } from "../../domain/value-objects/work-journal-created-from-cv.value-object";
+import { WorkJournalIsDefault } from "../../domain/value-objects/work-journal-is-default.value-object";
+import { WorkJournalRoleOrLabel } from "../../domain/value-objects/work-journal-role-or-label.value-object";
+import { WorkJournalSuggestionKey } from "../../domain/value-objects/work-journal-suggestion-key.value-object";
 
 interface WorkJournalContextRow {
   id: string;
@@ -232,8 +227,8 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
         status: WorkJournalContextStatus.fromPrimitives("active"),
         isDefault: WorkJournalIsDefault.fromPrimitives(data.is_default ?? false),
         createdFromCv: WorkJournalCreatedFromCv.fromPrimitives(data.created_from_cv ?? false),
-        createdAt: WorkJournalTimestamp.fromPrimitives(now),
-        updatedAt: WorkJournalTimestamp.fromPrimitives(now),
+        createdAt: Timestamp.fromPrimitives(now),
+        updatedAt: Timestamp.fromPrimitives(now),
       })
     );
   }

@@ -4,14 +4,11 @@ import type { WorkJournalContextRepository } from "../../domain/repositories/wor
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { createRequestId } from "@/lib/observability";
-import {
-  type ContextStatus,
-  WorkJournalContextId,
-  WorkJournalContextName,
-  WorkJournalContextStatus,
-  WorkJournalIsDefault,
-  WorkJournalRoleOrLabel,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalContextName } from "../../domain/value-objects/work-journal-context-name.value-object";
+import { type ContextStatus, WorkJournalContextStatus } from "../../domain/value-objects/work-journal-context-status.value-object";
+import { WorkJournalIsDefault } from "../../domain/value-objects/work-journal-is-default.value-object";
+import { WorkJournalRoleOrLabel } from "../../domain/value-objects/work-journal-role-or-label.value-object";
 
 export interface UpdateContextInput {
   name?: string;

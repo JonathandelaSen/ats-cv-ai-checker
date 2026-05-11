@@ -1,6 +1,10 @@
 export type { EventTracker, ProcessingEventInput } from "./domain/repositories/event-tracker.repository";
 export { AggregateRoot } from "./domain/entities/aggregate-root";
 export type { DomainEvent } from "./domain/events/domain-event";
+export { EntityId } from "./domain/value-objects/entity-id.value-object";
+export { IsoDate } from "./domain/value-objects/iso-date.value-object";
+export { OptionalIsoDate } from "./domain/value-objects/optional-iso-date.value-object";
+export { Timestamp } from "./domain/value-objects/timestamp.value-object";
 export { UserId } from "./domain/value-objects/user-id.value-object";
 export { ValueObject } from "./domain/value-objects/value-object";
 export { SupabaseEventTracker } from "./infrastructure/repositories/supabase-event-tracker.repository";

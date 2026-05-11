@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { IsoDate, OptionalIsoDate, Timestamp, UserId } from "@/modules/shared";
 import { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { WorkJournalEntryRepository } from "../../domain/repositories/work-journal-entry.repository";
@@ -6,19 +6,13 @@ import type { EventTracker } from "@/modules/shared/domain/repositories/event-tr
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { ContextArchivedError } from "../../domain/errors/context-archived.error";
 import { createRequestId } from "@/lib/observability";
-import {
-  type EntryInputMode,
-  WorkJournalContextId,
-  WorkJournalDate,
-  WorkJournalEntryId,
-  WorkJournalFinalText,
-  WorkJournalInputMode,
-  WorkJournalIsDefault,
-  WorkJournalNotes,
-  WorkJournalOptionalDate,
-  WorkJournalTimestamp,
-  WorkJournalTopic,
-} from "../../domain/value-objects/work-journal.value-object";
+import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
+import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
+import { WorkJournalFinalText } from "../../domain/value-objects/work-journal-final-text.value-object";
+import { type EntryInputMode, WorkJournalInputMode } from "../../domain/value-objects/work-journal-input-mode.value-object";
+import { WorkJournalIsDefault } from "../../domain/value-objects/work-journal-is-default.value-object";
+import { WorkJournalNotes } from "../../domain/value-objects/work-journal-notes.value-object";
+import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.value-object";
 
 export interface CreateEntryInput {
   user_id: string;
@@ -64,14 +58,14 @@ export class CreateEntryUseCase {
         id: WorkJournalEntryId.fromPrimitives(crypto.randomUUID()),
         userId,
         contextId,
-        dateStart: WorkJournalDate.fromPrimitives(input.date_start),
-        dateEnd: WorkJournalOptionalDate.fromPrimitives(input.date_end),
+        dateStart: IsoDate.fromPrimitives(input.date_start),
+        dateEnd: OptionalIsoDate.fromPrimitives(input.date_end),
         topic: WorkJournalTopic.fromPrimitives(input.topic),
         inputMode: WorkJournalInputMode.fromPrimitives(input.input_mode),
         rawNotes: WorkJournalNotes.fromPrimitives(input.raw_notes),
         finalText: WorkJournalFinalText.fromPrimitives(input.final_text),
-        createdAt: WorkJournalTimestamp.fromPrimitives(now),
-        updatedAt: WorkJournalTimestamp.fromPrimitives(now),
+        createdAt: Timestamp.fromPrimitives(now),
+        updatedAt: Timestamp.fromPrimitives(now),
       })
     );
 
