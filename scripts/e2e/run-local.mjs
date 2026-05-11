@@ -16,10 +16,10 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 );
-const e2eDir = path.join(rootDir, ".e2e");
-const logsDir = path.join(e2eDir, "logs");
+export const e2eDir = path.join(rootDir, ".e2e");
+export const logsDir = path.join(e2eDir, "logs");
 const appWorkdir = path.join(e2eDir, "app-workdir");
-const supabaseProjectRoot = path.join(e2eDir, "supabase-workdir");
+export const supabaseProjectRoot = path.join(e2eDir, "supabase-workdir");
 const supabaseDir = path.join(supabaseProjectRoot, "supabase");
 const envJsonPath = path.join(e2eDir, "env.json");
 const projectId = "ats-cv-ai-checker-e2e";
@@ -27,7 +27,7 @@ const parserContainerName = "ats-cv-ai-checker-pdf-parser-e2e";
 const parserImageName = "ats-cv-ai-checker-pdf-parser:e2e";
 const parserSecret = "e2e-parser-secret";
 
-const ports = {
+export const ports = {
   app: 3100,
   parser: 8101,
   api: 56431,
@@ -146,7 +146,7 @@ function canReach(url) {
   });
 }
 
-async function prepareSupabaseWorkdir() {
+export async function prepareSupabaseWorkdir() {
   await rm(supabaseProjectRoot, { recursive: true, force: true });
   await mkdir(supabaseDir, { recursive: true });
   await cp(path.join(rootDir, "supabase", "migrations"), path.join(supabaseDir, "migrations"), {
@@ -227,7 +227,7 @@ function parseSupabaseEnv(output) {
   };
 }
 
-async function startSupabase() {
+export async function startSupabase() {
   await run("npx", [
     "supabase",
     "stop",
@@ -317,7 +317,7 @@ async function startNext(supabaseEnv) {
   );
 }
 
-async function writeE2EEnv(supabaseEnv) {
+export async function writeE2EEnv(supabaseEnv) {
   await writeFile(
     envJsonPath,
     JSON.stringify(
@@ -390,20 +390,24 @@ async function main() {
   });
 }
 
-process.on("SIGINT", async () => {
-  await cleanup();
-  process.exit(130);
-});
-process.on("SIGTERM", async () => {
-  await cleanup();
-  process.exit(143);
-});
+const isDirectRun = path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url);
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
+if (isDirectRun) {
+  process.on("SIGINT", async () => {
     await cleanup();
+    process.exit(130);
   });
+  process.on("SIGTERM", async () => {
+    await cleanup();
+    process.exit(143);
+  });
+
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await cleanup();
+    });
+}

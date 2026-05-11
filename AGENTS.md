@@ -82,3 +82,13 @@ src/modules/
 ### When migrating a new module
 
 Follow the Work Journal migration as a template. Create all new files first (steps 1-7 are zero-risk), then switchover route handlers in a single step, then clean up `db.ts`. Each step should be a separate commit.
+
+### Testing conventions
+
+- **Domain layer:** No tests while entities are pure interfaces without logic. Add tests when domain services or entity validation logic is introduced.
+- **Infrastructure layer:** Backend tests (`*.test.ts`) against real Supabase E2E stack (ports 56431+). Test each repository method. One test user per test via `createConfirmedUser()`.
+- **Application layer:** Backend tests with real repositories against real DB. Mock only external services (AI) and cross-cutting concerns (EventTracker). Test happy paths, domain error cases, and orchestration logic.
+- **No mocks for database** — all DB interactions use the real Supabase E2E instance.
+- **Never test AI services directly** — AI service implementations must not be exercised in automated tests. Use mocks injected into use cases whenever AI behavior is required.
+- Run with `npm run test:backend` (auto-starts Supabase E2E stack if not running).
+- Test files live next to the code they test and share the source filename plus `.test.ts`: `create-context.use-case.ts` → `create-context.use-case.test.ts`, `supabase-work-journal-entry.repository.ts` → `supabase-work-journal-entry.repository.test.ts`.
