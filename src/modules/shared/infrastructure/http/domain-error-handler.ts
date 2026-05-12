@@ -23,6 +23,9 @@ export function handleDomainError(error: unknown): NextResponse {
   ) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  if (hasErrorName(error, "ReceivedFeedbackNotFoundError")) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
   return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
 }
 

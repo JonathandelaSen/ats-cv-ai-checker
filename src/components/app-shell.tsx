@@ -9,6 +9,7 @@ import CVEditorView from "@/components/cv-editor-view";
 import InterviewQuestionsView from "@/components/interview-questions-view";
 import WorkJournalView from "@/components/work-journal-view";
 import FeedbackNotesView from "@/components/feedback-notes-view";
+import ReceivedFeedbackView from "@/components/received-feedback-view";
 import ExtractionView from "@/components/extraction-view";
 import AIAnalysisView from "@/components/analysis/analysis-view";
 import SettingsView from "@/components/settings-view";
@@ -34,6 +35,7 @@ type AppView =
   | "editor"
   | "questions"
   | "journal"
+  | "received-feedback"
   | "feedback-notes"
   | "settings"
   | "admin";
@@ -243,6 +245,12 @@ export default function AppShell({
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
       });
+    } else if (view === "received-feedback") {
+      queueMicrotask(() => {
+        setActiveView("received-feedback");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
     } else if (view === "settings") {
       queueMicrotask(() => {
         setActiveView("settings");
@@ -337,6 +345,13 @@ export default function AppShell({
     window.history.replaceState(null, "", "/?view=feedback-notes");
   };
 
+  const handleOpenReceivedFeedback = () => {
+    setActiveView("received-feedback");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    window.history.replaceState(null, "", "/?view=received-feedback");
+  };
+
   const handleOpenSettings = () => {
     setActiveView("settings");
     setActiveAnalysisId(null);
@@ -412,6 +427,7 @@ export default function AppShell({
         onOpenEditor={() => handleOpenEditor()}
         onOpenQuestions={() => handleOpenQuestions()}
         onOpenJournal={handleOpenJournal}
+        onOpenReceivedFeedback={handleOpenReceivedFeedback}
         onOpenFeedbackNotes={handleOpenFeedbackNotes}
         onOpenSettings={handleOpenSettings}
         onOpenAdmin={handleOpenAdmin}
@@ -544,6 +560,16 @@ export default function AppShell({
                 hasGeminiApiKey={geminiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
               />
+            </motion.div>
+          ) : activeView === "received-feedback" ? (
+            <motion.div
+              key="received-feedback"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <ReceivedFeedbackView />
             </motion.div>
           ) : activeView === "settings" ? (
             <motion.div

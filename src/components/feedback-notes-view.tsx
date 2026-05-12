@@ -65,6 +65,7 @@ export default function FeedbackNotesView({
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [copiedPromptContent, setCopiedPromptContent] = useState("");
   const [finalCopied, setFinalCopied] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gemini-3.1-pro-preview");
 
   const selectedFeedback = useMemo(
     () => feedbacks.find((feedback) => feedback.id === selectedId) ?? null,
@@ -290,7 +291,7 @@ export default function FeedbackNotesView({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             geminiApiKey,
-            model: "gemini-3.1-pro-preview",
+            model: selectedModel,
           }),
         }
       );
@@ -442,7 +443,7 @@ export default function FeedbackNotesView({
             Select or create feedback.
           </div>
         ) : (
-          <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+          <div className="flex w-full flex-col gap-6 p-6">
             <section className="flex flex-col gap-4 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0 flex-1">
                 <label className="mb-1 block text-xs font-medium text-zinc-500">
@@ -605,10 +606,24 @@ export default function FeedbackNotesView({
               </div>
 
               <div className="min-w-0">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold text-zinc-200">
                     Final feedback
                   </h2>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-zinc-500">Modelo AI:</label>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      disabled={isClosed || aiLoading}
+                      className="rounded-md border border-white/10 bg-[#0d0d14] px-2 py-1 text-xs text-zinc-300 outline-none transition-colors focus:border-zinc-300 disabled:opacity-50"
+                    >
+                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview</option>
+                      <option value="gemini-3.1-flash-preview">Gemini 3.1 Flash Preview</option>
+                      <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    </select>
+                  </div>
                 </div>
                 <textarea
                   value={finalDraft}

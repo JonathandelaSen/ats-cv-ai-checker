@@ -22,6 +22,7 @@ import {
   MessageSquareQuote,
   BookOpenText,
   NotebookPen,
+  Inbox,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/db";
 
@@ -68,6 +69,7 @@ interface SidebarProps {
     | "editor"
     | "questions"
     | "journal"
+    | "received-feedback"
     | "feedback-notes"
     | "settings"
     | "admin";
@@ -78,6 +80,7 @@ interface SidebarProps {
   onOpenEditor: () => void;
   onOpenQuestions: () => void;
   onOpenJournal: () => void;
+  onOpenReceivedFeedback: () => void;
   onOpenFeedbackNotes: () => void;
   onOpenSettings: () => void;
   onOpenAdmin: () => void;
@@ -98,6 +101,7 @@ export default function Sidebar({
   onOpenEditor,
   onOpenQuestions,
   onOpenJournal,
+  onOpenReceivedFeedback,
   onOpenFeedbackNotes,
   onOpenSettings,
   onOpenAdmin,
@@ -292,6 +296,17 @@ export default function Sidebar({
         >
           <BookOpenText className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Diario</span>}
+        </button>
+        <button
+          onClick={onOpenReceivedFeedback}
+          className={`
+            w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
+            ${activeView === "received-feedback" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
+            ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
+          `}
+        >
+          <Inbox className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Received Feedback</span>}
         </button>
         <button
           onClick={onOpenFeedbackNotes}
