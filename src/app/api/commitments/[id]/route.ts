@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createCommitmentsModule, presentCommitment } from "@/modules/commitments";
+import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import {
+  getAuthedSupabase,
+  optionalDate,
+  optionalStringEnum,
+  optionalText,
+  requiredText,
+} from "../validation";
+
+const sources = ["manager", "self", "company", "project", "other"] as const;
+const statuses = ["active", "paused", "achieved", "missed", "cancelled"] as const;
+const priorities = ["low", "medium", "high"] as const;
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { id } = await params;
+    const body = (await req.json()) as Record<string, unknown>;
+    const contextId = body.contextId === undefined ? undefined : requiredText(body.contextId);
+    const title = body.title === undefined ? undefined : requiredText(body.title);
+    const description = optionalText(body.description);
+    const successCriteria = optionalText(body.successCriteria);
+    const resultNotes = optionalText(body.resultNotes);
+    const source = optionalStringEnum(body.source, sources);
+    const status = optionalStringEnum(body.status, statuses);
+    const priority = body.priority === null ? null : optionalStringEnum(body.priority, priorities);
+    const startDate = optionalDate(body.startDate);
+    const targetDate = optionalDate(body.targetDate);
+    if (
+      contextId === null ||
+      title === null ||
+      (body.description !== undefined && description === undefined) ||
+      (body.successCriteria !== undefined && successCriteria === undefined) ||
+      (body.resultNotes !== undefined && resultNotes === undefined) ||
+      (body.startDate !== undefined && startDate === undefined) ||
+      (body.targetDate !== undefined && targetDate === undefined)
+    ) {
+      return NextResponse.json({ error: "Invalid commitment payload" }, { status: 400 });
+    }
+    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
+    const commitment = await mod.updateCommitment.execute({
+      userId: user.id,
+      id,
+      contextId: contextId ?? undefined,
+      title: title ?? undefined,
+      description,
+      successCriteria,
+      resultNotes,
+      source,
+      status,
+      priority,
+      startDate: startDate ?? undefined,
+      targetDate,
+    });
+    return NextResponse.json(presentCommitment(commitment));
+  } catch (error: unknown) {
+    return handleDomainError(error);
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { supabase, user } = await getAuthedSupabase();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { id } = await params;
+    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
+    await mod.deleteCommitment.execute({ userId: user.id, id });
+    return NextResponse.json({ ok: true });
+  } catch (error: unknown) {
+    return handleDomainError(error);
+  }
+}

@@ -8,6 +8,7 @@ import TemplatesView from "@/components/templates-view";
 import CVEditorView from "@/components/cv-editor-view";
 import InterviewQuestionsView from "@/components/interview-questions-view";
 import WorkJournalView from "@/components/work-journal-view";
+import ObjectivesView from "@/components/objectives-view";
 import FeedbackNotesView from "@/components/feedback-notes-view";
 import ReceivedFeedbackView from "@/components/received-feedback-view";
 import ExtractionView from "@/components/extraction-view";
@@ -35,6 +36,7 @@ type AppView =
   | "editor"
   | "questions"
   | "journal"
+  | "objectives"
   | "received-feedback"
   | "feedback-notes"
   | "settings"
@@ -239,6 +241,12 @@ export default function AppShell({
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
       });
+    } else if (view === "objectives") {
+      queueMicrotask(() => {
+        setActiveView("objectives");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
     } else if (view === "feedback-notes") {
       queueMicrotask(() => {
         setActiveView("feedback-notes");
@@ -338,6 +346,13 @@ export default function AppShell({
     window.history.replaceState(null, "", "/?view=journal");
   };
 
+  const handleOpenObjectives = () => {
+    setActiveView("objectives");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    window.history.replaceState(null, "", "/?view=objectives");
+  };
+
   const handleOpenFeedbackNotes = () => {
     setActiveView("feedback-notes");
     setActiveAnalysisId(null);
@@ -427,6 +442,7 @@ export default function AppShell({
         onOpenEditor={() => handleOpenEditor()}
         onOpenQuestions={() => handleOpenQuestions()}
         onOpenJournal={handleOpenJournal}
+        onOpenObjectives={handleOpenObjectives}
         onOpenReceivedFeedback={handleOpenReceivedFeedback}
         onOpenFeedbackNotes={handleOpenFeedbackNotes}
         onOpenSettings={handleOpenSettings}
@@ -546,6 +562,16 @@ export default function AppShell({
                 hasGeminiApiKey={geminiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
               />
+            </motion.div>
+          ) : activeView === "objectives" ? (
+            <motion.div
+              key="objectives"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <ObjectivesView />
             </motion.div>
           ) : activeView === "feedback-notes" ? (
             <motion.div

@@ -23,6 +23,7 @@ import {
   BookOpenText,
   NotebookPen,
   Inbox,
+  Target,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/db";
 
@@ -69,6 +70,7 @@ interface SidebarProps {
     | "editor"
     | "questions"
     | "journal"
+    | "objectives"
     | "received-feedback"
     | "feedback-notes"
     | "settings"
@@ -80,6 +82,7 @@ interface SidebarProps {
   onOpenEditor: () => void;
   onOpenQuestions: () => void;
   onOpenJournal: () => void;
+  onOpenObjectives: () => void;
   onOpenReceivedFeedback: () => void;
   onOpenFeedbackNotes: () => void;
   onOpenSettings: () => void;
@@ -101,6 +104,7 @@ export default function Sidebar({
   onOpenEditor,
   onOpenQuestions,
   onOpenJournal,
+  onOpenObjectives,
   onOpenReceivedFeedback,
   onOpenFeedbackNotes,
   onOpenSettings,
@@ -296,6 +300,17 @@ export default function Sidebar({
         >
           <BookOpenText className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Diario</span>}
+        </button>
+        <button
+          onClick={onOpenObjectives}
+          className={`
+            w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
+            ${activeView === "objectives" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
+            ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
+          `}
+        >
+          <Target className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Objectives</span>}
         </button>
         <button
           onClick={onOpenReceivedFeedback}
