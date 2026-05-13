@@ -13,9 +13,8 @@ import { createSelectionProcessModule } from "@/modules/selection-process";
 import { createWorkJournalModule } from "@/modules/work-journal";
 
 const queryBus = new InMemoryQueryBus();
-registerAnalysisChatQueries(queryBus);
-
 export const analysisChatModule = createAnalysisChatModule(queryBus);
+registerAnalysisChatQueries(queryBus, analysisChatModule);
 export const cvAnalysisModule = createCVAnalysisModule();
 export const cvLibraryModule = createCVLibraryModule();
 export const commitmentsModule = createCommitmentsModule();

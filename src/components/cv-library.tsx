@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
 import type { AnalysisSummary } from "@/lib/analysis-types";
-import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 
 interface CVLibraryProps {

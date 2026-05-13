@@ -1,10 +1,10 @@
 # Analisis de CV
 
 ## Source
-- Prompt source file: `src/lib/ai-scoring.ts`
-- Prompt builder: `buildGeneralPrompt`
-- Model controller: `scoreCVWithAI`
-- Runtime mode: `analysis_mode = "general"`
+- Prompt source file: `src/modules/cv-analysis/infrastructure/services/cv-scoring-prompts.ts`
+- Prompt builder: `buildGeneralScoringPrompt`
+- Model controller: `src/modules/cv-analysis/infrastructure/services/gemini-cv-scoring-ai.service.ts`
+- Route: `POST /api/cv-analyses/[id]/score`
 
 ## Current Prompt
 ```text

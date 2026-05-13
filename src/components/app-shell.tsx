@@ -23,7 +23,7 @@ import type {
   AIContext,
   OfferStatus,
 } from "@/lib/analysis-types";
-import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
 

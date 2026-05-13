@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AnalysisSummary } from "@/lib/analysis-types";
-import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { getErrorMessage } from "@/lib/errors";
 

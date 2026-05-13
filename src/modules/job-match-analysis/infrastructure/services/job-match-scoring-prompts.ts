@@ -1,22 +1,18 @@
-# Analisis de Oferta
+export function buildJobMatchScoringPrompt(
+  jobDescription: string,
+  jobUrl?: string | null,
+): string {
+  const urlBlock = jobUrl?.trim()
+    ? `\nThe source URL provided by the user is: ${jobUrl.trim()}\n`
+    : "";
 
-## Source
-- Prompt source file: `src/modules/job-match-analysis/infrastructure/services/job-match-scoring-prompts.ts`
-- Prompt builder: `buildJobMatchScoringPrompt`
-- Model controller: `src/modules/job-match-analysis/infrastructure/services/gemini-job-match-scoring-ai.service.ts`
-- Route: `POST /api/job-match-analyses/[id]/score`
-
-## Current Prompt
-```text
-You are a strict ATS recruiter and job-posting analyst. Compare the extracted text from a PDF resume against a specific job posting.
+  return `You are a strict ATS recruiter and job-posting analyst. Compare the extracted text from a PDF resume against a specific job posting.
 
 The job description is:
 ---
-{job_description}
+${jobDescription}
 ---
-
-The source URL provided by the user is: {job_url}
-
+${urlBlock}
 Return the comparison and the job-posting summary as structured data. If a field is not present in the job posting, use null or an empty array. Do not invent salary, holidays, company, or benefits.
 
 You must respond ONLY with valid JSON using this exact format:
@@ -42,21 +38,5 @@ You must respond ONLY with valid JSON using this exact format:
     "responsibilities": ["<key responsibility>", ...],
     "notablePoints": ["<brief relevant point, condition, warning, or differentiator>", ...]
   }
+}`;
 }
-```
-
-If `job_url` is empty, the URL block is omitted.
-
-## Data Inputs
-- User content sent to the model: extracted CV text from the selected analysis.
-- System instruction data: `job_description` and optional `job_url`.
-- Output parser: `parseAIResult`, including `jobKeyData`, `jobKeywords`, `matchingKeywords`, and `missingKeywords`.
-
-## Runtime Flow
-1. `/api/score` validates that `job_description` exists for `job_match`.
-2. `scoreCVWithAI` builds this prompt with `buildJobMatchPrompt`.
-3. The extracted CV text is sent as the user message.
-4. The result is persisted on the analysis and later powers offer tabs, tracking, interview questions, and offer chat.
-
-## Maintenance
-When `buildJobMatchPrompt`, its output JSON shape, or the offer fields sent to the model changes, update this document in the same change.

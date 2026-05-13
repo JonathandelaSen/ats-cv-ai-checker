@@ -3,17 +3,24 @@ import { CreateJobMatchAnalysisUseCase } from "./application/use-cases/create-jo
 import { DeleteJobMatchAnalysisUseCase } from "./application/use-cases/delete-job-match-analysis.use-case";
 import { GetJobMatchAnalysisByIdUseCase } from "./application/use-cases/get-job-match-analysis-by-id.use-case";
 import { ListJobMatchAnalysesUseCase } from "./application/use-cases/list-job-match-analyses.use-case";
+import { ScoreJobMatchAnalysisUseCase } from "./application/use-cases/score-job-match-analysis.use-case";
 import { UpdateJobMatchAnalysisAIResultUseCase } from "./application/use-cases/update-job-match-analysis-ai-result.use-case";
 import { UpdateJobMatchAnalysisJobUrlUseCase } from "./application/use-cases/update-job-match-analysis-job-url.use-case";
+import { GeminiJobMatchScoringAIServiceFactory } from "./infrastructure/services/gemini-job-match-scoring-ai.service";
 import { SupabaseJobMatchAnalysisRepository } from "./infrastructure/repositories/supabase-job-match-analysis.repository";
 
 const repo = new SupabaseJobMatchAnalysisRepository();
+const aiServiceFactory = new GeminiJobMatchScoringAIServiceFactory();
 
 function createUseCases() {
   return {
     createJobMatchAnalysis: new CreateJobMatchAnalysisUseCase({ repo }),
     listJobMatchAnalyses: new ListJobMatchAnalysesUseCase({ repo }),
     getJobMatchAnalysisById: new GetJobMatchAnalysisByIdUseCase({ repo }),
+    scoreJobMatchAnalysis: new ScoreJobMatchAnalysisUseCase({
+      repo,
+      aiServiceFactory,
+    }),
     updateJobMatchAnalysisAIResult: new UpdateJobMatchAnalysisAIResultUseCase({
       repo,
     }),

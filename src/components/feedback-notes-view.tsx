@@ -20,12 +20,12 @@ import {
 import {
   buildFeedbackNotesFinalPrompt,
   type FeedbackNotesFinalPromptEntry,
-} from "@/modules/feedback-notes/infrastructure/services/feedback-notes-prompts";
+} from "@/modules/feedback-notes/client";
 import type {
   FeedbackEntryPrimitives,
   FeedbackPrimitives,
   FeedbackStatus,
-} from "@/modules/feedback-notes";
+} from "@/modules/feedback-notes/client";
 import { getErrorMessage } from "@/lib/errors";
 import { CopyPromptModal } from "@/components/ui/copy-prompt-modal";
 

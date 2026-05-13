@@ -14,3 +14,11 @@ export {
 } from "./application/presenters/cv-library-presenters";
 export type { DeleteCVDocumentResult } from "./application/use-cases/delete-cv-document.use-case";
 export type { CVAnalysisUsageSummary } from "./domain/repositories/cv-document.repository";
+export {
+  PUBLIC_CV_SLUG_MAX_LENGTH,
+  PUBLIC_CV_ID_LENGTH,
+  type PublicCVSettingsRequest,
+  normalizePublicCVSlug,
+  buildPublicCVPath,
+  generatePublicCVId,
+} from "./domain/services/public-cv";

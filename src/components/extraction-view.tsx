@@ -146,13 +146,11 @@ export default function ExtractionView({
     setAiError(null);
 
     try {
-      const res = await fetch("/api/score", {
+      const res = await fetch(`/api/cv-analyses/${analysis.id}/score`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          analysisId: analysis.id,
-          mode: "general",
-          context,
+          additionalContext: context?.additionalContext ?? null,
           model,
           geminiApiKey,
         }),
@@ -185,12 +183,10 @@ export default function ExtractionView({
     setAiError(null);
 
     try {
-      const res = await fetch("/api/score", {
+      const res = await fetch(`/api/job-match-analyses/${analysis.id}/score`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          analysisId: analysis.id,
-          mode: "job_match",
           jobDescription,
           jobUrl,
           model,

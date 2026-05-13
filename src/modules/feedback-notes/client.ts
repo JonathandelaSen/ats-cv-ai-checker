@@ -1,4 +1,3 @@
-export { createFeedbackNotesModule } from "./feedback-notes.module";
 export {
   presentFeedback,
   presentFeedbackEntry,

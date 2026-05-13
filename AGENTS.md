@@ -76,8 +76,10 @@ src/modules/
 - **Infrastructure repositories implement `SupabaseAware`** (`src/modules/shared/infrastructure/supabase-aware.ts`). They have no constructor parameters. Instead they expose a `bindRequest(client: SupabaseClient)` method that sets the Supabase client for the current request. The module's own `bindRequest` method delegates to all its repositories. Route handlers call `myModule.bindRequest(supabase)` once per request before calling any use case. **Reference implementation:** `analysis-chat` module.
 - **Route handlers** import the module singleton from `src/lib/container.ts`, call `module.bindRequest(supabase)`, and then call use case `.execute()`. HTTP validation (`normalize*` functions) stays in the route handlers.
 - **Domain errors** are caught by `handleDomainError()` which maps them to HTTP status codes.
-- **AI prompts** stay in `src/lib/ai-*-prompts.ts` — the infrastructure service imports them.
-- **Cross-module dependencies** use minimal port interfaces (e.g., `CVDataRepository` exposes only what the consuming module needs).
+- **AI prompts and controllers live inside their module** under `infrastructure/services/`. Prompt builders go in a `*-prompts.ts` file, and the SDK client call goes in a separate `gemini-*-ai.service.ts` file. Both files are colocated in the same directory. **Reference:** `feedback-notes` module.
+- **Cross-module data access uses the query bus**. A use case that needs data from another module must dispatch a query through the `QueryBus` (injected via constructor), never import another module's repository or use case directly. Query classes and handlers live under `application/queries/` in the owning module and are registered in `container.ts`.
+- **One command per route handler**. A route may call one use case with side effects (the command) and any number of read-only queries. It must never call two use cases that both produce side effects. If the response needs data from multiple modules, the route handler (controller) composes the read models after the command completes.
+- **Cross-module port interfaces** provide minimal contracts (e.g., `CVDataRepository` exposes only what the consuming module needs) when shared infrastructure is unavoidable.
 - **`getAuthedSupabase()`** and `validation.ts` helpers stay in the route handler layer, not in the module.
 
 ### When adding features to a migrated module
@@ -118,6 +120,7 @@ Each step should be a separate commit.
   - `scripts/verify-ddd-tests.mjs`: every `src/modules/**/application/use-cases/*.use-case.ts` and every `src/modules/**/infrastructure/repositories/*.repository.ts` must have a colocated `*.test.ts` file with the same basename.
   - `scripts/verify-ddd-imports.mjs`: module internals must respect DDD import direction. Domain cannot import application or infrastructure, application cannot import infrastructure, infrastructure cannot import application, and feature modules cannot import another feature module's internals. Composition roots (`<module>.module.ts`), module barrels, tests, test helpers, external packages, and `src/modules/shared/**` are allowed where appropriate.
   - `scripts/verify-ddd-entities.mjs`: modules listed in `migratedModules` must follow the AggregateRoot/ValueObject/repository rules above.
+  - `scripts/verify-ddd-route-imports.mjs`: files under `src/app/`, `src/components/`, and `src/lib/` that import from `@/modules/<name>` must use the barrel (`@/modules/<name>` or `@/modules/<name>/index`), never reach into internal paths like `@/modules/<name>/infrastructure/...`. `@/modules/shared` is exempt.
 
 ## Agent Workflow Preferences
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.

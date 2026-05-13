@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import {
   CV_TEMPLATES,
   type CVTemplateDefinition,

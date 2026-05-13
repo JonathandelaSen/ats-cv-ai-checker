@@ -12,7 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 
 interface NewAnalysisFlowProps {
   cvs: CVSummary[];

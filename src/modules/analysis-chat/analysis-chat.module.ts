@@ -77,11 +77,10 @@ export function registerAnalysisChatQueries(
       handler: GetAnalysisChatContextQueryHandler,
     ) => void;
   },
+  module: AnalysisChatModule,
 ) {
   queryBus.register(
     GetAnalysisChatContextQuery.queryName,
-    new GetAnalysisChatContextQueryHandler(
-      new GetAnalysisChatContextUseCase({ contextReader }),
-    ),
+    new GetAnalysisChatContextQueryHandler(module.getAnalysisChatContext),
   );
 }
