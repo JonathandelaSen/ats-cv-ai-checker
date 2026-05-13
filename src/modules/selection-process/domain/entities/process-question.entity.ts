@@ -109,6 +109,35 @@ export class ProcessQuestion extends AggregateRoot {
     this.processQuestionUpdatedAt = input.updatedAt;
   }
 
+  update(input: {
+    question?: ProcessQuestionText;
+    context?: string | null;
+    answer?: string | null;
+    jobOpportunityId?: JobOpportunityId | null;
+    sourceJobMatchAnalysisId?: string | null;
+    legacyCvId?: string | null;
+    aiModel?: string | null;
+    aiGeneratedAt?: string | null;
+    updatedAt: Timestamp;
+  }): void {
+    if (input.question) this.processQuestionText = input.question;
+    if (input.context !== undefined) this.processQuestionContext = input.context;
+    if (input.answer !== undefined) this.processQuestionAnswer = input.answer;
+    if (input.jobOpportunityId !== undefined) {
+      this.processQuestionJobOpportunityId = input.jobOpportunityId;
+    }
+    if (input.sourceJobMatchAnalysisId !== undefined) {
+      this.processQuestionSourceJobMatchAnalysisId =
+        input.sourceJobMatchAnalysisId;
+    }
+    if (input.legacyCvId !== undefined) this.processQuestionLegacyCvId = input.legacyCvId;
+    if (input.aiModel !== undefined) this.processQuestionAIModel = input.aiModel;
+    if (input.aiGeneratedAt !== undefined) {
+      this.processQuestionAIGeneratedAt = input.aiGeneratedAt;
+    }
+    this.processQuestionUpdatedAt = input.updatedAt;
+  }
+
   get id(): string {
     return this.processQuestionId.toPrimitives();
   }

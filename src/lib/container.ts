@@ -7,6 +7,7 @@ import { createCVLibraryModule } from "@/modules/cv-library";
 import { createCommitmentsModule } from "@/modules/commitments";
 import { createFeedbackNotesModule } from "@/modules/feedback-notes";
 import { createReceivedFeedbackModule } from "@/modules/received-feedback";
+import { createSelectionProcessModule } from "@/modules/selection-process";
 import { createWorkJournalModule } from "@/modules/work-journal";
 
 const queryBus = new InMemoryQueryBus();
@@ -17,4 +18,5 @@ export const cvLibraryModule = createCVLibraryModule();
 export const commitmentsModule = createCommitmentsModule();
 export const feedbackNotesModule = createFeedbackNotesModule();
 export const receivedFeedbackModule = createReceivedFeedbackModule();
+export const selectionProcessModule = createSelectionProcessModule();
 export const workJournalModule = createWorkJournalModule();

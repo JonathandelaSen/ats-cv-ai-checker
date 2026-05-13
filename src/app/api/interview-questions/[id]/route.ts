@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteInterviewQuestion,
-  getInterviewQuestion,
-  updateInterviewQuestion,
-  type UpdateInterviewQuestionInput,
-} from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getAuthedSupabase,
@@ -12,6 +6,8 @@ import {
   normalizeRequiredText,
   validateQuestionLinks,
 } from "../validation";
+import { selectionProcessModule } from "@/lib/container";
+import { presentProcessQuestion } from "@/modules/selection-process";
 
 export async function GET(
   _req: NextRequest,
@@ -24,12 +20,14 @@ export async function GET(
     }
 
     const { id } = await params;
-    const question = await getInterviewQuestion(supabase, id, user.id);
+    const question = await selectionProcessModule
+      .bindRequest(supabase)
+      .getProcessQuestion.execute({ id, userId: user.id });
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
 
-    return NextResponse.json(question);
+    return NextResponse.json(presentProcessQuestion(question));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -47,7 +45,13 @@ export async function PATCH(
 
     const { id } = await params;
     const data = (await req.json()) as Record<string, unknown>;
-    const updates: UpdateInterviewQuestionInput = {};
+    const updates: {
+      question?: string;
+      context?: string | null;
+      answer?: string | null;
+      legacyCvId?: string | null;
+      sourceJobMatchAnalysisId?: string | null;
+    } = {};
 
     if (data.question !== undefined) {
       const question = normalizeRequiredText(data.question);
@@ -69,20 +73,28 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      updates[key] = normalized;
+      if (key === "cv_id") updates.legacyCvId = normalized;
+      else if (key === "analysis_id") updates.sourceJobMatchAnalysisId = normalized;
+      else updates[key] = normalized;
     }
 
-    if (updates.cv_id !== undefined || updates.analysis_id !== undefined) {
-      const existing = await getInterviewQuestion(supabase, id, user.id);
+    if (
+      updates.legacyCvId !== undefined ||
+      updates.sourceJobMatchAnalysisId !== undefined
+    ) {
+      const existingReadModel = await selectionProcessModule
+        .bindRequest(supabase)
+        .getProcessQuestion.execute({ id, userId: user.id });
+      const existing = existingReadModel ? presentProcessQuestion(existingReadModel) : null;
       if (!existing) {
         return NextResponse.json({ error: "Question not found" }, { status: 404 });
       }
       const links = await validateQuestionLinks(supabase, user.id, {
-        cv_id: updates.cv_id === undefined ? existing.cv_id : updates.cv_id,
+        cv_id: updates.legacyCvId === undefined ? existing.cv_id : updates.legacyCvId,
         analysis_id:
-          updates.analysis_id === undefined
+          updates.sourceJobMatchAnalysisId === undefined
             ? existing.analysis_id
-            : updates.analysis_id,
+            : updates.sourceJobMatchAnalysisId,
       });
       if (!links.ok) return links.response;
     }
@@ -94,17 +106,18 @@ export async function PATCH(
       );
     }
 
-    const updated = await updateInterviewQuestion(
-      supabase,
+    const updated = await selectionProcessModule
+      .bindRequest(supabase)
+      .updateProcessQuestion.execute({
       id,
-      user.id,
-      updates
-    );
+      userId: user.id,
+      ...updates,
+    });
     if (!updated) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json(presentProcessQuestion(updated));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -121,7 +134,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const deleted = await deleteInterviewQuestion(supabase, id, user.id);
+    const deleted = await selectionProcessModule
+      .bindRequest(supabase)
+      .deleteProcessQuestion.execute({ id, userId: user.id });
     if (!deleted) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }

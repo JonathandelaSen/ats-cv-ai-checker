@@ -8,6 +8,7 @@ import {
 } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { selectionProcessModule } from "@/lib/container";
 
 export async function GET(
   _req: NextRequest,
@@ -102,6 +103,12 @@ export async function PATCH(
     };
 
     const allowedUpdates: Parameters<typeof updateAnalysis>[3] = {};
+    const followUpUpdates: {
+      status?: OfferStatus;
+      notes?: string | null;
+      nextAction?: string | null;
+      nextActionAt?: string | null;
+    } = {};
 
     if (data.job_url !== undefined) {
       const jobUrl = normalizeOptionalText(data.job_url);
@@ -124,7 +131,7 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      allowedUpdates.offer_status = data.offer_status as OfferStatus;
+      followUpUpdates.status = data.offer_status as OfferStatus;
     }
 
     if (data.offer_notes !== undefined) {
@@ -135,7 +142,7 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      allowedUpdates.offer_notes = offerNotes;
+      followUpUpdates.notes = offerNotes;
     }
 
     if (data.offer_next_action !== undefined) {
@@ -146,7 +153,7 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      allowedUpdates.offer_next_action = nextAction;
+      followUpUpdates.nextAction = nextAction;
     }
 
     if (data.offer_next_action_at !== undefined) {
@@ -157,24 +164,25 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      allowedUpdates.offer_next_action_at = nextActionAt;
+      followUpUpdates.nextActionAt = nextActionAt;
     }
 
-    if (Object.keys(allowedUpdates).length === 0) {
+    const includesOfferTracking =
+      followUpUpdates.status !== undefined ||
+      followUpUpdates.notes !== undefined ||
+      followUpUpdates.nextAction !== undefined ||
+      followUpUpdates.nextActionAt !== undefined;
+
+    if (Object.keys(allowedUpdates).length === 0 && !includesOfferTracking) {
       return NextResponse.json(
         { error: "No valid fields to update" },
         { status: 400 }
       );
     }
 
-    const includesOfferTracking =
-      allowedUpdates.offer_status !== undefined ||
-      allowedUpdates.offer_notes !== undefined ||
-      allowedUpdates.offer_next_action !== undefined ||
-      allowedUpdates.offer_next_action_at !== undefined;
-
+    let existing = null;
     if (includesOfferTracking) {
-      const existing = await getAnalysis(supabase, id, user.id);
+      existing = await getAnalysis(supabase, id, user.id);
       if (!existing) {
         return NextResponse.json(
           { error: "Analysis not found or update failed" },
@@ -187,9 +195,25 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      const followUp = await selectionProcessModule
+        .bindRequest(supabase)
+        .updateFollowUpByAnalysis.execute({
+          analysisId: id,
+          userId: user.id,
+          ...followUpUpdates,
+        });
+      if (!followUp) {
+        return NextResponse.json(
+          { error: "Analysis not found or update failed" },
+          { status: 404 }
+        );
+      }
     }
 
-    const updated = await updateAnalysis(supabase, id, user.id, allowedUpdates);
+    const updated =
+      Object.keys(allowedUpdates).length > 0
+        ? await updateAnalysis(supabase, id, user.id, allowedUpdates)
+        : existing;
     if (!updated) {
       return NextResponse.json(
         { error: "Analysis not found or update failed" },
@@ -197,7 +221,21 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      ...updated,
+      ...(followUpUpdates.status !== undefined
+        ? { offer_status: followUpUpdates.status }
+        : {}),
+      ...(followUpUpdates.notes !== undefined
+        ? { offer_notes: followUpUpdates.notes }
+        : {}),
+      ...(followUpUpdates.nextAction !== undefined
+        ? { offer_next_action: followUpUpdates.nextAction }
+        : {}),
+      ...(followUpUpdates.nextActionAt !== undefined
+        ? { offer_next_action_at: followUpUpdates.nextActionAt }
+        : {}),
+    });
   } catch (error: unknown) {
     console.error("Update analysis error:", error);
     return NextResponse.json(

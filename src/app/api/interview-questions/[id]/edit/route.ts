@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getInterviewQuestion,
-  updateInterviewQuestion,
-} from "@/lib/db";
 import { editInterviewQuestionAnswer } from "@/lib/ai-interview-question-generation";
 import { getBestCVText } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
@@ -18,6 +14,8 @@ import {
   normalizeRequiredText,
   validateQuestionLinks,
 } from "../../validation";
+import { selectionProcessModule } from "@/lib/container";
+import { presentProcessQuestion } from "@/modules/selection-process";
 
 export const maxDuration = 60;
 
@@ -40,7 +38,12 @@ export async function POST(
 
     const { id } = await params;
     questionIdForEvents = id;
-    const existing = await getInterviewQuestion(supabase, id, user.id);
+    const existingReadModel = await selectionProcessModule
+      .bindRequest(supabase)
+      .getProcessQuestion.execute({ id, userId: user.id });
+    const existing = existingReadModel
+      ? presentProcessQuestion(existingReadModel)
+      : null;
     if (!existing) {
       await recordProcessingEvent({
         userId,
@@ -182,11 +185,16 @@ export async function POST(
       analysis: links.analysis,
     });
 
-    const updated = await updateInterviewQuestion(supabase, id, user.id, {
+    const updated = await selectionProcessModule
+      .bindRequest(supabase)
+      .updateProcessQuestion.execute({
+      id,
+      userId: user.id,
       context,
       answer,
-      ai_model: model,
-      ai_generated_at: new Date().toISOString(),
+      aiModel: model,
+      aiGeneratedAt: new Date().toISOString(),
+      requestId,
     });
 
     await recordProcessingEvent({
@@ -205,7 +213,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json(updated ? presentProcessQuestion(updated) : null);
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,

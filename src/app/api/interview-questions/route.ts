@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createInterviewQuestion,
-  listInterviewQuestions,
-} from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -17,6 +13,8 @@ import {
   normalizeRequiredText,
   validateQuestionLinks,
 } from "./validation";
+import { selectionProcessModule } from "@/lib/container";
+import { presentProcessQuestion, presentProcessQuestions } from "@/modules/selection-process";
 
 function parseAnswered(value: string | null) {
   if (value === "true") return true;
@@ -32,14 +30,17 @@ export async function GET(req: NextRequest) {
     }
 
     const params = req.nextUrl.searchParams;
-    const questions = await listInterviewQuestions(supabase, user.id, {
+    const questions = await selectionProcessModule
+      .bindRequest(supabase)
+      .listProcessQuestions.execute({
+      userId: user.id,
       search: params.get("q"),
       cvId: params.get("cvId"),
       analysisId: params.get("analysisId"),
       answered: parseAnswered(params.get("answered")),
     });
 
-    return NextResponse.json(questions);
+    return NextResponse.json(presentProcessQuestions(questions));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -154,14 +155,18 @@ export async function POST(req: NextRequest) {
     const linkedCvId = cv_id ?? links.analysis?.cv_id ?? null;
     cvIdForEvents = linkedCvId;
 
-    const created = await createInterviewQuestion(supabase, {
-      user_id: user.id,
+    const created = await selectionProcessModule
+      .bindRequest(supabase)
+      .createProcessQuestion.execute({
+      userId: user.id,
       question,
       context,
       answer,
-      cv_id: linkedCvId,
-      analysis_id,
+      legacyCvId: linkedCvId,
+      sourceJobMatchAnalysisId: analysis_id,
+      requestId,
     });
+    const response = presentProcessQuestion(created);
 
     await recordProcessingEvent({
       userId,
@@ -173,11 +178,11 @@ export async function POST(req: NextRequest) {
       source: "api_interview_questions",
       durationMs: performance.now() - startedAt,
       metadata: {
-        questionId: created.id,
+        questionId: response.id,
       },
     });
 
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(response, { status: 201 });
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,
