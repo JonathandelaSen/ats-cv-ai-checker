@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysis, createCV } from "@/lib/db";
+import {
+  createAnalysisFacade,
+  updateAnalysisAIResultFacade,
+} from "@/lib/analysis-facade";
+import { createCV } from "@/lib/db";
 import {
   createTestUser,
   getSupabaseClient,
@@ -28,7 +32,7 @@ describe("LegacyAnalysisChatContextRepository", () => {
       extract_error_pdfjs: null,
       extract_error_node: null,
     });
-    const analysis = await createAnalysis(supabase, {
+    const analysis = await createAnalysisFacade(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       cv_id: cv.id,
@@ -36,12 +40,21 @@ describe("LegacyAnalysisChatContextRepository", () => {
       filename: "cv.pdf",
       file_size: 123,
       pdf_storage_path: null,
-      text_python: "Analysis text",
-      text_pdfjs: null,
-      text_node: null,
-      extract_error_python: null,
-      extract_error_pdfjs: null,
-      extract_error_node: null,
+      extracted_text: {
+        text_python: "Analysis text",
+        text_pdfjs: null,
+        text_node: null,
+        extract_error_python: null,
+        extract_error_pdfjs: null,
+        extract_error_node: null,
+      },
+      analysis_mode: "job_match",
+      ai_model: "model",
+      job_description: "Job",
+      job_url: "https://example.com",
+      ai_context: null,
+    });
+    await updateAnalysisAIResultFacade(supabase, analysis.id, user.id, {
       analysis_mode: "job_match",
       ai_model: "model",
       job_description: "Job",
@@ -51,6 +64,11 @@ describe("LegacyAnalysisChatContextRepository", () => {
       ai_feedback: "Good",
       ai_keywords: ["ts"],
       ai_improvements: ["more"],
+      job_key_data: null,
+      job_keywords: [],
+      cv_keywords: ["ts"],
+      matching_keywords: ["ts"],
+      missing_keywords: [],
     });
 
     const context = await repo.findByAnalysisId({
