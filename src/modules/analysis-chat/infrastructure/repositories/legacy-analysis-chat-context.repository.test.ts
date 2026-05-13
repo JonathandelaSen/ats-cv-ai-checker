@@ -1,0 +1,68 @@
+import { describe, expect, it } from "vitest";
+import { createAnalysis, createCV } from "@/lib/db";
+import {
+  createTestUser,
+  getSupabaseClient,
+  testLabel,
+} from "@/modules/test-helpers/setup";
+import { LegacyAnalysisChatContextRepository } from "./legacy-analysis-chat-context.repository";
+
+const supabase = getSupabaseClient();
+const repo = new LegacyAnalysisChatContextRepository();
+repo.bindRequest(supabase);
+
+describe("LegacyAnalysisChatContextRepository", () => {
+  it("reads legacy analysis context with linked CV text", async () => {
+    const user = await createTestUser("analysis-chat-context");
+    const cv = await createCV(supabase, {
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      name: testLabel("cv"),
+      filename: "cv.pdf",
+      file_size: 123,
+      pdf_storage_path: null,
+      text_python: "Best CV text",
+      text_pdfjs: null,
+      text_node: null,
+      extract_error_python: null,
+      extract_error_pdfjs: null,
+      extract_error_node: null,
+    });
+    const analysis = await createAnalysis(supabase, {
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      cv_id: cv.id,
+      title: testLabel("analysis"),
+      filename: "cv.pdf",
+      file_size: 123,
+      pdf_storage_path: null,
+      text_python: "Analysis text",
+      text_pdfjs: null,
+      text_node: null,
+      extract_error_python: null,
+      extract_error_pdfjs: null,
+      extract_error_node: null,
+      analysis_mode: "job_match",
+      ai_model: "model",
+      job_description: "Job",
+      job_url: "https://example.com",
+      ai_context: null,
+      ai_score: 91,
+      ai_feedback: "Good",
+      ai_keywords: ["ts"],
+      ai_improvements: ["more"],
+    });
+
+    const context = await repo.findByAnalysisId({
+      analysisId: analysis.id,
+      userId: user.id,
+    });
+
+    expect(context).toMatchObject({
+      analysisId: analysis.id,
+      cvId: cv.id,
+      analysisMode: "job_match",
+      cvText: "Analysis text",
+    });
+  });
+});

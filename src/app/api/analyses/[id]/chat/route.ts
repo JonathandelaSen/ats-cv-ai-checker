@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateOfferChatAnswer } from "@/lib/ai-offer-chat";
-import { getBestCVText } from "@/lib/cv-profile";
 import {
-  createAnalysisChatConversation,
-  createAnalysisChatMessage,
-  deleteAnalysisChatConversation,
-  getAnalysis,
-  listAnalysisChatConversations,
-  listAnalysisChatMessages,
-  updateAnalysisChatConversation,
-} from "@/lib/db";
+  presentConversation,
+  presentConversations,
+  presentMessage,
+  presentMessages,
+} from "@/modules/analysis-chat";
+import { analysisChatModule } from "@/lib/container";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -34,10 +30,18 @@ function normalizeRequiredText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function validateJobMatch(analysis: { analysis_mode: string } | null) {
-  if (!analysis) return "Analysis not found";
-  if (analysis.analysis_mode !== "job_match")
-    return "Only job match analyses can use offer chat";
+async function validateJobMatch(analysisId: string, userId: string) {
+  const context = await analysisChatModule.getLegacyAnalysisChatContext.execute({
+    analysisId,
+    userId,
+  });
+  if (!context) return { error: "Analysis not found", status: 404 as const };
+  if (context.analysisMode !== "job_match") {
+    return {
+      error: "Only job match analyses can use offer chat",
+      status: 400 as const,
+    };
+  }
   return null;
 }
 
@@ -52,32 +56,30 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analysis = await getAnalysis(supabase, id, user.id);
-    const validationError = validateJobMatch(analysis);
+    analysisChatModule.bindRequest(supabase);
+    const validationError = await validateJobMatch(id, user.id);
     if (validationError) {
       return NextResponse.json(
-        { error: validationError },
-        { status: analysis ? 400 : 404 }
+        { error: validationError.error },
+        { status: validationError.status }
       );
     }
 
     const conversationId = req.nextUrl.searchParams.get("conversationId");
 
     if (conversationId) {
-      const messages = await listAnalysisChatMessages(
-        supabase,
-        user.id,
-        conversationId
-      );
-      return NextResponse.json({ messages });
+      const messages = await analysisChatModule.listMessages.execute({
+        userId: user.id,
+        conversationId,
+      });
+      return NextResponse.json({ messages: presentMessages(messages) });
     }
 
-    const conversations = await listAnalysisChatConversations(
-      supabase,
-      user.id,
-      id
-    );
-    return NextResponse.json({ conversations });
+    const conversations = await analysisChatModule.listConversations.execute({
+      userId: user.id,
+      analysisId: id,
+    });
+    return NextResponse.json({ conversations: presentConversations(conversations) });
   } catch (error: unknown) {
     return NextResponse.json(
       { error: getErrorMessage(error) },
@@ -109,23 +111,24 @@ export async function POST(
 
     const action = typeof body.action === "string" ? body.action : "message";
 
-    const analysis = await getAnalysis(supabase, id, user.id);
-    const validationError = validateJobMatch(analysis);
+    analysisChatModule.bindRequest(supabase);
+    const validationError = await validateJobMatch(id, user.id);
     if (validationError) {
       return NextResponse.json(
-        { error: validationError },
-        { status: analysis ? 400 : 404 }
+        { error: validationError.error },
+        { status: validationError.status }
       );
     }
 
     if (action === "create_conversation") {
       const title = normalizeRequiredText(body.title) ?? "Nueva conversación";
-      const conversation = await createAnalysisChatConversation(supabase, {
-        user_id: user.id,
-        analysis_id: id,
+      const conversation = await analysisChatModule.createConversation.execute({
+        userId: user.id,
+        analysisId: id,
         title,
+        requestId,
       });
-      return NextResponse.json({ conversation });
+      return NextResponse.json({ conversation: presentConversation(conversation) });
     }
 
     if (action === "rename_conversation") {
@@ -137,13 +140,14 @@ export async function POST(
           { status: 400 }
         );
       }
-      const conversation = await updateAnalysisChatConversation(
-        supabase,
+      const conversation = await analysisChatModule.renameConversation.execute({
+        userId: user.id,
+        analysisId: id,
         conversationId,
-        user.id,
-        { title }
-      );
-      return NextResponse.json({ conversation });
+        title,
+        requestId,
+      });
+      return NextResponse.json({ conversation: presentConversation(conversation) });
     }
 
     if (action === "delete_conversation") {
@@ -154,7 +158,12 @@ export async function POST(
           { status: 400 }
         );
       }
-      await deleteAnalysisChatConversation(supabase, conversationId, user.id);
+      await analysisChatModule.deleteConversation.execute({
+        userId: user.id,
+        analysisId: id,
+        conversationId,
+        requestId,
+      });
       return NextResponse.json({ ok: true });
     }
 
@@ -186,78 +195,27 @@ export async function POST(
       );
     }
 
-    cvIdForEvents = analysis!.cv_id;
-
-    const history = await listAnalysisChatMessages(
-      supabase,
-      user.id,
-      conversationId
-    );
-    const userMessage = await createAnalysisChatMessage(supabase, {
-      user_id: user.id,
-      analysis_id: id,
-      conversation_id: conversationId,
-      role: "user",
-      content: message,
-      model: null,
-      metadata: { requestId },
-    });
-
-    await recordProcessingEvent({
-      userId,
-      cvId: analysis!.cv_id,
+    const context = await analysisChatModule.getLegacyAnalysisChatContext.execute({
       analysisId: id,
-      requestId,
-      stage: "offer_chat_generate",
-      status: "started",
-      source: "api_analysis_chat",
-      textLength: message.length,
-      metadata: {
-        model,
-        conversationId,
-        historyLength: history.length,
-      },
+      userId: user.id,
     });
+    cvIdForEvents = context?.cvId ?? null;
 
-    const answer = await generateOfferChatAnswer({
+    const result = await analysisChatModule.sendMessage.execute({
+      userId: user.id,
+      analysisId: id,
+      conversationId,
+      message,
       apiKey: geminiApiKey,
       model,
-      message,
-      analysis: analysis!,
-      cv: analysis!.cv,
-      cvText: getBestCVText(analysis!),
-      history,
-    });
-
-    const assistantMessage = await createAnalysisChatMessage(supabase, {
-      user_id: user.id,
-      analysis_id: id,
-      conversation_id: conversationId,
-      role: "assistant",
-      content: answer,
-      model,
-      metadata: { requestId },
-    });
-
-    await recordProcessingEvent({
-      userId,
-      cvId: analysis!.cv_id,
-      analysisId: id,
       requestId,
-      stage: "offer_chat_generate",
-      status: "success",
-      source: "api_analysis_chat",
-      durationMs: performance.now() - startedAt,
-      textLength: answer.length,
-      metadata: {
-        model,
-        conversationId,
-        userMessageId: userMessage.id,
-        assistantMessageId: assistantMessage.id,
-      },
+      startedAt,
     });
 
-    return NextResponse.json({ userMessage, assistantMessage });
+    return NextResponse.json({
+      userMessage: presentMessage(result.userMessage),
+      assistantMessage: presentMessage(result.assistantMessage),
+    });
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,

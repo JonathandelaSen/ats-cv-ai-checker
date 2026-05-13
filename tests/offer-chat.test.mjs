@@ -35,21 +35,25 @@ test("offer chat migration creates owned messages linked to analyses", () => {
   assert.match(migration, /analysis_chat_messages_user_analysis_created_idx/);
 });
 
-test("DB helpers expose analysis chat messages and conversations with user scoping", () => {
+test("analysis chat module owns messages and conversations with user scoping", () => {
   const db = read("src/lib/db.ts");
+  const conversationRepo = read(
+    "src/modules/analysis-chat/infrastructure/repositories/supabase-conversation.repository.ts"
+  );
+  const messageRepo = read(
+    "src/modules/analysis-chat/infrastructure/repositories/supabase-chat-message.repository.ts"
+  );
+  const moduleBarrel = read("src/modules/analysis-chat/index.ts");
 
-  assert.match(db, /export type AnalysisChatRole = "user" \| "assistant"/);
-  assert.match(db, /export interface AnalysisChatMessage/);
-  assert.match(db, /export interface AnalysisChatConversation/);
-  assert.match(db, /export async function listAnalysisChatMessages/);
-  assert.match(db, /export async function createAnalysisChatMessage/);
-  assert.match(db, /export async function listAnalysisChatConversations/);
-  assert.match(db, /export async function createAnalysisChatConversation/);
-  assert.match(db, /export async function deleteAnalysisChatConversation/);
-  assert.match(db, /\.from\("analysis_chat_messages"\)/);
-  assert.match(db, /\.from\("analysis_chat_conversations"\)/);
-  assert.match(db, /\.eq\("user_id", userId\)/);
-  assert.match(db, /\.eq\("conversation_id", conversationId\)/);
+  assert.doesNotMatch(db, /export async function listAnalysisChatMessages/);
+  assert.doesNotMatch(db, /export async function createAnalysisChatMessage/);
+  assert.doesNotMatch(db, /export async function listAnalysisChatConversations/);
+  assert.match(moduleBarrel, /createAnalysisChatModule/);
+  assert.match(conversationRepo, /\.from\("analysis_chat_conversations"\)/);
+  assert.match(messageRepo, /\.from\("analysis_chat_messages"\)/);
+  assert.match(conversationRepo, /\.eq\("user_id"/);
+  assert.match(messageRepo, /\.eq\("user_id"/);
+  assert.match(messageRepo, /\.eq\("conversation_id"/);
 });
 
 test("offer chat prompts include CV, offer, analysis, and recent history without model calls", () => {
@@ -77,24 +81,27 @@ test("analysis chat route validates auth, offer mode, API key, and supports conv
 
   assert.match(route, /export async function GET/);
   assert.match(route, /export async function POST/);
-  assert.match(route, /listAnalysisChatMessages/);
-  assert.match(route, /createAnalysisChatMessage/);
-  assert.match(route, /generateOfferChatAnswer/);
+  assert.match(route, /createAnalysisChatModule/);
+  assert.match(route, /registerAnalysisChatQueries/);
+  assert.match(route, /InMemoryQueryBus/);
+  assert.match(route, /mod\.listMessages\.execute/);
+  assert.match(route, /mod\.sendMessage\.execute/);
+  assert.match(route, /presentMessages/);
+  assert.match(route, /presentMessage/);
   assert.match(route, /Only job match analyses can use offer chat/);
   assert.match(route, /Message is required/);
   assert.match(route, /Configura tu API key de Gemini/);
-  assert.match(route, /role: "user"/);
-  assert.match(route, /role: "assistant"/);
   assert.match(route, /createRequestId\("offer_chat"\)/);
   assert.match(route, /stage: "offer_chat_generate"/);
   assert.match(route, /recordProcessingEvent/);
-  assert.match(route, /listAnalysisChatConversations/);
-  assert.match(route, /createAnalysisChatConversation/);
-  assert.match(route, /deleteAnalysisChatConversation/);
+  assert.match(route, /mod\.listConversations\.execute/);
+  assert.match(route, /mod\.createConversation\.execute/);
+  assert.match(route, /mod\.deleteConversation\.execute/);
   assert.match(route, /action === "create_conversation"/);
   assert.match(route, /action === "rename_conversation"/);
   assert.match(route, /action === "delete_conversation"/);
   assert.match(route, /conversationId/);
+  assert.doesNotMatch(route, /@\/lib\/db/);
 });
 
 test("analysis UI exposes a persistent offer chat tab with conversations", () => {
@@ -115,4 +122,5 @@ test("analysis UI exposes a persistent offer chat tab with conversations", () =>
   assert.match(tabChat, /createConversation/);
   assert.match(tabChat, /ReactMarkdown/);
   assert.match(tabChat, /AnalysisChatConversation/);
+  assert.match(tabChat, /@\/modules\/analysis-chat/);
 });

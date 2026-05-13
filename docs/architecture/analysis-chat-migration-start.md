@@ -29,6 +29,8 @@ In scope:
 - Create shared query bus primitives.
 - Create architecture checks for query bus usage.
 - Create `analysis-chat` module structure.
+- Implement the full vertical slice: domain, application, infrastructure, route integration, and compatibility presenters.
+- Add local Supabase migrations if the slice requires schema changes.
 - Move conversation/message persistence behind `analysis-chat` repositories.
 - Move send-message behavior behind an `analysis-chat` use case.
 - Use a query bus call to obtain analysis context.
@@ -42,6 +44,23 @@ Out of scope:
 - Expanding chat beyond the current job-match/offer-chat behavior.
 - Migrating `cv-analysis` or `job-match-analysis`.
 - Applying production migrations.
+
+## Definition of done
+
+This migration slice is not complete when only the domain layer exists.
+
+It is complete only when all of the following are true:
+
+- `analysis-chat` has domain entities/value objects with tests.
+- `analysis-chat` has application use cases and query handlers with tests.
+- `analysis-chat` has Supabase infrastructure repositories with backend tests.
+- Any required database migration files are created, reviewed, and verified locally.
+- `analysis-chat` has an AI service adapter that uses the existing prompt/controller split.
+- `src/app/api/analyses/[id]/chat/route.ts` calls the new module instead of `src/lib/db.ts` chat helpers directly.
+- The current API contract and UI behavior remain stable.
+- Query bus architecture checks are added and wired into `npm run ddd:check`.
+- Relevant backend tests and `npm run ddd:check` pass.
+- Remaining legacy dependencies are documented explicitly as transition points.
 
 ## Target module structure
 
@@ -340,6 +359,30 @@ Expected route behavior after migration:
 
 Do not move `getAuthedSupabase()` into the module.
 
+## Database migrations
+
+This first slice should prefer using the existing tables if possible:
+
+- `analysis_chat_conversations`
+- `analysis_chat_messages`
+
+If implementation requires schema changes, add Supabase migration files under `supabase/migrations/` and verify them locally.
+
+Possible schema-change triggers:
+
+- adding a typed analysis reference
+- adding legacy/source reference fields
+- adding constraints or indexes required by the new repository methods
+- changing observability references
+
+Rules:
+
+- Do not apply migrations to production.
+- Keep migration files backward-compatible with current data where possible.
+- Include backfill SQL in the migration if a new non-null column depends on existing rows.
+- Verify locally with backend tests and, when relevant, Supabase reset/start workflow.
+- Mention any manual production application steps in the final handoff, but leave production application to the user unless explicitly requested in that same turn.
+
 ## Architecture checks to add
 
 Add scripts under `scripts/` and wire them into `npm run ddd:check`.
@@ -453,14 +496,18 @@ Keep observability in use cases, not route handlers.
 2. Add query bus architecture check and wire it into `npm run ddd:check`.
 3. Create `analysis-chat` domain entities/value objects and tests.
 4. Create repository ports.
-5. Create Supabase repositories and backend tests.
-6. Create `GetLegacyAnalysisChatContextUseCase`, query, and query handler.
-7. Create `SendMessageUseCase` using query bus.
-8. Create module factory and presenters.
-9. Switch `src/app/api/analyses/[id]/chat/route.ts` to the module.
-10. Run `npm run ddd:check`.
-11. Run targeted backend tests for `analysis-chat`.
-12. Run broader backend tests if the route behavior changed significantly.
+5. Decide whether existing chat tables are enough.
+6. Add and locally verify Supabase migrations if schema changes are needed.
+7. Create Supabase repositories and backend tests.
+8. Create `GetLegacyAnalysisChatContextUseCase`, query, and query handler.
+9. Create `SendMessageUseCase` using query bus.
+10. Create module factory and presenters.
+11. Switch `src/app/api/analyses/[id]/chat/route.ts` to the module.
+12. Remove direct route usage of legacy chat helpers from `src/lib/db.ts`.
+13. Keep any temporary legacy analysis context access isolated behind `GetLegacyAnalysisChatContextUseCase`.
+14. Run `npm run ddd:check`.
+15. Run targeted backend tests for `analysis-chat`.
+16. Run broader backend tests if the route behavior changed significantly.
 
 ## Next steps
 
@@ -477,6 +524,7 @@ When starting the next implementation turn:
    - `getAnalysis`
 5. Implement the shared query bus first.
 6. Add query bus architecture checks before migrating the route.
-7. Migrate `analysis-chat` in small steps, keeping the existing API shape stable.
-8. Do not touch the split of `analyses` yet.
-9. Do not apply production migrations.
+7. Check whether database migrations are needed; if yes, add local migration files and verify them locally.
+8. Migrate `analysis-chat` in small steps, keeping the existing API shape stable.
+9. Do not touch the split of `analyses` yet.
+10. Do not apply production migrations.

@@ -79,6 +79,23 @@ function isValueObjectSource(relativePath) {
   );
 }
 
+function isQueryHandlerSource(relativePath) {
+  return (
+    relativePath.startsWith("src/modules/") &&
+    relativePath.includes("/application/queries/") &&
+    relativePath.endsWith(".query-handler.ts") &&
+    !relativePath.endsWith(".test.ts")
+  );
+}
+
+function isSharedQueryBusSource(relativePath) {
+  return (
+    relativePath.startsWith("src/modules/shared/application/query-bus/") &&
+    relativePath.endsWith(".ts") &&
+    !relativePath.endsWith(".test.ts")
+  );
+}
+
 async function missingTestsFor(files, rootDir) {
   const missing = [];
 
@@ -101,12 +118,16 @@ export async function findMissingDddTests({ rootDir = repoRoot } = {}) {
   const repositories = files.filter(isRepositoryImplementationSource).sort();
   const domainEntities = files.filter(isDomainEntitySource).sort();
   const valueObjects = files.filter(isValueObjectSource).sort();
+  const queryHandlers = files.filter(isQueryHandlerSource).sort();
+  const queryBusSources = files.filter(isSharedQueryBusSource).sort();
 
   return {
     missingUseCaseTests: await missingTestsFor(useCases, rootDir),
     missingRepositoryTests: await missingTestsFor(repositories, rootDir),
     missingDomainEntityTests: await missingTestsFor(domainEntities, rootDir),
     missingValueObjectTests: await missingTestsFor(valueObjects, rootDir),
+    missingQueryHandlerTests: await missingTestsFor(queryHandlers, rootDir),
+    missingQueryBusTests: await missingTestsFor(queryBusSources, rootDir),
   };
 }
 
@@ -157,6 +178,28 @@ export function formatMissingDddTests(result) {
     );
   }
 
+  if (result.missingQueryHandlerTests.length > 0) {
+    sections.push(
+      [
+        "Query handlers without colocated tests:",
+        ...result.missingQueryHandlerTests.map(
+          (item) => `- ${item.source} -> expected ${item.expectedTest}`
+        ),
+      ].join("\n")
+    );
+  }
+
+  if (result.missingQueryBusTests.length > 0) {
+    sections.push(
+      [
+        "Shared query bus files without colocated tests:",
+        ...result.missingQueryBusTests.map(
+          (item) => `- ${item.source} -> expected ${item.expectedTest}`
+        ),
+      ].join("\n")
+    );
+  }
+
   return sections.join("\n\n");
 }
 
@@ -166,7 +209,9 @@ async function main() {
     result.missingUseCaseTests.length +
     result.missingRepositoryTests.length +
     result.missingDomainEntityTests.length +
-    result.missingValueObjectTests.length;
+    result.missingValueObjectTests.length +
+    result.missingQueryHandlerTests.length +
+    result.missingQueryBusTests.length;
 
   if (missingCount > 0) {
     console.error(formatMissingDddTests(result));

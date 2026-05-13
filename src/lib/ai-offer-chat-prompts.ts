@@ -1,11 +1,16 @@
-import type { Analysis, AnalysisChatMessage, CVRecord } from "@/lib/db";
+import type { Analysis, CVRecord } from "@/lib/db";
+
+export interface OfferChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export interface OfferChatPromptInput {
   message: string;
   cv?: CVRecord | null;
   cvText?: string | null;
   analysis: Analysis;
-  history?: AnalysisChatMessage[];
+  history?: OfferChatHistoryMessage[];
 }
 
 export const OFFER_CHAT_SYSTEM_PROMPT = `You are an expert job-search coach and ATS recruiter.
@@ -30,7 +35,7 @@ function stringifyJson(value: string | Record<string, unknown> | null | undefine
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-function recentConversation(history: AnalysisChatMessage[] | undefined) {
+function recentConversation(history: OfferChatHistoryMessage[] | undefined) {
   const recent = (history ?? []).slice(-12);
   if (recent.length === 0) return "";
 

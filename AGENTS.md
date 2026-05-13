@@ -43,6 +43,7 @@ src/modules/
   shared/                              ← Cross-module infrastructure
     domain/repositories/               ← Interfaces (EventTracker)
     infrastructure/repositories/       ← Implementations (SupabaseEventTracker)
+    infrastructure/supabase-aware.ts   ← SupabaseAware interface for bindRequest pattern
     infrastructure/http/               ← HTTP helpers (handleDomainError)
   <module-name>/
     domain/
@@ -71,7 +72,9 @@ src/modules/
 - **Associations use IDs in the domain**. Do not nest aggregate instances inside other aggregates. Compose read models for UI/API responses in the application/route boundary.
 - **Domain events are internal for now**. Aggregate methods record events with `recordDomainEvent`; use cases may call `pullDomainEvents()` later, but `EventTracker` observability stays separate until explicitly migrated.
 - **Use cases** receive dependencies via constructor injection (`{ repo, tracker, ... }`).
-- **Route handlers** create the module via `createWorkJournalModule(supabase, tracker)` and call use case `.execute()`. HTTP validation (`normalize*` functions) stays in the route handlers.
+- **Modules are singletons** constructed once at import time — not rebuilt per request. The app container (`src/lib/container.ts`) is the composition root that wires up all modules, query buses, and query handler registrations. Route handlers import modules from the container.
+- **Infrastructure repositories implement `SupabaseAware`** (`src/modules/shared/infrastructure/supabase-aware.ts`). They have no constructor parameters. Instead they expose a `bindRequest(client: SupabaseClient)` method that sets the Supabase client for the current request. The module's own `bindRequest` method delegates to all its repositories. Route handlers call `myModule.bindRequest(supabase)` once per request before calling any use case. **Reference implementation:** `analysis-chat` module.
+- **Route handlers** import the module singleton from `src/lib/container.ts`, call `module.bindRequest(supabase)`, and then call use case `.execute()`. HTTP validation (`normalize*` functions) stays in the route handlers.
 - **Domain errors** are caught by `handleDomainError()` which maps them to HTTP status codes.
 - **AI prompts** stay in `src/lib/ai-*-prompts.ts` — the infrastructure service imports them.
 - **Cross-module dependencies** use minimal port interfaces (e.g., `CVDataRepository` exposes only what the consuming module needs).
@@ -81,20 +84,31 @@ src/modules/
 
 1. Add the domain type/error if needed.
 2. Extend the repository interface if the use case needs new data access.
-3. Implement the repository method in the Supabase infrastructure class.
+3. Implement the repository method in the Supabase infrastructure class (must implement `SupabaseAware` with `bindRequest`).
 4. Create a new use case class.
 5. Wire it in the module factory (`<module>.module.ts`).
-6. Call it from the route handler via `mod.<useCase>.execute(...)`.
-7. Record observability events via the `EventTracker` in the use case.
+6. If a new repository was added, include it in the module's `bindRequest` method.
+7. Call it from the route handler via `analysisChatModule.<useCase>.execute(...)` (importing from `src/lib/container.ts`).
+8. Record observability events via the `EventTracker` in the use case.
 
 ### When migrating a new module
 
-Follow the Work Journal migration as a template. Create all new files first (steps 1-7 are zero-risk), then switchover route handlers in a single step, then clean up `db.ts`. Each step should be a separate commit.
+Follow the `analysis-chat` module as the reference pattern for the singleton/`bindRequest` architecture. Steps:
+
+1. Create domain layer (entities, VOs, errors, repository ports).
+2. Create infrastructure repositories implementing both the domain port and `SupabaseAware`. Constructors take no parameters; the Supabase client is received via `bindRequest`.
+3. Create use cases with constructor injection of repository singletons.
+4. Create the module factory (`<module>.module.ts`): instantiate repos and use cases at module level; export a `create<Module>Module()` function that returns use cases plus a `bindRequest` method that delegates to all repositories.
+5. Register the module in `src/lib/container.ts` — this is the only place where modules are instantiated.
+6. Switchover route handlers: import from `src/lib/container.ts`, call `module.bindRequest(supabase)` per request.
+7. Clean up `db.ts` functions only after routes no longer use them.
+
+Each step should be a separate commit.
 
 ### Testing conventions
 
 - **Domain layer:** Aggregate roots and value objects must have colocated tests. Test `create`, `fromPrimitives`, `toPrimitives`, validation, domain methods, and recorded events. Domain services with logic also need colocated tests.
-- **Infrastructure layer:** Backend tests (`*.test.ts`) against real Supabase E2E stack (ports 56431+). Test each repository method. One test user per test via `createConfirmedUser()`.
+- **Infrastructure layer:** Backend tests (`*.test.ts`) against real Supabase E2E stack (ports 56431+). Test each repository method. One test user per test via `createConfirmedUser()`. Repositories are instantiated without arguments and configured with `repo.bindRequest(supabase)` before use.
 - **Application layer:** Backend tests with real repositories against real DB. Mock only external services (AI) and cross-cutting concerns (EventTracker). Test happy paths, domain error cases, and orchestration logic.
 - **No mocks for database** — all DB interactions use the real Supabase E2E instance.
 - **Never test AI services directly** — AI service implementations must not be exercised in automated tests. Use mocks injected into use cases whenever AI behavior is required.

@@ -16,7 +16,10 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import type { AnalysisChatConversation, AnalysisChatMessage } from "@/lib/db";
+import type {
+  AnalysisChatConversation,
+  AnalysisChatMessage,
+} from "@/modules/analysis-chat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";

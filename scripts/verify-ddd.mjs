@@ -4,6 +4,7 @@ const checks = [
   ["node", ["scripts/verify-ddd-tests.mjs"]],
   ["node", ["scripts/verify-ddd-imports.mjs"]],
   ["node", ["scripts/verify-ddd-entities.mjs"]],
+  ["node", ["scripts/verify-query-bus.mjs"]],
 ];
 
 function run(command, args) {
