@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCV, updateCVExtraction, type CVRecord } from "@/lib/db";
 import type { AIContext, AnalysisMode } from "@/lib/analysis-types";
 import {
   createAnalysisFacade,
@@ -15,6 +14,7 @@ import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText } from "@/lib/cv-profile";
 import { extractPdfText } from "@/lib/pdf-extraction";
+import { cvLibraryModule } from "@/lib/container";
 import {
   createRequestId,
   getErrorCode,
@@ -23,7 +23,11 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
-import { CV_PDFS_BUCKET } from "@/modules/cv-library";
+import {
+  CV_PDFS_BUCKET,
+  presentCVDocument,
+  type CVDocumentResponse,
+} from "@/modules/cv-library";
 
 async function getAuthedSupabase() {
   const supabase = await createClient();
@@ -36,7 +40,7 @@ async function getAuthedSupabase() {
 
 async function retryCVExtraction(input: {
   supabase: Awaited<ReturnType<typeof createClient>>;
-  cv: CVRecord;
+  cv: CVDocumentResponse;
   userId: string;
   requestId: string;
 }) {
@@ -69,24 +73,32 @@ async function retryCVExtraction(input: {
     },
   );
 
-  return (
-    (await updateCVExtraction(
-      input.supabase,
-      input.cv.id,
-      input.userId,
-      extracted,
-    )) ?? input.cv
-  );
+  const updated = await cvLibraryModule
+    .bindRequest(input.supabase)
+    .updateCVDocumentExtraction.execute({
+      id: input.cv.id,
+      userId: input.userId,
+      requestId: input.requestId,
+      extractedText: {
+        textPython: extracted.text_python,
+        textPdfjs: extracted.text_pdfjs,
+        textNode: extracted.text_node,
+        extractErrorPython: extracted.extract_error_python,
+        extractErrorPdfjs: extracted.extract_error_pdfjs,
+        extractErrorNode: extracted.extract_error_node,
+      },
+    });
+  return updated ? presentCVDocument(updated) : input.cv;
 }
 
-function getTemplateAnalysisFilename(cv: CVRecord) {
+function getTemplateAnalysisFilename(cv: CVDocumentResponse) {
   const baseName = cv.name.replace(/[^a-zA-Z0-9_-]/g, "_") || "template-cv";
   return `${baseName}.pdf`;
 }
 
 async function extractTemplateCVPdf(input: {
   supabase: Awaited<ReturnType<typeof createClient>>;
-  cv: CVRecord;
+  cv: CVDocumentResponse;
   userId: string;
   requestId: string;
 }) {
@@ -278,7 +290,10 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    let cv = await getCV(supabase, cvId, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id: cvId, userId: user.id });
+    let cv = document ? presentCVDocument(document) : null;
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }

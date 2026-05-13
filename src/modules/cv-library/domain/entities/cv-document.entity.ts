@@ -90,10 +90,10 @@ export class CVDocument extends AggregateRoot {
     private readonly documentSourceTextHash: string | null,
     private documentAIModel: string | null,
     private documentProfile: unknown | null,
-    private readonly documentExtractedText: CVDocumentExtractedTextPrimitives,
+    private documentExtractedText: CVDocumentExtractedTextPrimitives,
     private documentPublicSettings: CVPublicSettingsPrimitives,
     private readonly documentCreatedAt: Timestamp,
-    private documentUpdatedAt: Timestamp
+    private documentUpdatedAt: Timestamp,
   ) {
     super();
   }
@@ -117,7 +117,7 @@ export class CVDocument extends AggregateRoot {
       params.extractedText,
       params.publicSettings,
       params.createdAt,
-      params.updatedAt
+      params.updatedAt,
     );
   }
 
@@ -183,6 +183,14 @@ export class CVDocument extends AggregateRoot {
       this.documentTemplateLocale = input.templateLocale;
     }
     this.documentUpdatedAt = input.updatedAt;
+  }
+
+  updateExtractedText(
+    extractedText: CVDocumentExtractedTextPrimitives,
+    updatedAt: Timestamp,
+  ): void {
+    this.documentExtractedText = extractedText;
+    this.documentUpdatedAt = updatedAt;
   }
 
   updatePublicSettings(settings: {

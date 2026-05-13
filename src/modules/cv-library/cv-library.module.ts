@@ -9,6 +9,7 @@ import { GetCVStructuredProfileUseCase } from "./application/use-cases/get-cv-st
 import { GetPublishedCVDocumentUseCase } from "./application/use-cases/get-published-cv-document.use-case";
 import { ListCVDocumentsUseCase } from "./application/use-cases/list-cv-documents.use-case";
 import { UpdateCVDocumentNameUseCase } from "./application/use-cases/update-cv-document-name.use-case";
+import { UpdateCVDocumentExtractionUseCase } from "./application/use-cases/update-cv-document-extraction.use-case";
 import { UpdateCVDocumentPublicSettingsUseCase } from "./application/use-cases/update-cv-document-public-settings.use-case";
 import { UpdateTemplateCVDocumentProfileUseCase } from "./application/use-cases/update-template-cv-document-profile.use-case";
 import { UpsertCVStructuredProfileUseCase } from "./application/use-cases/upsert-cv-structured-profile.use-case";
@@ -35,14 +36,20 @@ function createUseCases() {
       documentRepo,
       tracker,
     }),
+    updateCVDocumentExtraction: new UpdateCVDocumentExtractionUseCase({
+      documentRepo,
+      tracker,
+    }),
     updateCVDocumentPublicSettings: new UpdateCVDocumentPublicSettingsUseCase({
       documentRepo,
       tracker,
     }),
-    updateTemplateCVDocumentProfile: new UpdateTemplateCVDocumentProfileUseCase({
-      documentRepo,
-      tracker,
-    }),
+    updateTemplateCVDocumentProfile: new UpdateTemplateCVDocumentProfileUseCase(
+      {
+        documentRepo,
+        tracker,
+      },
+    ),
     deleteCVDocument: new DeleteCVDocumentUseCase({ documentRepo, tracker }),
     getPublishedCVDocument: new GetPublishedCVDocumentUseCase({ documentRepo }),
     getCVStructuredProfile: new GetCVStructuredProfileUseCase({ profileRepo }),
