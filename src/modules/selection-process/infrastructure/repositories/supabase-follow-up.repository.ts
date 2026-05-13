@@ -6,7 +6,13 @@ interface FollowUpRow {
   id: string;
   user_id: string;
   job_opportunity_id: string;
-  status: "interesante" | "aplicado" | "entrevista" | "oferta" | "rechazado" | "descartado";
+  status:
+    | "interesante"
+    | "aplicado"
+    | "entrevista"
+    | "oferta"
+    | "rechazado"
+    | "descartado";
   notes: string | null;
   next_action: string | null;
   next_action_at: string | null;
@@ -52,7 +58,7 @@ export class SupabaseFollowUpRepository
 {
   async findBySourceJobMatchAnalysisId(
     analysisId: string,
-    userId: UserId
+    userId: UserId,
   ): Promise<FollowUp | null> {
     const { data, error } = await this.client
       .from("follow_ups")
@@ -65,44 +71,57 @@ export class SupabaseFollowUpRepository
     if (data) return rowToFollowUp(data as FollowUpRow);
 
     const { data: analysis, error: analysisError } = await this.client
-      .from("analyses")
-      .select(
-        "id, user_id, title, job_description, job_url, job_key_data, offer_status, offer_notes, offer_next_action, offer_next_action_at, created_at, updated_at, analysis_mode"
-      )
+      .from("job_match_analyses")
+      .select("id, user_id, title, job_snapshot, created_at, updated_at")
       .eq("id", analysisId)
       .eq("user_id", userId.toPrimitives())
-      .eq("analysis_mode", "job_match")
       .maybeSingle();
 
     if (analysisError) throw analysisError;
     if (!analysis) return null;
 
-    const jobKeyData = (analysis.job_key_data ?? {}) as Record<string, unknown>;
+    const jobSnapshot =
+      analysis.job_snapshot && typeof analysis.job_snapshot === "object"
+        ? (analysis.job_snapshot as Record<string, unknown>)
+        : {};
+    const jobKeyData =
+      jobSnapshot.keyData && typeof jobSnapshot.keyData === "object"
+        ? (jobSnapshot.keyData as Record<string, unknown>)
+        : {};
     const arrayField = (key: string) =>
       Array.isArray(jobKeyData[key])
         ? (jobKeyData[key] as unknown[]).filter(
-            (item): item is string => typeof item === "string"
+            (item): item is string => typeof item === "string",
           )
         : [];
 
     const opportunityRow = {
       user_id: analysis.user_id,
       title:
-        typeof jobKeyData.title === "string" ? jobKeyData.title : analysis.title,
-      company: typeof jobKeyData.company === "string" ? jobKeyData.company : null,
-      location: typeof jobKeyData.location === "string" ? jobKeyData.location : null,
+        typeof jobKeyData.title === "string"
+          ? jobKeyData.title
+          : analysis.title,
+      company:
+        typeof jobKeyData.company === "string" ? jobKeyData.company : null,
+      location:
+        typeof jobKeyData.location === "string" ? jobKeyData.location : null,
       remote: typeof jobKeyData.remote === "string" ? jobKeyData.remote : null,
       salary: typeof jobKeyData.salary === "string" ? jobKeyData.salary : null,
       seniority:
         typeof jobKeyData.seniority === "string" ? jobKeyData.seniority : null,
       contract_type:
-        typeof jobKeyData.contractType === "string" ? jobKeyData.contractType : null,
+        typeof jobKeyData.contractType === "string"
+          ? jobKeyData.contractType
+          : null,
       benefits: arrayField("benefits"),
       requirements: arrayField("requirements"),
       responsibilities: arrayField("responsibilities"),
       notable_points: arrayField("notablePoints"),
-      description: analysis.job_description,
-      url: analysis.job_url,
+      description:
+        typeof jobSnapshot.description === "string"
+          ? jobSnapshot.description
+          : null,
+      url: typeof jobSnapshot.url === "string" ? jobSnapshot.url : null,
       source_job_match_analysis_id: analysis.id,
       created_at: analysis.created_at,
       updated_at: analysis.updated_at,
@@ -123,9 +142,8 @@ export class SupabaseFollowUpRepository
           .eq("id", existingOpportunity.id)
       : this.client.from("job_opportunities").insert(opportunityRow);
 
-    const { data: opportunity, error: opportunityError } = await opportunityQuery
-      .select("id")
-      .single();
+    const { data: opportunity, error: opportunityError } =
+      await opportunityQuery.select("id").single();
 
     if (opportunityError) throw opportunityError;
 
@@ -135,15 +153,15 @@ export class SupabaseFollowUpRepository
         {
           user_id: analysis.user_id,
           job_opportunity_id: opportunity.id,
-          status: analysis.offer_status ?? "interesante",
-          notes: analysis.offer_notes,
-          next_action: analysis.offer_next_action,
-          next_action_at: analysis.offer_next_action_at,
+          status: "interesante",
+          notes: null,
+          next_action: null,
+          next_action_at: null,
           source_job_match_analysis_id: analysis.id,
           created_at: analysis.created_at,
           updated_at: analysis.updated_at,
         },
-        { onConflict: "user_id,job_opportunity_id" }
+        { onConflict: "user_id,job_opportunity_id" },
       )
       .select("*")
       .single();

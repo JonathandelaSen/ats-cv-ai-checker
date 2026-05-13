@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysis, createCV } from "@/lib/db";
+import { createAnalysisFacade } from "@/lib/analysis-facade";
+import { createCV } from "@/lib/db";
 import {
   createTestUser,
   getSupabaseClient,
@@ -29,7 +30,7 @@ async function createLegacyLinks(userId: string) {
     extract_error_pdfjs: null,
     extract_error_node: null,
   });
-  const analysis = await createAnalysis(supabase, {
+  const analysis = await createAnalysisFacade(supabase, {
     id: crypto.randomUUID(),
     user_id: userId,
     cv_id: cv.id,
@@ -37,21 +38,19 @@ async function createLegacyLinks(userId: string) {
     filename: "cv.pdf",
     file_size: 100,
     pdf_storage_path: null,
-    text_python: "CV text",
-    text_pdfjs: null,
-    text_node: null,
-    extract_error_python: null,
-    extract_error_pdfjs: null,
-    extract_error_node: null,
+    extracted_text: {
+      text_python: "CV text",
+      text_pdfjs: null,
+      text_node: null,
+      extract_error_python: null,
+      extract_error_pdfjs: null,
+      extract_error_node: null,
+    },
     analysis_mode: "job_match",
     ai_model: null,
     job_description: "Job",
     job_url: null,
     ai_context: null,
-    ai_score: null,
-    ai_feedback: null,
-    ai_keywords: null,
-    ai_improvements: null,
   });
   return { cv, analysis };
 }
@@ -77,7 +76,7 @@ describe("SupabaseProcessQuestionRepository", () => {
         legacyCvId: cv.id,
         createdAt: "2026-05-13T10:00:00.000Z",
         updatedAt: "2026-05-13T10:00:00.000Z",
-      })
+      }),
     );
 
     expect(saved.question.id).toBe(id);
@@ -86,7 +85,7 @@ describe("SupabaseProcessQuestionRepository", () => {
 
     const found = await repo.findById(
       ProcessQuestionId.fromPrimitives(id),
-      UserId.fromPrimitives(user.id)
+      UserId.fromPrimitives(user.id),
     );
     expect(found?.question.id).toBe(id);
 
@@ -98,7 +97,10 @@ describe("SupabaseProcessQuestionRepository", () => {
     expect(listed.map((item) => item.question.id)).toContain(id);
 
     await expect(
-      repo.delete(ProcessQuestionId.fromPrimitives(id), UserId.fromPrimitives(user.id))
+      repo.delete(
+        ProcessQuestionId.fromPrimitives(id),
+        UserId.fromPrimitives(user.id),
+      ),
     ).resolves.toBe(true);
   });
 });

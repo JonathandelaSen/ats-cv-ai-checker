@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysis, createCV } from "@/lib/db";
+import { createAnalysisFacade } from "@/lib/analysis-facade";
+import { createCV } from "@/lib/db";
 import {
   createTestUser,
   getSupabaseClient,
@@ -23,7 +24,7 @@ describe("SupabaseFollowUpRepository", () => {
       file_size: 100,
       pdf_storage_path: null,
     });
-    const analysis = await createAnalysis(supabase, {
+    const analysis = await createAnalysisFacade(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       cv_id: cv.id,
@@ -31,26 +32,24 @@ describe("SupabaseFollowUpRepository", () => {
       filename: "cv.pdf",
       file_size: 100,
       pdf_storage_path: null,
-      text_python: null,
-      text_pdfjs: null,
-      text_node: null,
-      extract_error_python: null,
-      extract_error_pdfjs: null,
-      extract_error_node: null,
+      extracted_text: {
+        text_python: null,
+        text_pdfjs: null,
+        text_node: null,
+        extract_error_python: null,
+        extract_error_pdfjs: null,
+        extract_error_node: null,
+      },
       analysis_mode: "job_match",
       ai_model: null,
       job_description: "Job",
       job_url: null,
       ai_context: null,
-      ai_score: null,
-      ai_feedback: null,
-      ai_keywords: null,
-      ai_improvements: null,
     });
 
     const found = await repo.findBySourceJobMatchAnalysisId(
       analysis.id,
-      UserId.fromPrimitives(user.id)
+      UserId.fromPrimitives(user.id),
     );
 
     expect(found?.toPrimitives()).toMatchObject({
@@ -59,14 +58,15 @@ describe("SupabaseFollowUpRepository", () => {
     });
 
     found?.update({
-      status: await import("../../domain/value-objects/follow-up-status.value-object").then(
-        (mod) => mod.FollowUpStatus.fromPrimitives("aplicado")
-      ),
+      status:
+        await import("../../domain/value-objects/follow-up-status.value-object").then(
+          (mod) => mod.FollowUpStatus.fromPrimitives("aplicado"),
+        ),
       notes: "Sent",
       nextAction: "Follow up",
       nextActionAt: null,
       updatedAt: await import("@/modules/shared").then((mod) =>
-        mod.Timestamp.fromPrimitives("2026-05-13T11:00:00.000Z")
+        mod.Timestamp.fromPrimitives("2026-05-13T11:00:00.000Z"),
       ),
     });
     const saved = await repo.save(found!);

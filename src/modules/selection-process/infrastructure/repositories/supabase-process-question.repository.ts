@@ -24,13 +24,21 @@ interface ProcessQuestionRow {
   created_at: string;
   updated_at: string;
   cv?: ProcessQuestionRelatedCV | null;
-  analysis?: ProcessQuestionRelatedAnalysis | null;
+  analysis?:
+    | (Partial<ProcessQuestionRelatedAnalysis> & {
+        id: string;
+        cv_document_id?: string | null;
+        title: string;
+        filename: string;
+        job_snapshot?: unknown;
+      })
+    | null;
 }
 
 const PROCESS_QUESTION_SELECT = `
   *,
   cv:cvs(id, name, filename, type),
-  analysis:analyses(id, cv_id, title, filename, analysis_mode, job_url, offer_status)
+  analysis:job_match_analyses(id, cv_document_id, title, filename, job_snapshot)
 `;
 
 function rowToQuestion(row: ProcessQuestionRow): ProcessQuestion {
@@ -51,7 +59,9 @@ function rowToQuestion(row: ProcessQuestionRow): ProcessQuestion {
   });
 }
 
-function questionToRow(question: ProcessQuestion): Omit<ProcessQuestionRow, "cv" | "analysis"> {
+function questionToRow(
+  question: ProcessQuestion,
+): Omit<ProcessQuestionRow, "cv" | "analysis"> {
   const primitives = question.toPrimitives();
   return {
     id: primitives.id,
@@ -71,10 +81,24 @@ function questionToRow(question: ProcessQuestion): Omit<ProcessQuestionRow, "cv"
 }
 
 function rowToReadModel(row: ProcessQuestionRow): ProcessQuestionReadModel {
+  const snapshot =
+    row.analysis?.job_snapshot && typeof row.analysis.job_snapshot === "object"
+      ? (row.analysis.job_snapshot as Record<string, unknown>)
+      : {};
   return {
     question: rowToQuestion(row),
     cv: row.cv ?? null,
-    analysis: row.analysis ?? null,
+    analysis: row.analysis
+      ? {
+          id: row.analysis.id,
+          cv_id: row.analysis.cv_document_id ?? null,
+          title: row.analysis.title,
+          filename: row.analysis.filename,
+          analysis_mode: "job_match",
+          job_url: typeof snapshot.url === "string" ? snapshot.url : null,
+          offer_status: null,
+        }
+      : null,
   };
 }
 
@@ -82,7 +106,9 @@ export class SupabaseProcessQuestionRepository
   extends BoundSupabaseRepository
   implements ProcessQuestionRepository
 {
-  async search(criteria: ProcessQuestionSearchCriteria): Promise<ProcessQuestionReadModel[]> {
+  async search(
+    criteria: ProcessQuestionSearchCriteria,
+  ): Promise<ProcessQuestionReadModel[]> {
     let query = this.client
       .from("process_questions")
       .select(PROCESS_QUESTION_SELECT)
@@ -93,11 +119,12 @@ export class SupabaseProcessQuestionRepository
       const search = criteria.search.trim().replaceAll("%", "\\%");
       query = query.or(`question.ilike.%${search}%,answer.ilike.%${search}%`);
     }
-    if (criteria.legacyCvId) query = query.eq("legacy_cv_id", criteria.legacyCvId);
+    if (criteria.legacyCvId)
+      query = query.eq("legacy_cv_id", criteria.legacyCvId);
     if (criteria.sourceJobMatchAnalysisId) {
       query = query.eq(
         "source_job_match_analysis_id",
-        criteria.sourceJobMatchAnalysisId
+        criteria.sourceJobMatchAnalysisId,
       );
     }
     if (criteria.answered === true) query = query.not("answer", "is", null);
@@ -110,7 +137,7 @@ export class SupabaseProcessQuestionRepository
 
   async findById(
     id: ProcessQuestionId,
-    userId: UserId
+    userId: UserId,
   ): Promise<ProcessQuestionReadModel | null> {
     const { data, error } = await this.client
       .from("process_questions")

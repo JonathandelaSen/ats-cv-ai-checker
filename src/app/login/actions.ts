@@ -266,18 +266,23 @@ export async function deleteAccount(
     .from("cvs")
     .select("pdf_storage_path")
     .eq("user_id", user.id);
-  const { data: analyses, error: analysesError } = await supabase
-    .from("analyses")
+  const { data: cvAnalyses, error: cvAnalysesError } = await supabase
+    .from("cv_analyses")
     .select("pdf_storage_path")
     .eq("user_id", user.id);
+  const { data: jobMatchAnalyses, error: jobMatchAnalysesError } =
+    await supabase
+      .from("job_match_analyses")
+      .select("pdf_storage_path")
+      .eq("user_id", user.id);
 
-  if (cvsError || analysesError) {
+  if (cvsError || cvAnalysesError || jobMatchAnalysesError) {
     return { error: "No he podido preparar el borrado de tus datos." };
   }
 
   const storagePaths = Array.from(
     new Set(
-      [...(cvs ?? []), ...(analyses ?? [])]
+      [...(cvs ?? []), ...(cvAnalyses ?? []), ...(jobMatchAnalyses ?? [])]
         .map((item) => item.pdf_storage_path)
         .filter((path): path is string => Boolean(path)),
     ),
