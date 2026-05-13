@@ -19,7 +19,9 @@ import {
   X,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { AnalysisSummary, CVSummary, InterviewQuestionSummary } from "@/lib/db";
+import type { AnalysisSummary } from "@/lib/analysis-types";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 
 interface CVLibraryProps {
   cvs: CVSummary[];
@@ -46,12 +48,12 @@ export default function CVLibrary({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [blockingAnalyses, setBlockingAnalyses] = useState<AnalysisSummary[]>(
-    []
+    [],
   );
 
   const selected = useMemo(
     () => cvs.find((cv) => cv.id === selectedId) ?? cvs[0] ?? null,
-    [cvs, selectedId]
+    [cvs, selectedId],
   );
 
   const analysesByCv = useMemo(() => {
@@ -67,15 +69,17 @@ export default function CVLibrary({
 
   const selectedAnalyses = useMemo(
     () => (selected ? (analysesByCv.get(selected.id) ?? []) : []),
-    [analysesByCv, selected]
+    [analysesByCv, selected],
   );
 
   const selectedQuestions = useMemo(
     () =>
       selected
-        ? interviewQuestions.filter((question) => question.cv_id === selected.id)
+        ? interviewQuestions.filter(
+            (question) => question.cv_id === selected.id,
+          )
         : [],
-    [interviewQuestions, selected]
+    [interviewQuestions, selected],
   );
 
   const formatDate = (dateStr: string) =>
@@ -317,11 +321,17 @@ export default function CVLibrary({
                     <Pencil className="h-3.5 w-3.5 text-teal-300" />
                     Versiones con plantilla
                   </p>
-                  {cvs.filter((c) => c.type === "template" && c.source_cv_id === selected.id)
-                    .length > 0 ? (
+                  {cvs.filter(
+                    (c) =>
+                      c.type === "template" && c.source_cv_id === selected.id,
+                  ).length > 0 ? (
                     <div className="grid gap-2 md:grid-cols-2">
                       {cvs
-                        .filter((c) => c.type === "template" && c.source_cv_id === selected.id)
+                        .filter(
+                          (c) =>
+                            c.type === "template" &&
+                            c.source_cv_id === selected.id,
+                        )
                         .map((tpl) => (
                           <a
                             key={tpl.id}

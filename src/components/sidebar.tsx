@@ -25,7 +25,7 @@ import {
   Inbox,
   Target,
 } from "lucide-react";
-import type { AnalysisMode, OfferStatus } from "@/lib/db";
+import type { AnalysisMode, OfferStatus } from "@/lib/analysis-types";
 
 const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   interesante: "Interesante",
@@ -192,189 +192,189 @@ export default function Sidebar({
 
       <motion.aside
         initial={false}
-        animate={{ 
-          width: isMobile ? (collapsed ? 0 : 280) : (collapsed ? 56 : 280),
-          x: isMobile && collapsed ? -280 : 0
+        animate={{
+          width: isMobile ? (collapsed ? 0 : 280) : collapsed ? 56 : 280,
+          x: isMobile && collapsed ? -280 : 0,
         }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
         className={`h-screen flex flex-col border-r border-white/[0.06] bg-[#0d0d14]/95 backdrop-blur-xl shrink-0 overflow-hidden z-50 ${
           isMobile ? "fixed left-0 top-0 bottom-0" : "relative"
         }`}
       >
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 h-14 shrink-0">
-        <AnimatePresence mode="wait">
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2 min-w-0"
-            >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
-                <FileText className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-semibold text-sm text-zinc-100 truncate">
-                ATS CV AI Checker
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors shrink-0"
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
-      </div>
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 h-14 shrink-0">
+          <AnimatePresence mode="wait">
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-2 min-w-0"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="font-semibold text-sm text-zinc-100 truncate">
+                  ATS CV AI Checker
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors shrink-0"
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        </div>
 
-      {/* New Analysis Button */}
-      <div className="px-2 pb-2 shrink-0 space-y-2">
-        <button
-          onClick={onNewAnalysis}
-          className={`
+        {/* New Analysis Button */}
+        <div className="px-2 pb-2 shrink-0 space-y-2">
+          <button
+            onClick={onNewAnalysis}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500
             text-white shadow-lg shadow-indigo-900/30 active:scale-[0.97]
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Nuevo Análisis</span>}
-        </button>
-        <button
-          onClick={onOpenCVs}
-          className={`
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Nuevo Análisis</span>}
+          </button>
+          <button
+            onClick={onOpenCVs}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "cvs" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <FolderOpen className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Mis CVs</span>}
-        </button>
-        <button
-          onClick={onOpenTemplates}
-          className={`
+          >
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Mis CVs</span>}
+          </button>
+          <button
+            onClick={onOpenTemplates}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "templates" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <LayoutTemplate className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Plantillas</span>}
-        </button>
-        <button
-          onClick={onOpenEditor}
-          className={`
+          >
+            <LayoutTemplate className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Plantillas</span>}
+          </button>
+          <button
+            onClick={onOpenEditor}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "editor" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <Wand2 className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Editor</span>}
-        </button>
-        <button
-          onClick={onOpenQuestions}
-          className={`
+          >
+            <Wand2 className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Editor</span>}
+          </button>
+          <button
+            onClick={onOpenQuestions}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "questions" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <MessageSquareQuote className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Preguntas</span>}
-        </button>
-        <button
-          onClick={onOpenJournal}
-          className={`
+          >
+            <MessageSquareQuote className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Preguntas</span>}
+          </button>
+          <button
+            onClick={onOpenJournal}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "journal" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <BookOpenText className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Diario</span>}
-        </button>
-        <button
-          onClick={onOpenObjectives}
-          className={`
+          >
+            <BookOpenText className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Diario</span>}
+          </button>
+          <button
+            onClick={onOpenObjectives}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "objectives" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <Target className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Objectives</span>}
-        </button>
-        <button
-          onClick={onOpenReceivedFeedback}
-          className={`
+          >
+            <Target className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Objectives</span>}
+          </button>
+          <button
+            onClick={onOpenReceivedFeedback}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "received-feedback" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <Inbox className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Received Feedback</span>}
-        </button>
-        <button
-          onClick={onOpenFeedbackNotes}
-          className={`
+          >
+            <Inbox className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Received Feedback</span>}
+          </button>
+          <button
+            onClick={onOpenFeedbackNotes}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "feedback-notes" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-        >
-          <NotebookPen className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Feedback Notes</span>}
-        </button>
-      </div>
+          >
+            <NotebookPen className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Feedback Notes</span>}
+          </button>
+        </div>
 
-      {/* Divider */}
-      <div className="px-3 shrink-0">
-        <div className="border-t border-white/[0.06]" />
-      </div>
+        {/* Divider */}
+        <div className="px-3 shrink-0">
+          <div className="border-t border-white/[0.06]" />
+        </div>
 
-      {/* Analysis List */}
-      <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin">
-        {analyses.length === 0 && !collapsed && (
-          <div className="text-center py-8 px-4">
-            <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-zinc-800/50 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-zinc-600" />
+        {/* Analysis List */}
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin">
+          {analyses.length === 0 && !collapsed && (
+            <div className="text-center py-8 px-4">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-zinc-800/50 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-zinc-600" />
+              </div>
+              <p className="text-xs text-zinc-600">
+                No hay análisis aún.
+                <br />
+                Sube tu primer CV para empezar.
+              </p>
             </div>
-            <p className="text-xs text-zinc-600">
-              No hay análisis aún.
-              <br />
-              Sube tu primer CV para empezar.
+          )}
+
+          {!collapsed && generalAnalyses.length > 0 && (
+            <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+              Análisis de CV
             </p>
-          </div>
-        )}
+          )}
 
-        {!collapsed && generalAnalyses.length > 0 && (
-          <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-            Análisis de CV
-          </p>
-        )}
-
-        {generalAnalyses.map((a) => (
-          <div
-            key={a.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(a.id)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect(a.id);
-              }
-            }}
-            className={`
+          {generalAnalyses.map((a) => (
+            <div
+              key={a.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(a.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(a.id);
+                }
+              }}
+              className={`
               group w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 text-left relative
               cursor-pointer focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none
               ${collapsed ? "justify-center p-2" : "px-3 py-2.5"}
@@ -384,193 +384,193 @@ export default function Sidebar({
                   : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
               }
             `}
-          >
-            {/* Icon */}
-            <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                activeId === a.id
-                  ? "bg-indigo-500/15 text-indigo-400"
-                  : "bg-zinc-800/60 text-zinc-500 group-hover:text-zinc-400"
-              }`}
             >
-              <FileText className="w-4 h-4" />
-            </div>
+              {/* Icon */}
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeId === a.id
+                    ? "bg-indigo-500/15 text-indigo-400"
+                    : "bg-zinc-800/60 text-zinc-500 group-hover:text-zinc-400"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+              </div>
 
-            {/* Text content */}
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium truncate">
-                  {a.title || a.filename.replace(/\.pdf$/i, "")}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-zinc-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(a.created_at)}
-                  </span>
-                  {a.ai_score !== null ? (
-                    <span className="flex items-center gap-1">
+              {/* Text content */}
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate">
+                    {a.title || a.filename.replace(/\.pdf$/i, "")}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDate(a.created_at)}
+                    </span>
+                    {a.ai_score !== null ? (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${getScoreColor(a.ai_score)}`}
+                        >
+                          {a.ai_score}
+                        </span>
+                        {a.analysis_mode === "general" ? (
+                          <FileSearch className="w-3 h-3 text-violet-400" />
+                        ) : (
+                          <Briefcase className="w-3 h-3 text-emerald-400" />
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-zinc-600 flex items-center gap-0.5">
+                        <Sparkles className="w-3 h-3" />
+                        Pendiente
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Delete button */}
+              {!collapsed && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(a.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+
+          {!collapsed && jobAnalyses.length > 0 && (
+            <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+              Ofertas aplicadas
+            </p>
+          )}
+
+          {jobAnalyses.map((a) => (
+            <div
+              key={a.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(a.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(a.id);
+                }
+              }}
+              className={`
+              group w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 text-left relative
+              cursor-pointer focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none
+              ${collapsed ? "justify-center p-2" : "px-3 py-2.5"}
+              ${
+                activeId === a.id
+                  ? "bg-white/[0.08] text-zinc-100"
+                  : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+              }
+            `}
+            >
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeId === a.id
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-zinc-800/60 text-zinc-500 group-hover:text-zinc-400"
+                }`}
+              >
+                <Briefcase className="w-4 h-4" />
+              </div>
+
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate">
+                    {a.title || a.filename.replace(/\.pdf$/i, "")}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDate(a.created_at)}
+                    </span>
+                    {a.ai_score !== null ? (
                       <span
                         className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${getScoreColor(a.ai_score)}`}
                       >
                         {a.ai_score}
                       </span>
-                      {a.analysis_mode === "general" ? (
-                        <FileSearch className="w-3 h-3 text-violet-400" />
-                      ) : (
-                        <Briefcase className="w-3 h-3 text-emerald-400" />
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-zinc-600 flex items-center gap-0.5">
-                      <Sparkles className="w-3 h-3" />
-                      Pendiente
-                    </span>
-                  )}
+                    ) : (
+                      <span className="text-[11px] text-zinc-600 flex items-center gap-0.5">
+                        <Sparkles className="w-3 h-3" />
+                        Pendiente
+                      </span>
+                    )}
+                    {a.offer_status && (
+                      <span
+                        className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${OFFER_STATUS_BADGE_CLASS[a.offer_status]}`}
+                      >
+                        {OFFER_STATUS_LABELS[a.offer_status]}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Delete button */}
-            {!collapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(a.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all shrink-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        ))}
-
-        {!collapsed && jobAnalyses.length > 0 && (
-          <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-            Ofertas aplicadas
-          </p>
-        )}
-
-        {jobAnalyses.map((a) => (
-          <div
-            key={a.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(a.id)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect(a.id);
-              }
-            }}
-            className={`
-              group w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 text-left relative
-              cursor-pointer focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none
-              ${collapsed ? "justify-center p-2" : "px-3 py-2.5"}
-              ${
-                activeId === a.id
-                  ? "bg-white/[0.08] text-zinc-100"
-                  : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
-              }
-            `}
-          >
-            <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                activeId === a.id
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "bg-zinc-800/60 text-zinc-500 group-hover:text-zinc-400"
-              }`}
-            >
-              <Briefcase className="w-4 h-4" />
+              {!collapsed && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(a.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+          ))}
+        </div>
 
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium truncate">
-                  {a.title || a.filename.replace(/\.pdf$/i, "")}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-zinc-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(a.created_at)}
-                  </span>
-                  {a.ai_score !== null ? (
-                    <span
-                      className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${getScoreColor(a.ai_score)}`}
-                    >
-                      {a.ai_score}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-zinc-600 flex items-center gap-0.5">
-                      <Sparkles className="w-3 h-3" />
-                      Pendiente
-                    </span>
-                  )}
-                  {a.offer_status && (
-                    <span
-                      className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${OFFER_STATUS_BADGE_CLASS[a.offer_status]}`}
-                    >
-                      {OFFER_STATUS_LABELS[a.offer_status]}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {!collapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(a.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all shrink-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="px-3 py-3 border-t border-white/[0.06] shrink-0 space-y-3">
-        <button
-          onClick={onOpenSettings}
-          className={`
+        {/* Footer */}
+        <div className="px-3 py-3 border-t border-white/[0.06] shrink-0 space-y-3">
+          <button
+            onClick={onOpenSettings}
+            className={`
             w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
             ${activeView === "settings" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-          title="Configuración"
-        >
-          <Settings className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Configuración</span>}
-        </button>
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={onOpenAdmin}
-            className={`
+            title="Configuración"
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Configuración</span>}
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className={`
               w-full flex items-center gap-2 rounded-lg font-medium transition-all duration-150
               ${activeView === "admin" ? "bg-emerald-500/10 text-emerald-200" : "text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200"}
               ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
             `}
-            title="Observabilidad"
-          >
-            <ShieldCheck className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Observabilidad</span>}
-          </button>
-        )}
-        {!collapsed && (
-          <div className="flex items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-2 min-w-0 text-[11px] text-zinc-500">
-              <UserCircle className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{userEmail}</span>
+              title="Observabilidad"
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Observabilidad</span>}
+            </button>
+          )}
+          {!collapsed && (
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2 min-w-0 text-[11px] text-zinc-500">
+                <UserCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{userEmail}</span>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </motion.aside>
+          )}
+        </div>
+      </motion.aside>
     </>
   );
 }

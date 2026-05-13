@@ -12,7 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { CVSummary } from "@/lib/db";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
 
 interface NewAnalysisFlowProps {
   cvs: CVSummary[];
@@ -32,7 +32,9 @@ export default function NewAnalysisFlow({
   onCVCreated,
   onAnalysisCreated,
 }: NewAnalysisFlowProps) {
-  const [source, setSource] = useState<CVSource>(cvs.length > 0 ? "existing" : "upload");
+  const [source, setSource] = useState<CVSource>(
+    cvs.length > 0 ? "existing" : "upload",
+  );
   const [selectedCvId, setSelectedCvId] = useState(cvs[0]?.id ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [cvName, setCvName] = useState("");
@@ -44,7 +46,7 @@ export default function NewAnalysisFlow({
 
   const selectedCv = useMemo(
     () => cvs.find((cv) => cv.id === selectedCvId) ?? null,
-    [cvs, selectedCvId]
+    [cvs, selectedCvId],
   );
 
   const handleFile = (nextFile: File) => {
@@ -134,7 +136,8 @@ export default function NewAnalysisFlow({
             Sube o elige un CV para extraer su contenido
           </h1>
           <p className="max-w-2xl text-sm text-zinc-500">
-            Podrás validar la extracción con diferentes motores antes de lanzar el análisis con IA.
+            Podrás validar la extracción con diferentes motores antes de lanzar
+            el análisis con IA.
           </p>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FileSearch, Briefcase, ArrowRight } from "lucide-react";
-import type { AnalysisMode } from "@/lib/db";
+import type { AnalysisMode } from "@/lib/analysis-types";
 
 interface AnalysisModeSelectorProps {
   onSelectMode: (mode: AnalysisMode) => void;

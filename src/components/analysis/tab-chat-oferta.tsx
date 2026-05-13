@@ -74,9 +74,7 @@ function ChatMarkdown({ content }: { content: string }) {
             </code>
           );
         },
-        pre: ({ children }) => (
-          <pre className="mb-3 last:mb-0">{children}</pre>
-        ),
+        pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
         h1: ({ children }) => (
           <h1 className="mb-2 text-base font-bold text-zinc-100">{children}</h1>
         ),
@@ -238,14 +236,17 @@ export default function TabChatOferta({
     try {
       const res = await fetch(`/api/analyses/${analysisId}/chat`);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Error cargando conversaciones.");
+      if (!res.ok)
+        throw new Error(data.error || "Error cargando conversaciones.");
       const convs = (data.conversations ?? []) as AnalysisChatConversation[];
       setConversations(convs);
       if (convs.length > 0 && !activeConversationId) {
         setActiveConversationId(convs[0].id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error cargando conversaciones.");
+      setError(
+        err instanceof Error ? err.message : "Error cargando conversaciones.",
+      );
     } finally {
       setIsLoadingConversations(false);
     }
@@ -257,18 +258,20 @@ export default function TabChatOferta({
       setError(null);
       try {
         const res = await fetch(
-          `/api/analyses/${analysisId}/chat?conversationId=${conversationId}`
+          `/api/analyses/${analysisId}/chat?conversationId=${conversationId}`,
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Error cargando mensajes.");
         setMessages(data.messages ?? []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error cargando mensajes.");
+        setError(
+          err instanceof Error ? err.message : "Error cargando mensajes.",
+        );
       } finally {
         setIsLoadingMessages(false);
       }
     },
-    [analysisId]
+    [analysisId],
   );
 
   useEffect(() => {
@@ -312,7 +315,7 @@ export default function TabChatOferta({
       textareaRef.current?.focus();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error creando conversación."
+        err instanceof Error ? err.message : "Error creando conversación.",
       );
     }
   };
@@ -331,9 +334,7 @@ export default function TabChatOferta({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error);
       const updated = data.conversation as AnalysisChatConversation;
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? updated : c))
-      );
+      setConversations((prev) => prev.map((c) => (c.id === id ? updated : c)));
     } catch {
       // silently fail rename
     }
@@ -388,7 +389,7 @@ export default function TabChatOferta({
         conversationId = conv.id;
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Error creando conversación."
+          err instanceof Error ? err.message : "Error creando conversación.",
         );
         return;
       }
@@ -418,7 +419,7 @@ export default function TabChatOferta({
       setDraft("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "No se pudo enviar el mensaje."
+        err instanceof Error ? err.message : "No se pudo enviar el mensaje.",
       );
     } finally {
       setIsSending(false);
@@ -427,7 +428,10 @@ export default function TabChatOferta({
 
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -582,9 +586,7 @@ function ChatBubble({
   const isAssistant = message.role === "assistant";
 
   return (
-    <div
-      className={`flex gap-3 py-2 ${isAssistant ? "" : "flex-row-reverse"}`}
-    >
+    <div className={`flex gap-3 py-2 ${isAssistant ? "" : "flex-row-reverse"}`}>
       <div
         className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
           isAssistant
@@ -658,9 +660,7 @@ function EmptyChat() {
         <Sparkles className="size-5" />
       </div>
       <div>
-        <p className="text-sm text-zinc-400">
-          Haz tu primera pregunta
-        </p>
+        <p className="text-sm text-zinc-400">Haz tu primera pregunta</p>
         <p className="mt-1 text-xs text-zinc-600">
           La IA tiene contexto completo de tu CV, la oferta y el análisis.
         </p>

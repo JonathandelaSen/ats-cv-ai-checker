@@ -21,10 +21,10 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   AnalysisMode,
   AIContext,
-  CVSummary,
-  InterviewQuestionSummary,
   OfferStatus,
-} from "@/lib/db";
+} from "@/lib/analysis-types";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
 
 type ViewTab = "extraction" | "analysis";
@@ -101,13 +101,17 @@ export default function AppShell({
   >([]);
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [activeAnalysis, setActiveAnalysis] = useState<FullAnalysis | null>(
-    null
+    null,
   );
   const [viewTab, setViewTab] = useState<ViewTab>("extraction");
   const [activeView, setActiveView] = useState<AppView>(initialView);
   const [activeEditorCvId, setActiveEditorCvId] = useState<string | null>(null);
-  const [activeQuestionCvId, setActiveQuestionCvId] = useState<string | null>(null);
-  const [activeQuestionAnalysisId, setActiveQuestionAnalysisId] = useState<string | null>(null);
+  const [activeQuestionCvId, setActiveQuestionCvId] = useState<string | null>(
+    null,
+  );
+  const [activeQuestionAnalysisId, setActiveQuestionAnalysisId] = useState<
+    string | null
+  >(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(initialUserEmail);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
@@ -152,7 +156,7 @@ export default function AppShell({
 
   useEffect(() => {
     void Promise.resolve().then(() =>
-      Promise.all([fetchAnalyses(), fetchCVs(), fetchInterviewQuestions()])
+      Promise.all([fetchAnalyses(), fetchCVs(), fetchInterviewQuestions()]),
     );
   }, [fetchAnalyses, fetchCVs, fetchInterviewQuestions]);
 
@@ -281,7 +285,7 @@ export default function AppShell({
     window.history.replaceState(
       null,
       "",
-      `/?analysis=${encodeURIComponent(id)}`
+      `/?analysis=${encodeURIComponent(id)}`,
     );
     fetchAnalysisDetail(id);
   };
@@ -388,7 +392,7 @@ export default function AppShell({
     window.history.replaceState(
       null,
       "",
-      `/?analysis=${encodeURIComponent(id)}`
+      `/?analysis=${encodeURIComponent(id)}`,
     );
     fetchAnalysisDetail(id);
     fetchAnalyses();
@@ -478,7 +482,7 @@ export default function AppShell({
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
-          <CVLibrary
+              <CVLibrary
                 cvs={cvs}
                 analyses={analyses}
                 onRefresh={fetchCVs}
@@ -515,8 +519,8 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <CVEditorView
-                cvs={cvs.filter(c => c.type === "template")}
-                hasOriginalCVs={cvs.some(c => c.type === "uploaded")}
+                cvs={cvs.filter((c) => c.type === "template")}
+                hasOriginalCVs={cvs.some((c) => c.type === "uploaded")}
                 activeVersionId={activeEditorCvId}
                 geminiApiKey={geminiApiKey}
                 hasGeminiApiKey={geminiApiKey.length > 0}
@@ -718,7 +722,8 @@ export default function AppShell({
                         offer_status: activeAnalysis.offer_status,
                         offer_notes: activeAnalysis.offer_notes,
                         offer_next_action: activeAnalysis.offer_next_action,
-                        offer_next_action_at: activeAnalysis.offer_next_action_at,
+                        offer_next_action_at:
+                          activeAnalysis.offer_next_action_at,
                         ai_context: activeAnalysis.ai_context,
                         job_key_data: activeAnalysis.job_key_data,
                         job_keywords: activeAnalysis.job_keywords,
@@ -736,7 +741,8 @@ export default function AppShell({
                       onDelete={handleDelete}
                       onUpdate={() => fetchAnalysisDetail(activeAnalysis.id)}
                       interviewQuestions={interviewQuestions.filter(
-                        (question) => question.analysis_id === activeAnalysis.id
+                        (question) =>
+                          question.analysis_id === activeAnalysis.id,
                       )}
                       onInterviewQuestionCreated={fetchInterviewQuestions}
                       onOpenQuestions={() =>

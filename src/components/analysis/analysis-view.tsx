@@ -14,10 +14,10 @@ import {
 import {
   type AnalysisMode,
   type AIContext,
-  type InterviewQuestionSummary,
   type JobKeyData,
   type OfferStatus,
-} from "@/lib/db";
+} from "@/lib/analysis-types";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ScoreHero from "./score-hero";
 import TabResumen from "./tab-resumen";
@@ -109,21 +109,21 @@ export default function AIAnalysisView({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   const [offerStatus, setOfferStatus] = useState<OfferStatus>(
-    analysis.offer_status ?? "interesante"
+    analysis.offer_status ?? "interesante",
   );
   const [offerNotes, setOfferNotes] = useState(analysis.offer_notes ?? "");
   const [offerNextAction, setOfferNextAction] = useState(
-    analysis.offer_next_action ?? ""
+    analysis.offer_next_action ?? "",
   );
   const [offerNextActionAt, setOfferNextActionAt] = useState(
-    toDateTimeLocalValue(analysis.offer_next_action_at)
+    toDateTimeLocalValue(analysis.offer_next_action_at),
   );
   const [isSavingTracking, setIsSavingTracking] = useState(false);
   const [quickQuestion, setQuickQuestion] = useState("");
   const [quickQuestionContext, setQuickQuestionContext] = useState("");
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [quickQuestionModel, setQuickQuestionModel] = useState(
-    "gemini-3.1-pro-preview"
+    "gemini-3.1-pro-preview",
   );
 
   const keywords = safeParseArray(analysis.ai_keywords);
@@ -199,7 +199,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
     if (!onDelete) return;
     if (
       !confirm(
-        "¿Seguro que quieres borrar este análisis? Esta acción no se puede deshacer."
+        "¿Seguro que quieres borrar este análisis? Esta acción no se puede deshacer.",
       )
     ) {
       return;
@@ -298,7 +298,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
               cv_id: analysis.cv_id,
               analysis_id: analysis.id,
             }),
-          }
+          },
         );
         if (!generateRes.ok) {
           const data = await generateRes.json().catch(() => ({}));
@@ -314,7 +314,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       alert(
         err instanceof Error
           ? err.message
-          : "No se pudo crear la pregunta asociada."
+          : "No se pudo crear la pregunta asociada.",
       );
     } finally {
       setIsCreatingQuestion(false);
@@ -400,16 +400,15 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                     </TabsTrigger>
                   </>
                 )}
-                {!isJobMatch &&
-                  analysis.ai_context?.additionalContext && (
-                    <TabsTrigger
-                      value="contexto"
-                      className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                    >
-                      <FileSearch className="size-4" />
-                      Contexto
-                    </TabsTrigger>
-                  )}
+                {!isJobMatch && analysis.ai_context?.additionalContext && (
+                  <TabsTrigger
+                    value="contexto"
+                    className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  >
+                    <FileSearch className="size-4" />
+                    Contexto
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -475,25 +474,24 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                 </>
               )}
 
-              {!isJobMatch &&
-                analysis.ai_context?.additionalContext && (
-                  <TabsContent value="contexto">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="rounded-2xl border border-violet-500/10 bg-violet-500/[0.03] p-6"
-                    >
-                      <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
-                        <FileSearch className="w-4 h-4" />
-                        Contexto del Análisis
-                      </h4>
-                      <p className="text-xs text-zinc-400 italic bg-[#0a0a12] rounded-lg p-3 border border-white/[0.04]">
-                        {analysis.ai_context.additionalContext}
-                      </p>
-                    </motion.div>
-                  </TabsContent>
-                )}
+              {!isJobMatch && analysis.ai_context?.additionalContext && (
+                <TabsContent value="contexto">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="rounded-2xl border border-violet-500/10 bg-violet-500/[0.03] p-6"
+                  >
+                    <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
+                      <FileSearch className="w-4 h-4" />
+                      Contexto del Análisis
+                    </h4>
+                    <p className="text-xs text-zinc-400 italic bg-[#0a0a12] rounded-lg p-3 border border-white/[0.04]">
+                      {analysis.ai_context.additionalContext}
+                    </p>
+                  </motion.div>
+                </TabsContent>
+              )}
             </div>
           </Tabs>
         </div>

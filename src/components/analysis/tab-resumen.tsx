@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle2, Star, ChevronRight, XCircle } from "lucide-react";
-import type { AnalysisMode } from "@/lib/db";
+import type { AnalysisMode } from "@/lib/analysis-types";
 
 interface TabResumenProps {
   improvements: string[];

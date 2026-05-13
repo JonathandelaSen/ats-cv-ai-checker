@@ -8,7 +8,7 @@ import {
   Check,
   Sparkles,
 } from "lucide-react";
-import type { InterviewQuestionSummary } from "@/lib/db";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 
 interface TabEntrevistaProps {
   interviewQuestions: InterviewQuestionSummary[];

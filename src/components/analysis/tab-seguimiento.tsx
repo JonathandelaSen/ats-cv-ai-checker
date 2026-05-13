@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CalendarClock, Loader2, Check } from "lucide-react";
-import { OFFER_STATUSES, type OfferStatus } from "@/lib/db";
+import { OFFER_STATUSES, type OfferStatus } from "@/lib/analysis-types";
 
 const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   interesante: "Interesante",
@@ -54,9 +54,7 @@ export default function TabSeguimiento({
               <h4 className="text-sm font-semibold text-emerald-300">
                 Seguimiento de oferta
               </h4>
-              <p className="text-xs text-zinc-500">
-                Estado y próxima acción.
-              </p>
+              <p className="text-xs text-zinc-500">Estado y próxima acción.</p>
             </div>
           </div>
           <button

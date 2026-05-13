@@ -12,7 +12,7 @@ import {
   MessageSquare,
   KeyRound,
 } from "lucide-react";
-import type { AIContext } from "@/lib/db";
+import type { AIContext } from "@/lib/analysis-types";
 
 interface GeneralAnalysisFormProps {
   onSubmit: (context: AIContext, model: string) => void;

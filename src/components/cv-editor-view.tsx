@@ -22,16 +22,11 @@ import {
   Undo2,
   Wand2,
 } from "lucide-react";
-import type {
-  CVRecommendationAnalysis,
-  CVSummary,
-} from "@/lib/db";
+import type { CVRecommendationAnalysis } from "@/lib/analysis-types";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
 import { getCVTemplate, type CVTemplateLocale } from "@/lib/cv-templates";
 import { getErrorMessage } from "@/lib/errors";
-import {
-  buildPublicCVPath,
-  normalizePublicCVSlug,
-} from "@/lib/public-cv";
+import { buildPublicCVPath, normalizePublicCVSlug } from "@/lib/public-cv";
 import {
   normalizeStandardCVProfile,
   type StandardCVProfile,
@@ -50,7 +45,7 @@ const PDFPreview = dynamic(
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     ),
-  }
+  },
 );
 
 interface CVEditorViewProps {
@@ -104,13 +99,18 @@ export default function CVEditorView({
     value: string;
   }>({ cvId: null, value: "" });
   const [publicCopied, setPublicCopied] = useState(false);
-  const [manuallySelectedVersionId, setManuallySelectedVersionId] = useState<string | null>(null);
+  const [manuallySelectedVersionId, setManuallySelectedVersionId] = useState<
+    string | null
+  >(null);
   const [editedVersion, setEditedVersion] = useState<CVSummary | null>(null);
-  const [recommendationAnalysis, setRecommendationAnalysis] = useState<CVRecommendationAnalysis | null>(null);
+  const [recommendationAnalysis, setRecommendationAnalysis] =
+    useState<CVRecommendationAnalysis | null>(null);
   const [selectedModel, setSelectedModel] = useState("gemini-3.1-pro-preview");
   const [editInstruction, setEditInstruction] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
   const [savingLocale, setSavingLocale] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editorTab, setEditorTab] = useState<"ai" | "manual">("ai");
@@ -120,13 +120,22 @@ export default function CVEditorView({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentVersionId = manuallySelectedVersionId ?? activeVersionId;
-  const currentVersionFromList = useMemo(() =>
-    currentVersionId ? cvs.find(v => v.id === currentVersionId) ?? null : null
-  , [cvs, currentVersionId]);
+  const currentVersionFromList = useMemo(
+    () =>
+      currentVersionId
+        ? (cvs.find((v) => v.id === currentVersionId) ?? null)
+        : null,
+    [cvs, currentVersionId],
+  );
 
-  const currentVersion = editedVersion?.id === currentVersionFromList?.id ? editedVersion : currentVersionFromList;
+  const currentVersion =
+    editedVersion?.id === currentVersionFromList?.id
+      ? editedVersion
+      : currentVersionFromList;
   const currentVersionIdForSave = currentVersion?.id ?? null;
-  const activeTemplate = currentVersion?.template_id ? getCVTemplate(currentVersion.template_id) : null;
+  const activeTemplate = currentVersion?.template_id
+    ? getCVTemplate(currentVersion.template_id)
+    : null;
   const locale = (currentVersion?.template_locale ?? "es") as CVTemplateLocale;
   const {
     present: historyProfile,
@@ -143,7 +152,9 @@ export default function CVEditorView({
     ? `/api/cvs/${currentVersion.id}/template-pdf?v=${previewVersion}`
     : "";
   const defaultPublicSlug =
-    currentVersion?.public_slug ?? normalizePublicCVSlug(currentVersion?.name) ?? "";
+    currentVersion?.public_slug ??
+    normalizePublicCVSlug(currentVersion?.name) ??
+    "";
   const publicSlug =
     publicSlugDraft.cvId === currentVersion?.id
       ? publicSlugDraft.value
@@ -154,7 +165,7 @@ export default function CVEditorView({
   const hasPublicSlugChanges = Boolean(
     currentVersion?.public_enabled &&
     normalizedPublicSlug &&
-    normalizedPublicSlug !== savedPublicSlug
+    normalizedPublicSlug !== savedPublicSlug,
   );
   const sharePublicSlug =
     currentVersion?.public_enabled && hasPublicSlugChanges
@@ -246,35 +257,38 @@ export default function CVEditorView({
     resetProfileHistory,
   ]);
 
-  const saveProfile = useCallback(async (profile: StandardCVProfile | null) => {
-    if (!currentVersionIdForSave || !profile) return false;
+  const saveProfile = useCallback(
+    async (profile: StandardCVProfile | null) => {
+      if (!currentVersionIdForSave || !profile) return false;
 
-    const normalized = normalizeStandardCVProfile(profile);
-    const json = JSON.stringify(normalized);
-    if (json === savedProfileJsonRef.current) return true;
+      const normalized = normalizeStandardCVProfile(profile);
+      const json = JSON.stringify(normalized);
+      if (json === savedProfileJsonRef.current) return true;
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/cvs/${currentVersionIdForSave}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: normalized }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Save failed");
-      savedProfileJsonRef.current = json;
-      setEditedVersion(data);
-      setSaveState("saved");
-      reloadPreview();
-      onCVUpdated();
-      return true;
-    } catch (err: unknown) {
-      setSaveState("idle");
-      setError(getErrorMessage(err));
-      return false;
-    }
-  }, [currentVersionIdForSave, onCVUpdated, reloadPreview]);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      setSaveState("saving");
+      try {
+        const res = await fetch(`/api/cvs/${currentVersionIdForSave}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile: normalized }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Save failed");
+        savedProfileJsonRef.current = json;
+        setEditedVersion(data);
+        setSaveState("saved");
+        reloadPreview();
+        onCVUpdated();
+        return true;
+      } catch (err: unknown) {
+        setSaveState("idle");
+        setError(getErrorMessage(err));
+        return false;
+      }
+    },
+    [currentVersionIdForSave, onCVUpdated, reloadPreview],
+  );
 
   useEffect(() => {
     if (!currentVersion?.id || !currentProfile) return;
@@ -320,9 +334,12 @@ export default function CVEditorView({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canRedo, canUndo, redo, undo]);
 
-  const handleManualChange = useCallback((updater: (prev: StandardCVProfile) => StandardCVProfile) => {
-    setProfile(updater, "manual");
-  }, [setProfile]);
+  const handleManualChange = useCallback(
+    (updater: (prev: StandardCVProfile) => StandardCVProfile) => {
+      setProfile(updater, "manual");
+    },
+    [setProfile],
+  );
 
   const applyInstruction = async (instruction = editInstruction) => {
     if (!currentVersion?.id) return;
@@ -346,18 +363,22 @@ export default function CVEditorView({
           instruction: instruction.trim(),
         }),
       });
-      
+
       const text = await res.text();
       let data;
       try {
         data = JSON.parse(text);
       } catch {
         console.error("Non-JSON response from edit API:", text);
-        throw new Error(`El servidor devolvió un error inesperado (Status: ${res.status}). Puede ser un timeout o un error de conexión.`);
+        throw new Error(
+          `El servidor devolvió un error inesperado (Status: ${res.status}). Puede ser un timeout o un error de conexión.`,
+        );
       }
 
       if (!res.ok) {
-        throw new Error(data.error || data.details || "No se pudo editar el CV");
+        throw new Error(
+          data.error || data.details || "No se pudo editar el CV",
+        );
       }
       if (data.version?.profile) {
         savedProfileJsonRef.current = serializeProfile(data.version.profile);
@@ -397,7 +418,10 @@ export default function CVEditorView({
     }
   };
 
-  const updatePublicSettings = async (enabled: boolean, confirmPublicExposure = false) => {
+  const updatePublicSettings = async (
+    enabled: boolean,
+    confirmPublicExposure = false,
+  ) => {
     if (!currentVersion?.id || !normalizedPublicSlug) return;
     setSavingPublicSettings(true);
     setError(null);
@@ -412,7 +436,10 @@ export default function CVEditorView({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo actualizar la página pública");
+      if (!res.ok)
+        throw new Error(
+          data.error || "No se pudo actualizar la página pública",
+        );
       setEditedVersion(data);
       setPublicSlugDraft({
         cvId: data.id,
@@ -441,11 +468,14 @@ export default function CVEditorView({
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-400">
             <LayoutTemplate className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Selecciona un CV para editar</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Selecciona un CV para editar
+          </h2>
           <p className="text-zinc-500 mb-8">
-            Elige uno de los CVs basados en plantillas para comenzar a editarlo con IA.
+            Elige uno de los CVs basados en plantillas para comenzar a editarlo
+            con IA.
           </p>
-          
+
           {cvs.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
               {cvs.map((cv) => (
@@ -454,7 +484,9 @@ export default function CVEditorView({
                   onClick={() => setManuallySelectedVersionId(cv.id)}
                   className="flex flex-col items-start rounded-xl border border-white/5 bg-white/5 p-4 hover:border-teal-500/30 hover:bg-white/10 transition-colors"
                 >
-                  <span className="font-semibold text-white truncate w-full">{cv.name}</span>
+                  <span className="font-semibold text-white truncate w-full">
+                    {cv.name}
+                  </span>
                   <div className="flex items-center gap-2 mt-3">
                     <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
                       {getCVTemplate(cv.template_id!)?.name || cv.template_id}
@@ -468,8 +500,13 @@ export default function CVEditorView({
             </div>
           ) : (
             <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 mx-auto max-w-md">
-              <p className="text-zinc-500 mb-6">No tienes ningún CV en formato plantilla.</p>
-              <Button onClick={onOpenTemplates} className="bg-teal-500 text-black hover:bg-teal-400">
+              <p className="text-zinc-500 mb-6">
+                No tienes ningún CV en formato plantilla.
+              </p>
+              <Button
+                onClick={onOpenTemplates}
+                className="bg-teal-500 text-black hover:bg-teal-400"
+              >
                 Ir al catálogo de plantillas
               </Button>
             </div>
@@ -484,21 +521,32 @@ export default function CVEditorView({
       {/* Topbar */}
       <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-white/5 bg-[#0a0a12]/80 px-4 backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBackToLibrary} className="h-8 w-8 text-zinc-400">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBackToLibrary}
+            className="h-8 w-8 text-zinc-400"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="h-4 w-[1px] bg-white/10" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="truncate text-sm font-semibold text-white">{currentVersion.name}</h2>
+              <h2 className="truncate text-sm font-semibold text-white">
+                {currentVersion.name}
+              </h2>
               <span className="text-[10px] text-zinc-600">basado en</span>
               <span className="truncate text-[11px] font-medium text-teal-500/80 italic">
-CV Original
+                CV Original
               </span>
             </div>
             <div className="flex items-center gap-2 text-[10px] text-zinc-500">
-              <span className="rounded-full bg-white/5 px-1.5 py-0.5 uppercase tracking-wider">{activeTemplate.name}</span>
-              <span className="rounded-full bg-white/5 px-1.5 py-0.5 uppercase tracking-wider">{locale}</span>
+              <span className="rounded-full bg-white/5 px-1.5 py-0.5 uppercase tracking-wider">
+                {activeTemplate.name}
+              </span>
+              <span className="rounded-full bg-white/5 px-1.5 py-0.5 uppercase tracking-wider">
+                {locale}
+              </span>
             </div>
           </div>
         </div>
@@ -536,11 +584,10 @@ CV Original
             className="h-9 gap-2 border border-teal-500/20 bg-teal-500/5 text-xs text-teal-400 hover:bg-teal-500/10"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Guardar nueva versión</span>          </Button>
+            <span className="hidden sm:inline">Guardar nueva versión</span>{" "}
+          </Button>
 
           <div className="hidden h-4 w-[1px] bg-white/10 md:block" />
-
-
 
           <a
             href={`/api/cvs/${currentVersion.id}/template-pdf`}
@@ -567,16 +614,21 @@ CV Original
       <div className="relative flex flex-1 overflow-hidden">
         {/* Canvas */}
         <div className="relative flex-1 overflow-auto bg-[#050509] scrollbar-thin">
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-               style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 0)", backgroundSize: "24px 24px" }} />
-          
-              {currentProfile ? (
-                <PDFPreview url={previewSrc} />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              )}
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{
+              backgroundImage: "radial-gradient(#fff 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+
+          {currentProfile ? (
+            <PDFPreview url={previewSrc} />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
         </div>
 
         {/* Side Panel */}
@@ -621,68 +673,84 @@ CV Original
                   )}
 
                   {/* IA Section */}
-                  {editorTab === "ai" && <section>
-                    <header className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
-                          <Sparkles className="h-4 w-4" />
+                  {editorTab === "ai" && (
+                    <section>
+                      <header className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+                            <Sparkles className="h-4 w-4" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white">
+                            Editor IA
+                          </h3>
                         </div>
-                        <h3 className="text-sm font-semibold text-white">Editor IA</h3>
-                      </div>
-                      <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        className="bg-transparent text-[11px] font-medium text-zinc-500 focus:outline-none cursor-pointer"
-                      >
-                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                      </select>
-                    </header>
-
-                    {error && (
-                      <div className="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
-                        {error}
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <textarea
-                          value={editInstruction}
-                          onChange={(e) => setEditInstruction(e.target.value)}
-                          placeholder="Describe los cambios que quieres hacer..."
-                          className="h-32 w-full resize-none rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/30 focus:outline-none transition-colors"
-                        />
-                        <Button
-                          disabled={!editInstruction.trim() || editingProfile || !hasGeminiApiKey}
-                          onClick={() => applyInstruction()}
-                          className="absolute bottom-3 right-3 h-8 rounded-lg bg-teal-500 px-3 text-xs font-bold text-black hover:bg-teal-400 disabled:opacity-30"
+                        <select
+                          value={selectedModel}
+                          onChange={(e) => setSelectedModel(e.target.value)}
+                          className="bg-transparent text-[11px] font-medium text-zinc-500 focus:outline-none cursor-pointer"
                         >
-                          {editingProfile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                        </Button>
-                      </div>
+                          <option value="gemini-3.1-pro-preview">
+                            Gemini 3.1 Pro
+                          </option>
+                          <option value="gemini-2.5-flash">
+                            Gemini 2.5 Flash
+                          </option>
+                        </select>
+                      </header>
 
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          "Acorta el Sobre mí",
-                          "Mejora claridad",
-                          "Hazlo más ejecutivo",
-                          "Corregir erratas",
-                        ].map((hint) => (
-                          <button
-                            key={hint}
-                            onClick={() => {
-                              setEditInstruction(hint);
-                              void applyInstruction(hint);
-                            }}
-                            className="rounded-full border border-white/5 bg-white/5 px-3 py-1 text-[11px] text-zinc-400 hover:border-white/10 hover:bg-white/10 hover:text-zinc-200 transition-colors"
+                      {error && (
+                        <div className="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
+                          {error}
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <textarea
+                            value={editInstruction}
+                            onChange={(e) => setEditInstruction(e.target.value)}
+                            placeholder="Describe los cambios que quieres hacer..."
+                            className="h-32 w-full resize-none rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/30 focus:outline-none transition-colors"
+                          />
+                          <Button
+                            disabled={
+                              !editInstruction.trim() ||
+                              editingProfile ||
+                              !hasGeminiApiKey
+                            }
+                            onClick={() => applyInstruction()}
+                            className="absolute bottom-3 right-3 h-8 rounded-lg bg-teal-500 px-3 text-xs font-bold text-black hover:bg-teal-400 disabled:opacity-30"
                           >
-                            {hint}
-                          </button>
-                        ))}
+                            {editingProfile ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Wand2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "Acorta el Sobre mí",
+                            "Mejora claridad",
+                            "Hazlo más ejecutivo",
+                            "Corregir erratas",
+                          ].map((hint) => (
+                            <button
+                              key={hint}
+                              onClick={() => {
+                                setEditInstruction(hint);
+                                void applyInstruction(hint);
+                              }}
+                              className="rounded-full border border-white/5 bg-white/5 px-3 py-1 text-[11px] text-zinc-400 hover:border-white/10 hover:bg-white/10 hover:text-zinc-200 transition-colors"
+                            >
+                              {hint}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </section>}
+                    </section>
+                  )}
 
                   {/* Recommendations Section */}
                   <section className="space-y-4">
@@ -691,35 +759,59 @@ CV Original
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
                           <Lightbulb className="h-4 w-4" />
                         </div>
-                        <h3 className="text-sm font-semibold text-white">Recomendaciones</h3>
+                        <h3 className="text-sm font-semibold text-white">
+                          Recomendaciones
+                        </h3>
                       </div>
                       {recommendationAnalysis?.ai_score && (
-                        <span className="text-xs font-bold text-amber-500">{recommendationAnalysis.ai_score}/100</span>
+                        <span className="text-xs font-bold text-amber-500">
+                          {recommendationAnalysis.ai_score}/100
+                        </span>
                       )}
                     </div>
 
                     {recommendationAnalysis ? (
                       <div className="space-y-3">
-                        {safeParseArray(recommendationAnalysis.ai_improvements).slice(0, 3).map((imp, i) => (
-                          <div key={i} className="flex gap-3 text-xs leading-relaxed text-zinc-400">
-                            <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500/40" />
-                            <p>{imp}</p>
-                          </div>
-                        ))}
-                        {safeParseArray(recommendationAnalysis.missing_keywords).length > 0 && (
+                        {safeParseArray(recommendationAnalysis.ai_improvements)
+                          .slice(0, 3)
+                          .map((imp, i) => (
+                            <div
+                              key={i}
+                              className="flex gap-3 text-xs leading-relaxed text-zinc-400"
+                            >
+                              <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500/40" />
+                              <p>{imp}</p>
+                            </div>
+                          ))}
+                        {safeParseArray(recommendationAnalysis.missing_keywords)
+                          .length > 0 && (
                           <div className="flex flex-wrap gap-2 pt-2">
-                            {safeParseArray(recommendationAnalysis.missing_keywords).slice(0, 5).map((k) => (
-                              <span key={k} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">
-                                {k}
-                              </span>
-                            ))}
+                            {safeParseArray(
+                              recommendationAnalysis.missing_keywords,
+                            )
+                              .slice(0, 5)
+                              .map((k) => (
+                                <span
+                                  key={k}
+                                  className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500"
+                                >
+                                  {k}
+                                </span>
+                              ))}
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
-                        <p className="text-xs text-zinc-500 mb-3">No hay análisis para este CV</p>
-                        <Button variant="outline" size="sm" onClick={onStartAnalysis} className="h-8 text-[11px] border-white/10 text-zinc-400 hover:text-white">
+                        <p className="text-xs text-zinc-500 mb-3">
+                          No hay análisis para este CV
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onStartAnalysis}
+                          className="h-8 text-[11px] border-white/10 text-zinc-400 hover:text-white"
+                        >
                           Analizar ahora
                         </Button>
                       </div>
@@ -733,9 +825,13 @@ CV Original
                           <Globe2 className="h-4 w-4" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-white">Página pública</h3>
+                          <h3 className="text-sm font-semibold text-white">
+                            Página pública
+                          </h3>
                           <p className="text-[11px] text-zinc-600">
-                            {currentVersion.public_enabled ? "Activa por enlace" : "Desactivada"}
+                            {currentVersion.public_enabled
+                              ? "Activa por enlace"
+                              : "Desactivada"}
                           </p>
                         </div>
                       </div>
@@ -750,7 +846,9 @@ CV Original
                         </Button>
                       ) : (
                         <Button
-                          disabled={savingPublicSettings || !normalizedPublicSlug}
+                          disabled={
+                            savingPublicSettings || !normalizedPublicSlug
+                          }
                           onClick={() => setIsPublicModalOpen(true)}
                           className="h-8 bg-sky-500 px-3 text-[11px] font-bold text-black hover:bg-sky-400"
                         >
@@ -786,7 +884,8 @@ CV Original
                         />
                       </div>
                       <p className="text-[11px] leading-relaxed text-zinc-600">
-                        El identificador es único y estable. Puedes cambiar el nombre visible de la URL.
+                        El identificador es único y estable. Puedes cambiar el
+                        nombre visible de la URL.
                       </p>
                     </div>
 
@@ -794,7 +893,9 @@ CV Original
                       <div className="space-y-2">
                         {hasPublicSlugChanges && (
                           <Button
-                            disabled={savingPublicSettings || !normalizedPublicSlug}
+                            disabled={
+                              savingPublicSettings || !normalizedPublicSlug
+                            }
                             onClick={() => void updatePublicSettings(true)}
                             className="h-8 w-full bg-sky-500 px-3 text-[11px] font-bold text-black hover:bg-sky-400"
                           >
@@ -834,11 +935,15 @@ CV Original
 
                   {/* Settings Section */}
                   <section className="pt-4 border-t border-white/5 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-600">Configuración</h3>
-                    
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-600">
+                      Configuración
+                    </h3>
+
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500">Idioma del CV</span>
+                        <span className="text-xs text-zinc-500">
+                          Idioma del CV
+                        </span>
                         <div className="flex gap-1 rounded-lg border border-white/5 p-1 bg-white/5">
                           {(["es", "en"] as const).map((l) => (
                             <button
@@ -846,7 +951,9 @@ CV Original
                               onClick={() => updateLocale(l)}
                               disabled={savingLocale}
                               className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
-                                locale === l ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+                                locale === l
+                                  ? "bg-white/10 text-white"
+                                  : "text-zinc-500 hover:text-zinc-300"
                               }`}
                             >
                               {l}
@@ -854,10 +961,14 @@ CV Original
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-zinc-500">Diseño</span>
-                        <Button variant="link" onClick={onOpenTemplates} className="h-auto p-0 text-xs text-teal-400">
+                        <Button
+                          variant="link"
+                          onClick={onOpenTemplates}
+                          className="h-auto p-0 text-xs text-teal-400"
+                        >
                           Cambiar plantilla
                         </Button>
                       </div>
@@ -865,7 +976,11 @@ CV Original
                   </section>
 
                   {!hasGeminiApiKey && (
-                    <Button variant="secondary" onClick={onOpenSettings} className="w-full h-10 text-xs bg-amber-500 text-black hover:bg-amber-400">
+                    <Button
+                      variant="secondary"
+                      onClick={onOpenSettings}
+                      className="w-full h-10 text-xs bg-amber-500 text-black hover:bg-amber-400"
+                    >
                       <KeyRound className="mr-2 h-3.5 w-3.5" />
                       Configurar API Key
                     </Button>
@@ -874,7 +989,8 @@ CV Original
 
                 <div className="mt-auto pt-10">
                   <p className="text-[10px] text-zinc-600 leading-relaxed">
-                    Estás editando una versión derivada. El archivo original y su extracción se mantienen intactos.
+                    Estás editando una versión derivada. El archivo original y
+                    su extracción se mantienen intactos.
                   </p>
                 </div>
               </div>
@@ -895,15 +1011,18 @@ CV Original
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-300">
                 <AlertTriangle className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Publicar este CV</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Publicar este CV
+              </h3>
               <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                Cualquiera con este enlace podrá ver el CV completo dentro de la plataforma,
-                incluidos email, teléfono, enlaces, experiencia y cualquier otro dato que hayas
-                escrito en esta versión.
+                Cualquiera con este enlace podrá ver el CV completo dentro de la
+                plataforma, incluidos email, teléfono, enlaces, experiencia y
+                cualquier otro dato que hayas escrito en esta versión.
               </p>
               <div className="mt-4 rounded-2xl border border-rose-500/15 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200">
-                No lo haremos indexable por buscadores, pero el enlace público se podrá reenviar
-                y la página permite descargar una copia en PDF.
+                No lo haremos indexable por buscadores, pero el enlace público
+                se podrá reenviar y la página permite descargar una copia en
+                PDF.
               </div>
               <div className="mt-6 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs text-zinc-300">
                 {publicDraftUrl || `/cv/id/${normalizedPublicSlug}`}
@@ -940,13 +1059,17 @@ CV Original
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0a0a12] p-6 shadow-2xl"
             >
-              <h3 className="text-lg font-semibold text-white">Guardar en biblioteca</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Guardar en biblioteca
+              </h3>
               <p className="mt-2 text-sm text-zinc-500">
                 Se creará un nuevo CV en tu biblioteca con los cambios actuales.
               </p>
               <div className="mt-6 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-600">Nombre del CV</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-600">
+                    Nombre del CV
+                  </label>
                   <input
                     type="text"
                     value={saveName}
@@ -969,7 +1092,11 @@ CV Original
                     disabled={!saveName.trim() || savingAsCv}
                     className="flex-1 bg-teal-500 text-black hover:bg-teal-400"
                   >
-                    {savingAsCv ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+                    {savingAsCv ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Guardar"
+                    )}
                   </Button>
                 </div>
               </div>

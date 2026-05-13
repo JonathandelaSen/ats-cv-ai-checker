@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-import type { JobKeyData } from "@/lib/db";
+import type { JobKeyData } from "@/lib/analysis-types";
 
 interface TabOfertaProps {
   jobKeyData: JobKeyData | null;
@@ -105,9 +105,7 @@ export default function TabOferta({
           className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-6"
         >
           <Accordion>
-            <AccordionItem
-              className="border-none"
-            >
+            <AccordionItem className="border-none">
               <AccordionTrigger className="py-0 hover:no-underline">
                 <h4 className="text-sm font-semibold text-emerald-300 flex items-center gap-2">
                   <Briefcase className="w-4 h-4" />

@@ -30,10 +30,10 @@ import {
   OFFER_STATUSES,
   type AnalysisMode,
   type AIContext,
-  type InterviewQuestionSummary,
   type JobKeyData,
   type OfferStatus,
-} from "@/lib/db";
+} from "@/lib/analysis-types";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 
 const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
   interesante: "Interesante",
@@ -130,21 +130,21 @@ export default function AIAnalysisView({
   const [editedUrl, setEditedUrl] = useState(analysis.job_url || "");
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   const [offerStatus, setOfferStatus] = useState<OfferStatus>(
-    analysis.offer_status ?? "interesante"
+    analysis.offer_status ?? "interesante",
   );
   const [offerNotes, setOfferNotes] = useState(analysis.offer_notes ?? "");
   const [offerNextAction, setOfferNextAction] = useState(
-    analysis.offer_next_action ?? ""
+    analysis.offer_next_action ?? "",
   );
   const [offerNextActionAt, setOfferNextActionAt] = useState(
-    toDateTimeLocalValue(analysis.offer_next_action_at)
+    toDateTimeLocalValue(analysis.offer_next_action_at),
   );
   const [isSavingTracking, setIsSavingTracking] = useState(false);
   const [quickQuestion, setQuickQuestion] = useState("");
   const [quickQuestionContext, setQuickQuestionContext] = useState("");
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [quickQuestionModel, setQuickQuestionModel] = useState(
-    "gemini-3.1-pro-preview"
+    "gemini-3.1-pro-preview",
   );
   const keywords = safeParseArray(analysis.ai_keywords);
   const improvements = safeParseArray(analysis.ai_improvements);
@@ -156,9 +156,26 @@ export default function AIAnalysisView({
   const score = analysis.ai_score;
 
   const getScoreColor = () => {
-    if (score >= 80) return { text: "text-emerald-400", stroke: "stroke-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
-    if (score >= 60) return { text: "text-amber-400", stroke: "stroke-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" };
-    return { text: "text-rose-400", stroke: "stroke-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" };
+    if (score >= 80)
+      return {
+        text: "text-emerald-400",
+        stroke: "stroke-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      };
+    if (score >= 60)
+      return {
+        text: "text-amber-400",
+        stroke: "stroke-amber-400",
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/20",
+      };
+    return {
+      text: "text-rose-400",
+      stroke: "stroke-rose-400",
+      bg: "bg-rose-500/10",
+      border: "border-rose-500/20",
+    };
   };
 
   const colors = getScoreColor();
@@ -232,7 +249,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    if (!confirm("¿Seguro que quieres borrar este análisis? Esta acción no se puede deshacer.")) {
+    if (
+      !confirm(
+        "¿Seguro que quieres borrar este análisis? Esta acción no se puede deshacer.",
+      )
+    ) {
       return;
     }
 
@@ -331,7 +352,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
               cv_id: analysis.cv_id,
               analysis_id: analysis.id,
             }),
-          }
+          },
         );
         if (!generateRes.ok) {
           const data = await generateRes.json().catch(() => ({}));
@@ -344,7 +365,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       onOpenQuestions?.();
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "No se pudo crear la pregunta asociada.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "No se pudo crear la pregunta asociada.",
+      );
     } finally {
       setIsCreatingQuestion(false);
     }
@@ -538,9 +563,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs font-semibold text-zinc-500">
-                    CV
-                  </p>
+                  <p className="mb-2 text-xs font-semibold text-zinc-500">CV</p>
                   <div className="flex flex-wrap gap-2">
                     {cvKeywords.map((kw) => (
                       <span
@@ -652,7 +675,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                   CV utilizado
                 </p>
                 <a
-                  href={analysis.cv?.type === "template" ? `/api/cvs/${analysis.cv?.id}/template-pdf` : `/api/cvs/${analysis.cv?.id ?? analysis.cv_id}/pdf`}
+                  href={
+                    analysis.cv?.type === "template"
+                      ? `/api/cvs/${analysis.cv?.id}/template-pdf`
+                      : `/api/cvs/${analysis.cv?.id ?? analysis.cv_id}/pdf`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block truncate text-sm font-semibold text-zinc-100 hover:text-sky-300 transition-colors"
@@ -667,7 +694,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
               </div>
             </div>
             <a
-              href={analysis.cv?.type === "template" ? `/api/cvs/${analysis.cv?.id}/template-pdf` : `/api/cvs/${analysis.cv?.id ?? analysis.cv_id}/pdf`}
+              href={
+                analysis.cv?.type === "template"
+                  ? `/api/cvs/${analysis.cv?.id}/template-pdf`
+                  : `/api/cvs/${analysis.cv?.id ?? analysis.cv_id}/pdf`
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 text-xs font-semibold text-sky-300 transition-colors hover:bg-sky-500/20"
@@ -708,7 +739,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       disabled={isSavingUrl}
                       className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors"
                     >
-                      {isSavingUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      {isSavingUrl ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
                     </button>
                     <button
                       onClick={() => {
@@ -775,22 +810,23 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
         )}
 
         {/* Context: General analysis questionnaire */}
-        {analysis.analysis_mode === "general" && analysis.ai_context?.additionalContext && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="rounded-2xl border border-violet-500/10 bg-violet-500/[0.03] p-6"
-          >
-            <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
-              <FileSearch className="w-4 h-4" />
-              Contexto del Análisis
-            </h4>
-            <p className="text-xs text-zinc-400 italic bg-[#0a0a12] rounded-lg p-3 border border-white/[0.04]">
-              {analysis.ai_context.additionalContext}
-            </p>
-          </motion.div>
-        )}
+        {analysis.analysis_mode === "general" &&
+          analysis.ai_context?.additionalContext && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="rounded-2xl border border-violet-500/10 bg-violet-500/[0.03] p-6"
+            >
+              <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
+                <FileSearch className="w-4 h-4" />
+                Contexto del Análisis
+              </h4>
+              <p className="text-xs text-zinc-400 italic bg-[#0a0a12] rounded-lg p-3 border border-white/[0.04]">
+                {analysis.ai_context.additionalContext}
+              </p>
+            </motion.div>
+          )}
 
         {analysis.analysis_mode === "job_match" && jobKeyData && (
           <motion.div
@@ -804,15 +840,17 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
               Datos clave de la oferta
             </h4>
             <div className="grid gap-3 md:grid-cols-3">
-              {([
-                ["Puesto", jobKeyData.title],
-                ["Empresa", jobKeyData.company],
-                ["Ubicación", jobKeyData.location],
-                ["Modalidad", jobKeyData.remote],
-                ["Salario", jobKeyData.salary],
-                ["Seniority", jobKeyData.seniority],
-                ["Contrato", jobKeyData.contractType],
-              ] as Array<[string, string | null | undefined]>).map(([label, value]) => (
+              {(
+                [
+                  ["Puesto", jobKeyData.title],
+                  ["Empresa", jobKeyData.company],
+                  ["Ubicación", jobKeyData.location],
+                  ["Modalidad", jobKeyData.remote],
+                  ["Salario", jobKeyData.salary],
+                  ["Seniority", jobKeyData.seniority],
+                  ["Contrato", jobKeyData.contractType],
+                ] as Array<[string, string | null | undefined]>
+              ).map(([label, value]) => (
                 <div
                   key={label}
                   className="rounded-xl border border-white/[0.04] bg-[#0a0a12] p-3"
@@ -827,12 +865,14 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
               ))}
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {([
-                ["Requisitos", jobKeyData.requirements],
-                ["Responsabilidades", jobKeyData.responsibilities],
-                ["Beneficios", jobKeyData.benefits],
-                ["Puntos relevantes", jobKeyData.notablePoints],
-              ] as Array<[string, string[] | undefined]>).map(([label, values]) => {
+              {(
+                [
+                  ["Requisitos", jobKeyData.requirements],
+                  ["Responsabilidades", jobKeyData.responsibilities],
+                  ["Beneficios", jobKeyData.benefits],
+                  ["Puntos relevantes", jobKeyData.notablePoints],
+                ] as Array<[string, string[] | undefined]>
+              ).map(([label, values]) => {
                 const list = Array.isArray(values) ? values : [];
                 return (
                   <div
@@ -992,9 +1032,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       <option value="gemini-3.1-pro-preview">
                         Gemini 3.1 Pro
                       </option>
-                      <option value="gemini-2.5-flash">
-                        Gemini 2.5 Flash
-                      </option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     </select>
                     <button
                       type="button"
@@ -1102,7 +1140,6 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
             </section>
           </motion.div>
         )}
-
       </div>
     </motion.div>
   );

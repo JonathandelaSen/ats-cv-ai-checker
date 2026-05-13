@@ -17,7 +17,7 @@ import {
   Plus,
   Pencil,
 } from "lucide-react";
-import type { AnalysisMode } from "@/lib/db";
+import type { AnalysisMode } from "@/lib/analysis-types";
 
 interface ScoreHeroProps {
   score: number;

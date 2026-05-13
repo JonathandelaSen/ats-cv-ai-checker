@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { CVSummary } from "@/lib/db";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
 import {
   CV_TEMPLATES,
   type CVTemplateDefinition,
@@ -44,16 +44,18 @@ export default function TemplatesView({
   onOpenUpload,
   onCVUpdated,
 }: TemplatesViewProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<CVTemplateDefinition | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<CVTemplateDefinition | null>(null);
   const [selectedCvId, setSelectedCvId] = useState<string>("");
   const [locale, setLocale] = useState<CVTemplateLocale>("es");
   const [searchQuery, setSearchQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const filteredCvs = cvs.filter(cv =>
-    cv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (cv.filename ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCvs = cvs.filter(
+    (cv) =>
+      cv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cv.filename ?? "").toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCreateVersion = async () => {
@@ -76,7 +78,9 @@ export default function TemplatesView({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || data.details || "Error al crear la versión");
+        throw new Error(
+          data.error || data.details || "Error al crear la versión",
+        );
       }
 
       onCVUpdated();
@@ -100,7 +104,8 @@ export default function TemplatesView({
             Elige un diseño para tu nuevo CV
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-zinc-400">
-            Selecciona una plantilla profesional y conéctala con uno de tus CVs subidos o generados para empezar a editar con IA.
+            Selecciona una plantilla profesional y conéctala con uno de tus CVs
+            subidos o generados para empezar a editar con IA.
           </p>
         </header>
 
@@ -119,8 +124,8 @@ export default function TemplatesView({
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all hover:border-teal-500/30 hover:bg-white/[0.04]"
             >
               <div className="w-full bg-zinc-900 p-6 sm:p-8 flex items-center justify-center">
-                <svg 
-                  className="w-full h-auto max-w-full rounded-sm shadow-2xl transition-transform duration-300 ease-out group-hover:scale-[1.02]" 
+                <svg
+                  className="w-full h-auto max-w-full rounded-sm shadow-2xl transition-transform duration-300 ease-out group-hover:scale-[1.02]"
                   viewBox="0 0 794 1123"
                   preserveAspectRatio="xMidYMid meet"
                 >
@@ -137,7 +142,9 @@ export default function TemplatesView({
               </div>
 
               <div className="flex flex-1 flex-col p-6">
-                <h3 className="text-xl font-semibold text-white">{template.name}</h3>
+                <h3 className="text-xl font-semibold text-white">
+                  {template.name}
+                </h3>
                 <p className="mt-2 text-sm text-zinc-400">
                   {template.description}
                 </p>
@@ -178,8 +185,12 @@ export default function TemplatesView({
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Configurar versión</h2>
-                    <p className="text-sm text-zinc-500">Conecta {selectedTemplate.name} con un CV</p>
+                    <h2 className="text-xl font-semibold text-white">
+                      Configurar versión
+                    </h2>
+                    <p className="text-sm text-zinc-500">
+                      Conecta {selectedTemplate.name} con un CV
+                    </p>
                   </div>
                 </div>
                 <button
@@ -193,7 +204,9 @@ export default function TemplatesView({
               <div className="p-6">
                 <div className="grid gap-8 md:grid-cols-2 items-start">
                   <div>
-                    <label className="mb-4 block text-sm font-medium text-zinc-300">1. Elige tu CV de origen</label>
+                    <label className="mb-4 block text-sm font-medium text-zinc-300">
+                      1. Elige tu CV de origen
+                    </label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                       <input
@@ -204,7 +217,7 @@ export default function TemplatesView({
                         className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none"
                       />
                     </div>
-                    
+
                     <div className="mt-4 max-h-[300px] space-y-2 overflow-y-auto pr-2">
                       {filteredCvs.length > 0 ? (
                         filteredCvs.map((cv) => (
@@ -218,15 +231,23 @@ export default function TemplatesView({
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 mr-2">
-                              <FileText className={`h-4 w-4 shrink-0 ${selectedCvId === cv.id ? "text-teal-400" : "text-zinc-500"}`} />
-                              <span className="text-sm font-medium truncate">{cv.name}</span>
+                              <FileText
+                                className={`h-4 w-4 shrink-0 ${selectedCvId === cv.id ? "text-teal-400" : "text-zinc-500"}`}
+                              />
+                              <span className="text-sm font-medium truncate">
+                                {cv.name}
+                              </span>
                             </div>
-                            {selectedCvId === cv.id && <Check className="h-4 w-4 shrink-0" />}
+                            {selectedCvId === cv.id && (
+                              <Check className="h-4 w-4 shrink-0" />
+                            )}
                           </button>
                         ))
                       ) : (
                         <div className="flex flex-col items-center justify-center py-8 text-center">
-                          <p className="text-sm text-zinc-500">No tienes CVs disponibles</p>
+                          <p className="text-sm text-zinc-500">
+                            No tienes CVs disponibles
+                          </p>
                           <Button
                             variant="link"
                             className="mt-2 text-teal-400"
@@ -241,7 +262,9 @@ export default function TemplatesView({
 
                   <div className="space-y-6">
                     <div>
-                      <label className="mb-4 block text-sm font-medium text-zinc-300">2. Idioma de salida</label>
+                      <label className="mb-4 block text-sm font-medium text-zinc-300">
+                        2. Idioma de salida
+                      </label>
                       <div className="grid grid-cols-2 gap-2">
                         {(["es", "en"] as const).map((l) => (
                           <button
@@ -265,7 +288,8 @@ export default function TemplatesView({
                           <KeyRound className="h-5 w-5 shrink-0 text-amber-400" />
                           <div>
                             <p className="text-xs leading-relaxed text-amber-200">
-                              Necesitas configurar tu API Key para que la IA pueda procesar tu CV por primera vez.
+                              Necesitas configurar tu API Key para que la IA
+                              pueda procesar tu CV por primera vez.
                             </p>
                             <Button
                               variant="link"

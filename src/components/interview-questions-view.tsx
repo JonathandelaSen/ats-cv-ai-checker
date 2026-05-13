@@ -15,11 +15,9 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import type {
-  AnalysisSummary,
-  CVSummary,
-  InterviewQuestionSummary,
-} from "@/lib/db";
+import type { AnalysisSummary } from "@/lib/analysis-types";
+import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
+import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { getErrorMessage } from "@/lib/errors";
 
 interface InterviewQuestionsViewProps {
@@ -55,11 +53,15 @@ export default function InterviewQuestionsView({
   onOpenSettings,
   onOpenAnalysis,
 }: InterviewQuestionsViewProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(questions[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    questions[0]?.id ?? null,
+  );
   const [search, setSearch] = useState("");
   const [cvFilter, setCvFilter] = useState(initialCvId ?? "");
   const [analysisFilter, setAnalysisFilter] = useState(initialAnalysisId ?? "");
-  const [answeredFilter, setAnsweredFilter] = useState<"all" | "answered" | "empty">("all");
+  const [answeredFilter, setAnsweredFilter] = useState<
+    "all" | "answered" | "empty"
+  >("all");
   const [draft, setDraft] = useState({
     ...emptyDraft,
     cv_id: initialCvId ?? "",
@@ -76,7 +78,7 @@ export default function InterviewQuestionsView({
 
   const jobAnalyses = useMemo(
     () => analyses.filter((analysis) => analysis.analysis_mode === "job_match"),
-    [analyses]
+    [analyses],
   );
 
   const filteredQuestions = useMemo(() => {
@@ -135,7 +137,8 @@ export default function InterviewQuestionsView({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo crear la pregunta");
+      if (!res.ok)
+        throw new Error(data.error || "No se pudo crear la pregunta");
       resetDraft();
       if (generateAfter) {
         const generateRes = await fetch(
@@ -150,7 +153,7 @@ export default function InterviewQuestionsView({
               cv_id: draft.cv_id || null,
               analysis_id: draft.analysis_id || null,
             }),
-          }
+          },
         );
         const generated = await generateRes.json();
         if (!generateRes.ok) {
@@ -176,7 +179,8 @@ export default function InterviewQuestionsView({
         body: JSON.stringify(updates),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo guardar la pregunta");
+      if (!res.ok)
+        throw new Error(data.error || "No se pudo guardar la pregunta");
       await refreshAndSelect(data.id);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -204,7 +208,8 @@ export default function InterviewQuestionsView({
         method: "DELETE",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo borrar la pregunta");
+      if (!res.ok)
+        throw new Error(data.error || "No se pudo borrar la pregunta");
       await refreshAndSelect();
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -235,7 +240,7 @@ export default function InterviewQuestionsView({
             cv_id: selected.cv_id,
             analysis_id: selected.analysis_id,
           }),
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo usar la IA");
@@ -367,7 +372,10 @@ export default function InterviewQuestionsView({
               <textarea
                 value={draft.question}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, question: event.target.value }))
+                  setDraft((current) => ({
+                    ...current,
+                    question: event.target.value,
+                  }))
                 }
                 placeholder="Pregunta obligatoria"
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
@@ -375,7 +383,10 @@ export default function InterviewQuestionsView({
               <textarea
                 value={draft.context}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, context: event.target.value }))
+                  setDraft((current) => ({
+                    ...current,
+                    context: event.target.value,
+                  }))
                 }
                 placeholder="Contexto para la IA"
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
@@ -383,7 +394,10 @@ export default function InterviewQuestionsView({
               <textarea
                 value={draft.answer}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, answer: event.target.value }))
+                  setDraft((current) => ({
+                    ...current,
+                    answer: event.target.value,
+                  }))
                 }
                 placeholder="Respuesta manual opcional"
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40 lg:col-span-2"
@@ -391,7 +405,10 @@ export default function InterviewQuestionsView({
               <select
                 value={draft.cv_id}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, cv_id: event.target.value }))
+                  setDraft((current) => ({
+                    ...current,
+                    cv_id: event.target.value,
+                  }))
                 }
                 className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
               >
@@ -579,7 +596,9 @@ export default function InterviewQuestionsView({
                     aria-label="Modelo para generar con IA"
                     className="h-10 rounded-lg border border-white/[0.08] bg-[#09090f] px-3 text-xs text-zinc-300 outline-none"
                   >
-                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+                    <option value="gemini-3.1-pro-preview">
+                      Gemini 3.1 Pro
+                    </option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                   </select>
                   <button
@@ -598,7 +617,11 @@ export default function InterviewQuestionsView({
                   <button
                     type="button"
                     onClick={() => runAI("edit")}
-                    disabled={aiLoading !== null || !selected.answer || !aiInstruction.trim()}
+                    disabled={
+                      aiLoading !== null ||
+                      !selected.answer ||
+                      !aiInstruction.trim()
+                    }
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-teal-500/20 bg-teal-500/10 px-4 text-sm font-semibold text-teal-200 hover:bg-teal-500/20 disabled:opacity-50"
                   >
                     {aiLoading === "edit" ? (
@@ -622,7 +645,9 @@ export default function InterviewQuestionsView({
 
               <button
                 type="button"
-                onClick={() => selected.analysis_id && onOpenAnalysis(selected.analysis_id)}
+                onClick={() =>
+                  selected.analysis_id && onOpenAnalysis(selected.analysis_id)
+                }
                 disabled={!selected.analysis_id}
                 className="inline-flex h-9 items-center gap-2 rounded-lg text-sm font-semibold text-zinc-500 hover:text-emerald-300 disabled:hidden"
               >

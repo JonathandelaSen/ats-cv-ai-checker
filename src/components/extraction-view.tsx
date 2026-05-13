@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
-import type { AnalysisMode, AIContext } from "@/lib/db";
+import type { AnalysisMode, AIContext } from "@/lib/analysis-types";
 import AnalysisModeSelector from "./analysis-mode-selector";
 import GeneralAnalysisForm from "./general-analysis-form";
 import JobMatchForm from "./job-match-form";
@@ -36,7 +36,12 @@ interface ExtractionViewProps {
     filename: string;
     ai_score: number | null;
     job_url?: string | null;
-    cv?: { id?: string; name?: string; filename?: string; type?: string } | null;
+    cv?: {
+      id?: string;
+      name?: string;
+      filename?: string;
+      type?: string;
+    } | null;
   };
   onAIAnalysisComplete: () => void;
   geminiApiKey: string;
@@ -169,7 +174,7 @@ export default function ExtractionView({
   const handleJobMatchAnalysis = async (
     jobDescription: string,
     jobUrl: string,
-    model: string
+    model: string,
   ) => {
     if (!hasGeminiApiKey) {
       setAiError("Configura tu API key de Gemini antes de lanzar el análisis.");
@@ -256,10 +261,14 @@ export default function ExtractionView({
           )}
           <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
             <span className="text-[10px] sm:text-xs text-zinc-500 bg-zinc-800/60 px-2 py-1 rounded-md whitespace-nowrap">
-              {wordCount.toLocaleString()} <span className="hidden xs:inline">palabras</span><span className="xs:hidden">w</span>
+              {wordCount.toLocaleString()}{" "}
+              <span className="hidden xs:inline">palabras</span>
+              <span className="xs:hidden">w</span>
             </span>
             <span className="text-[10px] sm:text-xs text-zinc-500 bg-zinc-800/60 px-2 py-1 rounded-md whitespace-nowrap">
-              {charCount.toLocaleString()} <span className="hidden xs:inline">caracteres</span><span className="xs:hidden">ch</span>
+              {charCount.toLocaleString()}{" "}
+              <span className="hidden xs:inline">caracteres</span>
+              <span className="xs:hidden">ch</span>
             </span>
           </div>
         </div>
@@ -347,7 +356,9 @@ export default function ExtractionView({
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
-                    <span className="hidden xs:inline">{copied ? "Copiado" : "Copiar"}</span>
+                    <span className="hidden xs:inline">
+                      {copied ? "Copiado" : "Copiar"}
+                    </span>
                   </button>
                   <button
                     onClick={() => setFullscreen(!fullscreen)}
