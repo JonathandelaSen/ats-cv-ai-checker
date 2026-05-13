@@ -4,12 +4,12 @@ import {
   createAnalysis,
   deleteAnalysis,
   getCV,
-  listAnalyses,
   updateCVExtraction,
   type CVRecord,
   type AIContext,
   type AnalysisMode,
 } from "@/lib/db";
+import { listAnalysisFacade } from "@/lib/analysis-facade";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { getErrorMessage } from "@/lib/errors";
@@ -220,7 +220,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const analyses = await listAnalyses(supabase, user.id);
+    const analyses = await listAnalysisFacade(supabase, user.id);
     return NextResponse.json(analyses);
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
@@ -450,7 +450,7 @@ export async function DELETE() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const analyses = await listAnalyses(supabase, user.id);
+    const analyses = await listAnalysisFacade(supabase, user.id);
     for (const a of analyses) {
       await deleteAnalysis(supabase, a.id, user.id);
     }

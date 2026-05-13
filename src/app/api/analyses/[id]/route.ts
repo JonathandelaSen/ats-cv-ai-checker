@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   OFFER_STATUSES,
-  getAnalysis,
   deleteAnalysis,
   updateAnalysis,
   type OfferStatus,
 } from "@/lib/db";
+import { getAnalysisFacade } from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { selectionProcessModule } from "@/lib/container";
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analysis = await getAnalysis(supabase, id, user.id);
+    const analysis = await getAnalysisFacade(supabase, id, user.id);
     if (!analysis) {
       return NextResponse.json(
         { error: "Analysis not found" },
@@ -182,7 +182,7 @@ export async function PATCH(
 
     let existing = null;
     if (includesOfferTracking) {
-      existing = await getAnalysis(supabase, id, user.id);
+      existing = await getAnalysisFacade(supabase, id, user.id);
       if (!existing) {
         return NextResponse.json(
           { error: "Analysis not found or update failed" },
