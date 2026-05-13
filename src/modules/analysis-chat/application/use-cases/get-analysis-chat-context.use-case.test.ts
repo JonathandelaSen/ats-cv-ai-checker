@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { GetLegacyAnalysisChatContextUseCase } from "./get-legacy-analysis-chat-context.use-case";
+import { GetAnalysisChatContextUseCase } from "./get-analysis-chat-context.use-case";
 
-describe("GetLegacyAnalysisChatContextUseCase", () => {
+describe("GetAnalysisChatContextUseCase", () => {
   it("delegates to the legacy context reader", async () => {
     const context = {
       analysisId: "analysis-1",
@@ -14,10 +14,12 @@ describe("GetLegacyAnalysisChatContextUseCase", () => {
     const reader = { findByAnalysisId: vi.fn(async () => context) };
 
     await expect(
-      new GetLegacyAnalysisChatContextUseCase({ contextReader: reader }).execute({
+      new GetAnalysisChatContextUseCase({
+        contextReader: reader,
+      }).execute({
         analysisId: "analysis-1",
         userId: "user-1",
-      })
+      }),
     ).resolves.toBe(context);
   });
 });

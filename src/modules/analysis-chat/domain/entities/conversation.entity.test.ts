@@ -10,7 +10,7 @@ function createConversation() {
     id: AnalysisChatConversationId.fromPrimitives("conversation-1"),
     userId: UserId.fromPrimitives("user-1"),
     analysisReference: AnalysisReference.fromPrimitives({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: "analysis-1",
     }),
     title: AnalysisChatTitle.fromPrimitives("Oferta"),
@@ -24,7 +24,7 @@ describe("Conversation", () => {
     expect(createConversation().toPrimitives()).toEqual({
       id: "conversation-1",
       userId: "user-1",
-      analysisReference: { type: "legacy_analysis", id: "analysis-1" },
+      analysisReference: { type: "job_match_analysis", id: "analysis-1" },
       title: "Oferta",
       createdAt: "2026-05-13T10:00:00.000Z",
       updatedAt: "2026-05-13T10:00:00.000Z",
@@ -32,13 +32,17 @@ describe("Conversation", () => {
   });
 
   it("hydrates from primitives without recording events", () => {
-    const conversation = Conversation.fromPrimitives(createConversation().toPrimitives());
+    const conversation = Conversation.fromPrimitives(
+      createConversation().toPrimitives(),
+    );
 
     expect(conversation.pullDomainEvents()).toEqual([]);
   });
 
   it("renames a conversation", () => {
-    const conversation = Conversation.fromPrimitives(createConversation().toPrimitives());
+    const conversation = Conversation.fromPrimitives(
+      createConversation().toPrimitives(),
+    );
 
     conversation.rename(AnalysisChatTitle.fromPrimitives("Nueva oferta"));
 

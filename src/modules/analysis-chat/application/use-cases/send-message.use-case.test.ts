@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { InMemoryQueryBus, Timestamp, UserId, type EventTracker } from "@/modules/shared";
+import {
+  InMemoryQueryBus,
+  Timestamp,
+  UserId,
+  type EventTracker,
+} from "@/modules/shared";
 import { ChatMessage } from "../../domain/entities/chat-message.entity";
 import { Conversation } from "../../domain/entities/conversation.entity";
 import { AnalysisContextNotFoundError } from "../../domain/errors/analysis-context-not-found.error";
@@ -11,7 +16,7 @@ import { AnalysisChatConversationId } from "../../domain/value-objects/analysis-
 import { AnalysisChatMessageId } from "../../domain/value-objects/analysis-chat-message-id.value-object";
 import { AnalysisChatTitle } from "../../domain/value-objects/analysis-chat-title.value-object";
 import { AnalysisReference } from "../../domain/value-objects/analysis-reference.value-object";
-import { GetLegacyAnalysisChatContextQuery } from "../queries/get-legacy-analysis-chat-context.query";
+import { GetAnalysisChatContextQuery } from "../queries/get-analysis-chat-context.query";
 import { SendMessageUseCase } from "./send-message.use-case";
 
 function conversation() {
@@ -19,7 +24,7 @@ function conversation() {
     id: AnalysisChatConversationId.fromPrimitives("conv-1"),
     userId: UserId.fromPrimitives("user-1"),
     analysisReference: AnalysisReference.fromPrimitives({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: "analysis-1",
     }),
     title: AnalysisChatTitle.fromPrimitives("Chat"),
@@ -33,7 +38,7 @@ function historyMessage() {
     id: AnalysisChatMessageId.fromPrimitives("history-1"),
     userId: UserId.fromPrimitives("user-1"),
     analysisReference: AnalysisReference.fromPrimitives({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: "analysis-1",
     }),
     conversationId: AnalysisChatConversationId.fromPrimitives("conv-1"),
@@ -45,9 +50,12 @@ function historyMessage() {
 describe("SendMessageUseCase", () => {
   it("gets context through the query bus, saves both messages, calls AI, and records events", async () => {
     const queryBus = new InMemoryQueryBus();
-    queryBus.register(GetLegacyAnalysisChatContextQuery.queryName, {
-      async handle(query: GetLegacyAnalysisChatContextQuery) {
-        expect(query.payload).toEqual({ analysisId: "analysis-1", userId: "user-1" });
+    queryBus.register(GetAnalysisChatContextQuery.queryName, {
+      async handle(query: GetAnalysisChatContextQuery) {
+        expect(query.payload).toEqual({
+          analysisId: "analysis-1",
+          userId: "user-1",
+        });
         return {
           analysisId: "analysis-1",
           cvId: "cv-1",
@@ -77,7 +85,9 @@ describe("SendMessageUseCase", () => {
     const aiService: AnalysisChatAIService = {
       generateAnswer: vi.fn(async () => "Respuesta IA"),
     };
-    const tracker = { record: vi.fn(async () => undefined) } satisfies EventTracker;
+    const tracker = {
+      record: vi.fn(async () => undefined),
+    } satisfies EventTracker;
 
     const result = await new SendMessageUseCase({
       conversationRepo,
@@ -106,19 +116,19 @@ describe("SendMessageUseCase", () => {
       expect.objectContaining({
         message: "Hola",
         history: [expect.objectContaining({ content: "Antes" })],
-      })
+      }),
     );
     expect(tracker.record).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: "analysis_chat_message_sent" })
+      expect.objectContaining({ stage: "analysis_chat_message_sent" }),
     );
     expect(tracker.record).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: "analysis_chat_ai_response_created" })
+      expect.objectContaining({ stage: "analysis_chat_ai_response_created" }),
     );
   });
 
   it("does not call AI when legacy context is missing", async () => {
     const queryBus = new InMemoryQueryBus();
-    queryBus.register(GetLegacyAnalysisChatContextQuery.queryName, {
+    queryBus.register(GetAnalysisChatContextQuery.queryName, {
       async handle() {
         return null;
       },
@@ -152,7 +162,7 @@ describe("SendMessageUseCase", () => {
         apiKey: "key",
         model: "gemini-3.1-pro-preview",
         requestId: "req-1",
-      })
+      }),
     ).rejects.toBeInstanceOf(AnalysisContextNotFoundError);
 
     expect(aiService.generateAnswer).not.toHaveBeenCalled();

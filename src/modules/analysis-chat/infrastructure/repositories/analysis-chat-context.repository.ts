@@ -3,10 +3,10 @@ import { getBestCVText } from "@/lib/cv-profile";
 import { getAnalysisFacade } from "@/lib/analysis-facade";
 import type { SupabaseAware } from "@/modules/shared/infrastructure/supabase-aware";
 import type { AnalysisChatContext } from "../../domain/repositories/analysis-chat-ai-service.repository";
-import type { LegacyAnalysisChatContextReader } from "../../domain/repositories/legacy-analysis-chat-context.repository";
+import type { AnalysisChatContextReader } from "../../domain/repositories/analysis-chat-context.repository";
 
-export class LegacyAnalysisChatContextRepository
-  implements LegacyAnalysisChatContextReader, SupabaseAware
+export class AnalysisChatContextRepository
+  implements AnalysisChatContextReader, SupabaseAware
 {
   private client!: SupabaseClient;
 

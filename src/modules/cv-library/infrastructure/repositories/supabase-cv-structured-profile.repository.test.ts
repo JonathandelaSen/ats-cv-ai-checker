@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
   getSupabaseClient,
@@ -18,7 +18,7 @@ repo.bindRequest(supabase);
 describe("SupabaseCVStructuredProfileRepository", () => {
   it("saves and finds structured profiles by document and schema version", async () => {
     const user = await createTestUser("cv-library-profile");
-    const cv = await createCV(supabase, {
+    const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name: testLabel("cv"),
@@ -38,16 +38,18 @@ describe("SupabaseCVStructuredProfileRepository", () => {
         profile: { basics: { name: "Ada" } },
         createdAt: "2026-05-13T10:00:00.000Z",
         updatedAt: "2026-05-13T10:00:00.000Z",
-      })
+      }),
     );
 
     const found = await repo.findByDocumentId(
       CVDocumentId.fromPrimitives(cv.id),
       UserId.fromPrimitives(user.id),
-      ProfileSchemaVersion.fromPrimitives("standard-v1")
+      ProfileSchemaVersion.fromPrimitives("standard-v1"),
     );
 
     expect(found?.id).toBe(saved.id);
-    expect(found?.toPrimitives().profile).toMatchObject({ basics: { name: "Ada" } });
+    expect(found?.toPrimitives().profile).toMatchObject({
+      basics: { name: "Ada" },
+    });
   });
 });

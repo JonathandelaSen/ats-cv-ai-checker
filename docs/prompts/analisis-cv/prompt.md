@@ -34,10 +34,10 @@ If `ai_context.additionalContext` is empty, the context block is omitted.
 - Output parser: `parseAIResult`, which reads score, feedback, keywords, CV keywords, and improvements.
 
 ## Runtime Flow
-1. `/api/score` loads the analysis owned by the current user.
+1. `/api/score` loads the analysis owned by the current user through `getAnalysisFacade`.
 2. The API chooses the best stored extracted CV text and calls `scoreCVWithAI`.
 3. `scoreCVWithAI` builds this prompt with `buildGeneralPrompt` and sends the CV text as the user message.
-4. The JSON result is persisted through `updateAnalysisWithAI`.
+4. The JSON result is persisted through `updateAnalysisAIResultFacade`, which writes to `cv_analyses` for general analyses and `job_match_analyses` for job-match analyses.
 
 ## Maintenance
 When `buildGeneralPrompt`, its expected JSON output, or the data passed to `scoreCVWithAI` changes, update this document in the same change.

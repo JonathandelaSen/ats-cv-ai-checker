@@ -5,13 +5,13 @@ describe("AnalysisChatRole", () => {
   it("accepts user and assistant roles", () => {
     expect(AnalysisChatRole.fromPrimitives("user").toPrimitives()).toBe("user");
     expect(AnalysisChatRole.fromPrimitives("assistant").toPrimitives()).toBe(
-      "assistant"
+      "assistant",
     );
   });
 
   it("rejects unsupported roles", () => {
     expect(() => AnalysisChatRole.fromPrimitives("system")).toThrow(
-      "Analysis chat role must be user or assistant"
+      "Analysis chat role must be user or assistant",
     );
   });
 });

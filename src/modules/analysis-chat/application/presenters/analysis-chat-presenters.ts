@@ -23,13 +23,13 @@ export interface AnalysisChatMessage {
 }
 
 function legacyAnalysisId(
-  reference: ReturnType<Conversation["toPrimitives"]>["analysisReference"]
+  reference: ReturnType<Conversation["toPrimitives"]>["analysisReference"],
 ) {
   return reference.id;
 }
 
 export function presentConversation(
-  conversation: Conversation
+  conversation: Conversation,
 ): AnalysisChatConversation {
   const primitives = conversation.toPrimitives();
   return {
@@ -43,7 +43,7 @@ export function presentConversation(
 }
 
 export function presentConversations(
-  conversations: Conversation[]
+  conversations: Conversation[],
 ): AnalysisChatConversation[] {
   return conversations.map(presentConversation);
 }
@@ -63,6 +63,8 @@ export function presentMessage(message: ChatMessage): AnalysisChatMessage {
   };
 }
 
-export function presentMessages(messages: ChatMessage[]): AnalysisChatMessage[] {
+export function presentMessages(
+  messages: ChatMessage[],
+): AnalysisChatMessage[] {
   return messages.map(presentMessage);
 }

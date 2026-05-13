@@ -23,7 +23,7 @@ describe("ListConversationsUseCase", () => {
     const criteria = vi.mocked(repo.search).mock.calls[0]?.[0];
     expect(criteria?.userId.toPrimitives()).toBe("user-1");
     expect(criteria?.analysisReference.toPrimitives()).toEqual({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: "analysis-1",
     });
   });

@@ -9,13 +9,15 @@ export interface ListConversationsInput {
 }
 
 export class ListConversationsUseCase {
-  constructor(private readonly deps: { conversationRepo: ConversationRepository }) {}
+  constructor(
+    private readonly deps: { conversationRepo: ConversationRepository },
+  ) {}
 
   async execute(input: ListConversationsInput): Promise<Conversation[]> {
     return this.deps.conversationRepo.search({
       userId: UserId.fromPrimitives(input.userId),
       analysisReference: AnalysisReference.fromPrimitives({
-        type: "legacy_analysis",
+        type: "job_match_analysis",
         id: input.analysisId,
       }),
     });

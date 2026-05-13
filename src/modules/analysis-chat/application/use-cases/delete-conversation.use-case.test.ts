@@ -11,9 +11,14 @@ describe("DeleteConversationUseCase", () => {
       save: vi.fn(),
       delete: vi.fn(async () => undefined),
     };
-    const tracker = { record: vi.fn(async () => undefined) } satisfies EventTracker;
+    const tracker = {
+      record: vi.fn(async () => undefined),
+    } satisfies EventTracker;
 
-    await new DeleteConversationUseCase({ conversationRepo: repo, tracker }).execute({
+    await new DeleteConversationUseCase({
+      conversationRepo: repo,
+      tracker,
+    }).execute({
       userId: "user-1",
       analysisId: "analysis-1",
       conversationId: "conv-1",
@@ -22,7 +27,7 @@ describe("DeleteConversationUseCase", () => {
 
     expect(repo.delete).toHaveBeenCalledOnce();
     expect(tracker.record).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: "analysis_chat_conversation_deleted" })
+      expect.objectContaining({ stage: "analysis_chat_conversation_deleted" }),
     );
   });
 });

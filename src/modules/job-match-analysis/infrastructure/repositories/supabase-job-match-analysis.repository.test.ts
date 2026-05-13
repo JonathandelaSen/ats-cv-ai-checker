@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
   getSupabaseClient,
@@ -17,7 +17,7 @@ repo.bindRequest(supabase);
 describe("SupabaseJobMatchAnalysisRepository", () => {
   it("saves, finds, lists, and deletes job match analyses", async () => {
     const user = await createTestUser("job-match-analysis");
-    const cv = await createCV(supabase, {
+    const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name: testLabel("cv"),
@@ -60,12 +60,12 @@ describe("SupabaseJobMatchAnalysisRepository", () => {
         legacyAnalysisId: null,
         createdAt: "2026-05-13T10:00:00.000Z",
         updatedAt: "2026-05-13T10:00:00.000Z",
-      })
+      }),
     );
 
     const found = await repo.findById(
       JobMatchAnalysisId.fromPrimitives(id),
-      UserId.fromPrimitives(user.id)
+      UserId.fromPrimitives(user.id),
     );
     expect(found?.id).toBe(id);
 
@@ -75,8 +75,8 @@ describe("SupabaseJobMatchAnalysisRepository", () => {
     await expect(
       repo.delete(
         JobMatchAnalysisId.fromPrimitives(id),
-        UserId.fromPrimitives(user.id)
-      )
+        UserId.fromPrimitives(user.id),
+      ),
     ).resolves.toBe(true);
   });
 });

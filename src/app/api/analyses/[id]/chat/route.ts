@@ -31,7 +31,7 @@ function normalizeRequiredText(value: unknown) {
 }
 
 async function validateJobMatch(analysisId: string, userId: string) {
-  const context = await analysisChatModule.getLegacyAnalysisChatContext.execute({
+  const context = await analysisChatModule.getAnalysisChatContext.execute({
     analysisId,
     userId,
   });
@@ -195,7 +195,7 @@ export async function POST(
       );
     }
 
-    const context = await analysisChatModule.getLegacyAnalysisChatContext.execute({
+    const context = await analysisChatModule.getAnalysisChatContext.execute({
       analysisId: id,
       userId: user.id,
     });

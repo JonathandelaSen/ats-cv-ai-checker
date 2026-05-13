@@ -7,8 +7,8 @@ export type {
   AnalysisChatConversation,
   AnalysisChatMessage,
 } from "./application/presenters/analysis-chat-presenters";
-export { GetLegacyAnalysisChatContextQuery } from "./application/queries/get-legacy-analysis-chat-context.query";
-export type { GetLegacyAnalysisChatContextInput } from "./application/queries/get-legacy-analysis-chat-context.query";
+export { GetAnalysisChatContextQuery } from "./application/queries/get-analysis-chat-context.query";
+export type { GetAnalysisChatContextInput } from "./application/queries/get-analysis-chat-context.query";
 export {
   presentConversation,
   presentConversations,

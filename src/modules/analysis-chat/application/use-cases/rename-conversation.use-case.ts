@@ -19,7 +19,7 @@ export class RenameConversationUseCase {
     private readonly deps: {
       conversationRepo: ConversationRepository;
       tracker: EventTracker;
-    }
+    },
   ) {}
 
   async execute(input: RenameConversationInput): Promise<Conversation> {
@@ -30,7 +30,7 @@ export class RenameConversationUseCase {
 
     conversation.rename(
       AnalysisChatTitle.fromPrimitives(input.title),
-      Timestamp.fromPrimitives(new Date().toISOString())
+      Timestamp.fromPrimitives(new Date().toISOString()),
     );
     const saved = await this.deps.conversationRepo.save(conversation);
 

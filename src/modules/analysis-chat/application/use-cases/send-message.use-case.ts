@@ -13,7 +13,7 @@ import { AnalysisChatContent } from "../../domain/value-objects/analysis-chat-co
 import { AnalysisChatConversationId } from "../../domain/value-objects/analysis-chat-conversation-id.value-object";
 import { AnalysisChatMessageId } from "../../domain/value-objects/analysis-chat-message-id.value-object";
 import { AnalysisReference } from "../../domain/value-objects/analysis-reference.value-object";
-import { GetLegacyAnalysisChatContextQuery } from "../queries/get-legacy-analysis-chat-context.query";
+import { GetAnalysisChatContextQuery } from "../queries/get-analysis-chat-context.query";
 
 function getErrorCode(error: unknown) {
   if (error instanceof Error) return error.name || "Error";
@@ -54,26 +54,27 @@ export class SendMessageUseCase {
       aiService: AnalysisChatAIService;
       queryBus: QueryBus;
       tracker: EventTracker;
-    }
+    },
   ) {}
 
   async execute(input: SendMessageInput): Promise<SendMessageResult> {
     const ownerId = UserId.fromPrimitives(input.userId);
     const conversationId = AnalysisChatConversationId.fromPrimitives(
-      input.conversationId
+      input.conversationId,
     );
     const conversation = await this.deps.conversationRepo.findById(
       conversationId,
-      ownerId
+      ownerId,
     );
     if (!conversation) throw new ConversationNotFoundError();
 
-    const context = await this.deps.queryBus.execute<AnalysisChatContext | null>(
-      new GetLegacyAnalysisChatContextQuery({
-        analysisId: input.analysisId,
-        userId: input.userId,
-      })
-    );
+    const context =
+      await this.deps.queryBus.execute<AnalysisChatContext | null>(
+        new GetAnalysisChatContextQuery({
+          analysisId: input.analysisId,
+          userId: input.userId,
+        }),
+      );
     if (!context) throw new AnalysisContextNotFoundError();
 
     const history = await this.deps.messageRepo.search({
@@ -81,7 +82,7 @@ export class SendMessageUseCase {
       conversationId,
     });
     const analysisReference = AnalysisReference.fromPrimitives({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: input.analysisId,
     });
     const now = new Date().toISOString();
@@ -93,7 +94,7 @@ export class SendMessageUseCase {
         conversationId,
         content: AnalysisChatContent.fromPrimitives(input.message),
         createdAt: Timestamp.fromPrimitives(now),
-      })
+      }),
     );
 
     await this.deps.tracker.record({
@@ -148,7 +149,7 @@ export class SendMessageUseCase {
         model: input.model,
         metadata: { requestId: input.requestId },
         createdAt: Timestamp.fromPrimitives(new Date().toISOString()),
-      })
+      }),
     );
 
     await this.deps.tracker.record({
@@ -160,7 +161,9 @@ export class SendMessageUseCase {
       status: "success",
       source: "api_analysis_chat",
       durationMs:
-        input.startedAt === undefined ? null : performance.now() - input.startedAt,
+        input.startedAt === undefined
+          ? null
+          : performance.now() - input.startedAt,
       textLength: answer.length,
       metadata: {
         model: input.model,

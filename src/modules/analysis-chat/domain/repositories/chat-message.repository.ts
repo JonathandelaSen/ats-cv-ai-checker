@@ -10,7 +10,10 @@ export interface ChatMessageSearchCriteria {
 
 export interface ChatMessageRepository {
   search(criteria: ChatMessageSearchCriteria): Promise<ChatMessage[]>;
-  findById(id: AnalysisChatMessageId, userId: UserId): Promise<ChatMessage | null>;
+  findById(
+    id: AnalysisChatMessageId,
+    userId: UserId,
+  ): Promise<ChatMessage | null>;
   save(message: ChatMessage): Promise<ChatMessage>;
   delete(id: AnalysisChatMessageId, userId: UserId): Promise<void>;
 }

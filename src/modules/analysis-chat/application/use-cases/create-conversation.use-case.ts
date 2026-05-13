@@ -18,7 +18,7 @@ export class CreateConversationUseCase {
     private readonly deps: {
       conversationRepo: ConversationRepository;
       tracker: EventTracker;
-    }
+    },
   ) {}
 
   async execute(input: CreateConversationInput): Promise<Conversation> {
@@ -28,13 +28,15 @@ export class CreateConversationUseCase {
         id: AnalysisChatConversationId.fromPrimitives(crypto.randomUUID()),
         userId: UserId.fromPrimitives(input.userId),
         analysisReference: AnalysisReference.fromPrimitives({
-          type: "legacy_analysis",
+          type: "job_match_analysis",
           id: input.analysisId,
         }),
-        title: AnalysisChatTitle.fromPrimitives(input.title ?? "Nueva conversación"),
+        title: AnalysisChatTitle.fromPrimitives(
+          input.title ?? "Nueva conversación",
+        ),
         createdAt: Timestamp.fromPrimitives(now),
         updatedAt: Timestamp.fromPrimitives(now),
-      })
+      }),
     );
 
     await this.deps.tracker.record({

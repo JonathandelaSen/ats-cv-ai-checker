@@ -1,9 +1,6 @@
 import { ValueObject } from "@/modules/shared";
 
-export type AnalysisReferenceType =
-  | "legacy_analysis"
-  | "cv_analysis"
-  | "job_match_analysis";
+export type AnalysisReferenceType = "job_match_analysis" | "cv_analysis";
 
 export interface AnalysisReferencePrimitives {
   readonly type: AnalysisReferenceType;
@@ -11,9 +8,8 @@ export interface AnalysisReferencePrimitives {
 }
 
 const validTypes = new Set<AnalysisReferenceType>([
-  "legacy_analysis",
-  "cv_analysis",
   "job_match_analysis",
+  "cv_analysis",
 ]);
 
 export class AnalysisReference extends ValueObject<AnalysisReferencePrimitives> {
@@ -22,7 +18,8 @@ export class AnalysisReference extends ValueObject<AnalysisReferencePrimitives> 
     if (!validTypes.has(value.type)) {
       throw new Error("Analysis reference type is not supported.");
     }
-    if (!value.id.trim()) throw new Error("Analysis reference id cannot be empty.");
+    if (!value.id.trim())
+      throw new Error("Analysis reference id cannot be empty.");
   }
 
   static fromPrimitives(value: AnalysisReferencePrimitives): AnalysisReference {

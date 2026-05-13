@@ -14,7 +14,7 @@ function conversation() {
     id: AnalysisChatConversationId.fromPrimitives("conv-1"),
     userId: UserId.fromPrimitives("user-1"),
     analysisReference: AnalysisReference.fromPrimitives({
-      type: "legacy_analysis",
+      type: "job_match_analysis",
       id: "analysis-1",
     }),
     title: AnalysisChatTitle.fromPrimitives("Old"),
@@ -31,7 +31,9 @@ describe("RenameConversationUseCase", () => {
       save: vi.fn(async (conv) => conv),
       delete: vi.fn(),
     };
-    const tracker = { record: vi.fn(async () => undefined) } satisfies EventTracker;
+    const tracker = {
+      record: vi.fn(async () => undefined),
+    } satisfies EventTracker;
 
     const result = await new RenameConversationUseCase({
       conversationRepo: repo,
@@ -46,7 +48,7 @@ describe("RenameConversationUseCase", () => {
 
     expect(result.toPrimitives().title).toBe("New");
     expect(tracker.record).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: "analysis_chat_conversation_renamed" })
+      expect.objectContaining({ stage: "analysis_chat_conversation_renamed" }),
     );
   });
 
@@ -68,7 +70,7 @@ describe("RenameConversationUseCase", () => {
         conversationId: "missing",
         title: "New",
         requestId: "req-1",
-      })
+      }),
     ).rejects.toBeInstanceOf(ConversationNotFoundError);
   });
 });

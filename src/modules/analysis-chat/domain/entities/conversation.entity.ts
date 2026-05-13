@@ -36,7 +36,7 @@ export class Conversation extends AggregateRoot {
     private readonly conversationAnalysisReference: AnalysisReference,
     private conversationTitle: AnalysisChatTitle,
     private readonly conversationCreatedAt: Timestamp,
-    private conversationUpdatedAt: Timestamp
+    private conversationUpdatedAt: Timestamp,
   ) {
     super();
   }
@@ -48,7 +48,7 @@ export class Conversation extends AggregateRoot {
       params.analysisReference,
       params.title,
       params.createdAt,
-      params.updatedAt
+      params.updatedAt,
     );
   }
 
@@ -59,7 +59,7 @@ export class Conversation extends AggregateRoot {
       AnalysisReference.fromPrimitives(primitives.analysisReference),
       AnalysisChatTitle.fromPrimitives(primitives.title),
       Timestamp.fromPrimitives(primitives.createdAt),
-      Timestamp.fromPrimitives(primitives.updatedAt)
+      Timestamp.fromPrimitives(primitives.updatedAt),
     );
   }
 

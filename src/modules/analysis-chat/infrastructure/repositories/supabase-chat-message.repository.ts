@@ -27,7 +27,7 @@ function rowToPrimitives(row: ChatMessageRow): ChatMessagePrimitives {
   return {
     id: row.id,
     userId: row.user_id,
-    analysisReference: { type: "legacy_analysis", id: row.analysis_id },
+    analysisReference: { type: "job_match_analysis", id: row.analysis_id },
     conversationId: row.conversation_id,
     role: row.role,
     content: row.content,
@@ -79,7 +79,7 @@ export class SupabaseChatMessageRepository
 
   async findById(
     id: AnalysisChatMessageId,
-    userId: UserId
+    userId: UserId,
   ): Promise<ChatMessage | null> {
     const { data, error } = await this.client
       .from("analysis_chat_messages")

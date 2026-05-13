@@ -1,6 +1,6 @@
 import type { AnalysisChatContext } from "./analysis-chat-ai-service.repository";
 
-export interface LegacyAnalysisChatContextReader {
+export interface AnalysisChatContextReader {
   findByAnalysisId(input: {
     analysisId: string;
     userId: string;

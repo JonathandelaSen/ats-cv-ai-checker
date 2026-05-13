@@ -15,13 +15,13 @@ export class DeleteConversationUseCase {
     private readonly deps: {
       conversationRepo: ConversationRepository;
       tracker: EventTracker;
-    }
+    },
   ) {}
 
   async execute(input: DeleteConversationInput): Promise<void> {
     await this.deps.conversationRepo.delete(
       AnalysisChatConversationId.fromPrimitives(input.conversationId),
-      UserId.fromPrimitives(input.userId)
+      UserId.fromPrimitives(input.userId),
     );
     await this.deps.tracker.record({
       userId: input.userId,

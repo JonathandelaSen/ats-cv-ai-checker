@@ -26,7 +26,7 @@ function rowToPrimitives(row: ConversationRow): ConversationPrimitives {
   return {
     id: row.id,
     userId: row.user_id,
-    analysisReference: { type: "legacy_analysis", id: row.analysis_id },
+    analysisReference: { type: "job_match_analysis", id: row.analysis_id },
     title: row.title,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -73,7 +73,7 @@ export class SupabaseConversationRepository
 
   async findById(
     id: AnalysisChatConversationId,
-    userId: UserId
+    userId: UserId,
   ): Promise<Conversation | null> {
     const { data, error } = await this.client
       .from("analysis_chat_conversations")
@@ -118,13 +118,15 @@ export class SupabaseConversationRepository
         id: AnalysisChatConversationId.fromPrimitives(crypto.randomUUID()),
         userId: UserId.fromPrimitives(input.user_id),
         analysisReference: AnalysisReference.fromPrimitives({
-          type: "legacy_analysis",
+          type: "job_match_analysis",
           id: input.analysis_id,
         }),
-        title: AnalysisChatTitle.fromPrimitives(input.title ?? "Nueva conversación"),
+        title: AnalysisChatTitle.fromPrimitives(
+          input.title ?? "Nueva conversación",
+        ),
         createdAt: Timestamp.fromPrimitives(now),
         updatedAt: Timestamp.fromPrimitives(now),
-      })
+      }),
     );
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAnalysisFacade } from "@/lib/analysis-facade";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
   getSupabaseClient,
@@ -81,7 +81,7 @@ describe("SupabaseCVDocumentRepository", () => {
 
   it("finds published template documents and legacy analysis usage", async () => {
     const user = await createTestUser("cv-library-public");
-    const cv = await createCV(supabase, {
+    const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name: testLabel("public-cv"),

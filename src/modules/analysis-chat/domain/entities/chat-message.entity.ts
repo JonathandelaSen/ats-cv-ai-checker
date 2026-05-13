@@ -52,7 +52,7 @@ export class ChatMessage extends AggregateRoot {
     private readonly messageContent: AnalysisChatContent,
     private readonly messageModel: string | null,
     private readonly messageMetadata: Record<string, unknown> | null,
-    private readonly messageCreatedAt: Timestamp
+    private readonly messageCreatedAt: Timestamp,
   ) {
     super();
   }
@@ -67,11 +67,13 @@ export class ChatMessage extends AggregateRoot {
       params.content,
       null,
       null,
-      params.createdAt
+      params.createdAt,
     );
   }
 
-  static createAssistantMessage(params: AssistantChatMessageCreateParams): ChatMessage {
+  static createAssistantMessage(
+    params: AssistantChatMessageCreateParams,
+  ): ChatMessage {
     return new ChatMessage(
       params.id,
       params.userId,
@@ -81,7 +83,7 @@ export class ChatMessage extends AggregateRoot {
       params.content,
       params.model,
       params.metadata,
-      params.createdAt
+      params.createdAt,
     );
   }
 
@@ -95,7 +97,7 @@ export class ChatMessage extends AggregateRoot {
       AnalysisChatContent.fromPrimitives(primitives.content),
       primitives.model,
       primitives.metadata,
-      Timestamp.fromPrimitives(primitives.createdAt)
+      Timestamp.fromPrimitives(primitives.createdAt),
     );
   }
 

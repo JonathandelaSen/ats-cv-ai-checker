@@ -1,9 +1,9 @@
 import type { AnalysisChatContext } from "../../domain/repositories/analysis-chat-ai-service.repository";
-import type { LegacyAnalysisChatContextReader } from "../../domain/repositories/legacy-analysis-chat-context.repository";
+import type { AnalysisChatContextReader } from "../../domain/repositories/analysis-chat-context.repository";
 
-export class GetLegacyAnalysisChatContextUseCase {
+export class GetAnalysisChatContextUseCase {
   constructor(
-    private readonly deps: { contextReader: LegacyAnalysisChatContextReader }
+    private readonly deps: { contextReader: AnalysisChatContextReader },
   ) {}
 
   async execute(input: {

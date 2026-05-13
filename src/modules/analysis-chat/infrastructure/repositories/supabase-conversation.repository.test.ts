@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysis, createCV } from "@/lib/db";
 import {
   createTestUser,
   getSupabaseClient,
   testLabel,
 } from "@/modules/test-helpers/setup";
+import { createTestJobMatchAnalysis } from "@/modules/test-helpers/analysis-fixtures";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import { UserId } from "@/modules/shared";
 import { SupabaseConversationRepository } from "./supabase-conversation.repository";
 import { AnalysisChatConversationId } from "../../domain/value-objects/analysis-chat-conversation-id.value-object";
@@ -14,8 +15,8 @@ const supabase = getSupabaseClient();
 const repo = new SupabaseConversationRepository();
 repo.bindRequest(supabase);
 
-async function createLegacyAnalysis(userId: string) {
-  const cv = await createCV(supabase, {
+async function createJobMatchAnalysis(userId: string) {
+  const cv = await createTestCV(supabase, {
     id: crypto.randomUUID(),
     user_id: userId,
     name: testLabel("cv"),
@@ -29,36 +30,22 @@ async function createLegacyAnalysis(userId: string) {
     extract_error_pdfjs: null,
     extract_error_node: null,
   });
-  return createAnalysis(supabase, {
+  const analysis = await createTestJobMatchAnalysis(supabase, {
     id: crypto.randomUUID(),
-    user_id: userId,
-    cv_id: cv.id,
+    userId,
+    cvId: cv.id,
     title: testLabel("analysis"),
-    filename: "cv.pdf",
-    file_size: 100,
-    pdf_storage_path: null,
-    text_python: "CV text",
-    text_pdfjs: null,
-    text_node: null,
-    extract_error_python: null,
-    extract_error_pdfjs: null,
-    extract_error_node: null,
-    analysis_mode: "job_match",
-    ai_model: "model",
-    job_description: "Job",
-    job_url: null,
-    ai_context: null,
-    ai_score: 80,
-    ai_feedback: "Good",
-    ai_keywords: ["ts"],
-    ai_improvements: ["more"],
+    text: "CV text",
+    score: 80,
   });
+  if (!analysis) throw new Error("Failed to create test analysis");
+  return analysis;
 }
 
 describe("SupabaseConversationRepository", () => {
   it("creates, finds, searches, renames, and deletes conversations", async () => {
     const user = await createTestUser("analysis-chat-conv");
-    const analysis = await createLegacyAnalysis(user.id);
+    const analysis = await createJobMatchAnalysis(user.id);
     const conversation = await repo.create({
       user_id: user.id,
       analysis_id: analysis.id,
@@ -67,20 +54,20 @@ describe("SupabaseConversationRepository", () => {
 
     expect(conversation.toPrimitives()).toMatchObject({
       userId: user.id,
-      analysisReference: { type: "legacy_analysis", id: analysis.id },
+      analysisReference: { type: "job_match_analysis", id: analysis.id },
       title: "Chat inicial",
     });
 
     const found = await repo.findById(
       AnalysisChatConversationId.fromPrimitives(conversation.id),
-      UserId.fromPrimitives(user.id)
+      UserId.fromPrimitives(user.id),
     );
     expect(found?.id).toBe(conversation.id);
 
     const listed = await repo.search({
       userId: UserId.fromPrimitives(user.id),
       analysisReference: AnalysisReference.fromPrimitives({
-        type: "legacy_analysis",
+        type: "job_match_analysis",
         id: analysis.id,
       }),
     });
@@ -88,21 +75,21 @@ describe("SupabaseConversationRepository", () => {
 
     found?.rename(
       await import("../../domain/value-objects/analysis-chat-title.value-object").then(
-        (mod) => mod.AnalysisChatTitle.fromPrimitives("Renombrada")
-      )
+        (mod) => mod.AnalysisChatTitle.fromPrimitives("Renombrada"),
+      ),
     );
     const updated = await repo.save(found!);
     expect(updated.toPrimitives().title).toBe("Renombrada");
 
     await repo.delete(
       AnalysisChatConversationId.fromPrimitives(conversation.id),
-      UserId.fromPrimitives(user.id)
+      UserId.fromPrimitives(user.id),
     );
     await expect(
       repo.findById(
         AnalysisChatConversationId.fromPrimitives(conversation.id),
-        UserId.fromPrimitives(user.id)
-      )
+        UserId.fromPrimitives(user.id),
+      ),
     ).resolves.toBeNull();
   });
 });

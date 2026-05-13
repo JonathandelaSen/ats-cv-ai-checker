@@ -11,7 +11,9 @@ describe("CreateConversationUseCase", () => {
       save: vi.fn(async (conversation) => conversation),
       delete: vi.fn(),
     };
-    const tracker = { record: vi.fn(async () => undefined) } satisfies EventTracker;
+    const tracker = {
+      record: vi.fn(async () => undefined),
+    } satisfies EventTracker;
 
     const conversation = await new CreateConversationUseCase({
       conversationRepo: repo,
@@ -25,7 +27,7 @@ describe("CreateConversationUseCase", () => {
 
     expect(conversation.toPrimitives()).toMatchObject({
       userId: "user-1",
-      analysisReference: { type: "legacy_analysis", id: "analysis-1" },
+      analysisReference: { type: "job_match_analysis", id: "analysis-1" },
       title: "Chat",
     });
     expect(repo.save).toHaveBeenCalledOnce();
@@ -33,7 +35,7 @@ describe("CreateConversationUseCase", () => {
       expect.objectContaining({
         stage: "analysis_chat_conversation_created",
         status: "success",
-      })
+      }),
     );
   });
 });

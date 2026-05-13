@@ -10,7 +10,7 @@ const baseParams = {
   id: AnalysisChatMessageId.fromPrimitives("message-1"),
   userId: UserId.fromPrimitives("user-1"),
   analysisReference: AnalysisReference.fromPrimitives({
-    type: "legacy_analysis",
+    type: "job_match_analysis",
     id: "analysis-1",
   }),
   conversationId: AnalysisChatConversationId.fromPrimitives("conversation-1"),
@@ -23,7 +23,7 @@ describe("ChatMessage", () => {
     expect(ChatMessage.createUserMessage(baseParams).toPrimitives()).toEqual({
       id: "message-1",
       userId: "user-1",
-      analysisReference: { type: "legacy_analysis", id: "analysis-1" },
+      analysisReference: { type: "job_match_analysis", id: "analysis-1" },
       conversationId: "conversation-1",
       role: "user",
       content: "Hola",
@@ -53,7 +53,7 @@ describe("ChatMessage", () => {
 
   it("hydrates from primitives", () => {
     const message = ChatMessage.fromPrimitives(
-      ChatMessage.createUserMessage(baseParams).toPrimitives()
+      ChatMessage.createUserMessage(baseParams).toPrimitives(),
     );
 
     expect(message.toPrimitives().role).toBe("user");

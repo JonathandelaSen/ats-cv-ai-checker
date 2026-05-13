@@ -4,7 +4,7 @@ import {
   getSupabaseClient,
   testLabel,
 } from "@/modules/test-helpers/setup";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import { SupabaseCVDataRepository } from "./supabase-cv-data.repository";
 
 const supabase = getSupabaseClient();
@@ -20,7 +20,7 @@ describe("SupabaseCVDataRepository", () => {
       projects: [{ name: "Workbench" }],
     };
 
-    await createCV(supabase, {
+    await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name,

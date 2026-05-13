@@ -3,22 +3,22 @@ import {
   createAnalysisFacade,
   updateAnalysisAIResultFacade,
 } from "@/lib/analysis-facade";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
   getSupabaseClient,
   testLabel,
 } from "@/modules/test-helpers/setup";
-import { LegacyAnalysisChatContextRepository } from "./legacy-analysis-chat-context.repository";
+import { AnalysisChatContextRepository } from "./analysis-chat-context.repository";
 
 const supabase = getSupabaseClient();
-const repo = new LegacyAnalysisChatContextRepository();
+const repo = new AnalysisChatContextRepository();
 repo.bindRequest(supabase);
 
-describe("LegacyAnalysisChatContextRepository", () => {
+describe("AnalysisChatContextRepository", () => {
   it("reads legacy analysis context with linked CV text", async () => {
     const user = await createTestUser("analysis-chat-context");
-    const cv = await createCV(supabase, {
+    const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name: testLabel("cv"),

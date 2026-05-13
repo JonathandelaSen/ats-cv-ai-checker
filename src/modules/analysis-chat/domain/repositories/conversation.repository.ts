@@ -12,7 +12,7 @@ export interface ConversationRepository {
   search(criteria: ConversationSearchCriteria): Promise<Conversation[]>;
   findById(
     id: AnalysisChatConversationId,
-    userId: UserId
+    userId: UserId,
   ): Promise<Conversation | null>;
   save(conversation: Conversation): Promise<Conversation>;
   delete(id: AnalysisChatConversationId, userId: UserId): Promise<void>;

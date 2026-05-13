@@ -14,7 +14,9 @@ export class ListMessagesUseCase {
   async execute(input: ListMessagesInput): Promise<ChatMessage[]> {
     return this.deps.messageRepo.search({
       userId: UserId.fromPrimitives(input.userId),
-      conversationId: AnalysisChatConversationId.fromPrimitives(input.conversationId),
+      conversationId: AnalysisChatConversationId.fromPrimitives(
+        input.conversationId,
+      ),
     });
   }
 }

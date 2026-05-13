@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAnalysisFacade } from "@/lib/analysis-facade";
-import { createCV } from "@/lib/db";
+import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
   getSupabaseClient,
@@ -16,7 +16,7 @@ repo.bindRequest(supabase);
 describe("SupabaseFollowUpRepository", () => {
   it("finds and saves follow-ups by source analysis", async () => {
     const user = await createTestUser("selection-follow-up");
-    const cv = await createCV(supabase, {
+    const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
       user_id: user.id,
       name: testLabel("cv"),
