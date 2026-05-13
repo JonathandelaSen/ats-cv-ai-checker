@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createFeedbackNotesModule,
-  presentFeedback,
-} from "@/modules/feedback-notes";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { feedbackNotesModule } from "@/lib/container";
+import { presentFeedback } from "@/modules/feedback-notes";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeOptionalText,
@@ -17,13 +15,11 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const status = normalizeStatus(req.nextUrl.searchParams.get("status"));
     if (!status) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const feedbacks = await mod.listFeedbacks.execute(user.id, status);
+    feedbackNotesModule.bindRequest(supabase);
+    const feedbacks = await feedbackNotesModule.listFeedbacks.execute(user.id, status);
     const withCounts = await Promise.all(
       feedbacks.map(async (feedback) => {
-        const entries = await mod.listEntries.execute(user.id, feedback.id);
+        const entries = await feedbackNotesModule.listEntries.execute(user.id, feedback.id);
         return presentFeedback(feedback, entries.length);
       })
     );
@@ -46,10 +42,8 @@ export async function POST(req: NextRequest) {
     if (!personName || finalFeedback === undefined) {
       return NextResponse.json({ error: "Invalid feedback payload" }, { status: 400 });
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const feedback = await mod.createFeedback.execute({
+    feedbackNotesModule.bindRequest(supabase);
+    const feedback = await feedbackNotesModule.createFeedback.execute({
       user_id: user.id,
       person_name: personName,
       final_feedback: finalFeedback,

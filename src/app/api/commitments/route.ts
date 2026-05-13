@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCommitmentsModule, presentCommitment, presentCommitmentsWorkspace } from "@/modules/commitments";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { commitmentsModule } from "@/lib/container";
+import { presentCommitment, presentCommitmentsWorkspace } from "@/modules/commitments";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   optionalDate,
@@ -17,8 +18,8 @@ export async function GET() {
   try {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const workspace = await mod.listWorkspace.execute(user.id);
+    commitmentsModule.bindRequest(supabase);
+    const workspace = await commitmentsModule.listWorkspace.execute(user.id);
     return NextResponse.json(presentCommitmentsWorkspace(workspace));
   } catch (error: unknown) {
     return handleDomainError(error);
@@ -51,8 +52,8 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json({ error: "Invalid commitment payload" }, { status: 400 });
     }
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const commitment = await mod.createCommitment.execute({
+    commitmentsModule.bindRequest(supabase);
+    const commitment = await commitmentsModule.createCommitment.execute({
       userId: user.id,
       contextId,
       title,

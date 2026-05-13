@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule, presentWorkJournalEntry } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { workJournalModule } from "@/lib/container";
+import { presentWorkJournalEntry } from "@/modules/work-journal";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeInputMode,
@@ -14,20 +15,18 @@ export async function GET(req: NextRequest) {
   try {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
+    workJournalModule.bindRequest(supabase);
 
     const params = req.nextUrl.searchParams;
     const [entries, contexts] = await Promise.all([
-      mod.listEntries.execute(user.id, {
+      workJournalModule.listEntries.execute(user.id, {
         contextId: params.get("contextId"),
         search: params.get("q"),
         topic: params.get("topic"),
         dateFrom: params.get("dateFrom"),
         dateTo: params.get("dateTo"),
       }),
-      mod.listContexts.execute(user.id),
+      workJournalModule.listContexts.execute(user.id),
     ]);
     const contextsById = new Map(contexts.map((context) => [context.id, context]));
     return NextResponse.json(
@@ -55,11 +54,9 @@ export async function POST(req: NextRequest) {
     if (!context_id || !date_start || date_end === undefined || topic === undefined || !raw_notes || !final_text) {
       return NextResponse.json({ error: "Invalid entry payload" }, { status: 400 });
     }
+    workJournalModule.bindRequest(supabase);
 
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-
-    const entry = await mod.createEntry.execute({
+    const entry = await workJournalModule.createEntry.execute({
       user_id: user.id,
       context_id,
       date_start,
@@ -70,7 +67,7 @@ export async function POST(req: NextRequest) {
       final_text,
     });
 
-    const contexts = await mod.listContexts.execute(user.id);
+    const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
     return NextResponse.json(presentWorkJournalEntry(entry, context), { status: 201 });
   } catch (error: unknown) {

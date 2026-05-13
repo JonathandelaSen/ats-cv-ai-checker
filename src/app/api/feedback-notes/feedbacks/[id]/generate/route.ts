@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { feedbackNotesModule } from "@/lib/container";
 import {
-  createFeedbackNotesModule,
   presentFeedback,
 } from "@/modules/feedback-notes";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeRequiredText } from "../../../validation";
 
 export const maxDuration = 60;
@@ -25,15 +25,13 @@ export async function POST(
         { status: 400 }
       );
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const useCase = mod.createGenerateFinalFeedbackUseCase({
+    feedbackNotesModule.bindRequest(supabase);
+    const useCase = feedbackNotesModule.createGenerateFinalFeedbackUseCase({
       apiKey: geminiApiKey,
       model,
     });
     const feedback = await useCase.execute(user.id, id);
-    const entries = await mod.listEntries.execute(user.id, id);
+    const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
     return NextResponse.json(presentFeedback(feedback, entries.length));
   } catch (error: unknown) {
     return handleDomainError(error);

@@ -8,7 +8,8 @@ import { createCV } from "@/lib/db";
 import { SupabaseCVDataRepository } from "./supabase-cv-data.repository";
 
 const supabase = getSupabaseClient();
-const repo = new SupabaseCVDataRepository(supabase);
+const repo = new SupabaseCVDataRepository();
+repo.bindRequest(supabase);
 
 describe("SupabaseCVDataRepository", () => {
   it("listCVs delegates to the existing CV listing query", async () => {

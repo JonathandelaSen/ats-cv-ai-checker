@@ -9,7 +9,9 @@ import { ReceivedFeedbackText } from "../../domain/value-objects/received-feedba
 import { ReceivedFeedbackNote } from "../../domain/value-objects/received-feedback-note.value-object";
 import { SupabaseReceivedFeedbackRepository } from "./supabase-received-feedback.repository";
 
-const repo = new SupabaseReceivedFeedbackRepository(getSupabaseClient());
+const repo = new SupabaseReceivedFeedbackRepository();
+
+repo.bindRequest(getSupabaseClient());
 
 describe("SupabaseReceivedFeedbackRepository", () => {
   it("persists and lists the user's latest received feedback", async () => {

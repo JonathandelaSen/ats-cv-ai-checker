@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule, presentWorkJournalContext } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { workJournalModule } from "@/lib/container";
+import { presentWorkJournalContext } from "@/modules/work-journal";
+import { handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeOptionalText, normalizeRequiredText } from "../../validation";
 
 export async function PATCH(
@@ -32,10 +33,8 @@ export async function PATCH(
       updates.status = body.status;
     }
     if (body.is_default !== undefined) updates.is_default = Boolean(body.is_default);
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-    const context = await mod.updateContext.execute(id, user.id, updates);
+    workJournalModule.bindRequest(supabase);
+    const context = await workJournalModule.updateContext.execute(id, user.id, updates);
     return NextResponse.json(presentWorkJournalContext(context));
   } catch (error: unknown) {
     return handleDomainError(error);

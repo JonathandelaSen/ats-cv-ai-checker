@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { EntityId, UserId } from "@/modules/shared";
 import {
   CommitmentItem,
@@ -57,11 +57,10 @@ function itemToRow(item: CommitmentItem): CommitmentItemRow {
   };
 }
 
-export class SupabaseCommitmentItemRepository implements CommitmentItemRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseCommitmentItemRepository extends BoundSupabaseRepository implements CommitmentItemRepository {
 
   async searchByUser(userId: UserId): Promise<CommitmentItem[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_items")
       .select("*")
       .eq("user_id", userId.toPrimitives())
@@ -72,7 +71,7 @@ export class SupabaseCommitmentItemRepository implements CommitmentItemRepositor
   }
 
   async searchByCommitment(commitmentId: EntityId, userId: UserId): Promise<CommitmentItem[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_items")
       .select("*")
       .eq("commitment_id", commitmentId.toPrimitives())
@@ -84,7 +83,7 @@ export class SupabaseCommitmentItemRepository implements CommitmentItemRepositor
   }
 
   async findById(id: EntityId, userId: UserId): Promise<CommitmentItem | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_items")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -95,7 +94,7 @@ export class SupabaseCommitmentItemRepository implements CommitmentItemRepositor
   }
 
   async save(item: CommitmentItem): Promise<CommitmentItem> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_items")
       .upsert(itemToRow(item), { onConflict: "id" })
       .select("*")
@@ -105,7 +104,7 @@ export class SupabaseCommitmentItemRepository implements CommitmentItemRepositor
   }
 
   async delete(id: EntityId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("commitment_items")
       .delete()
       .eq("id", id.toPrimitives())

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { feedbackNotesModule } from "@/lib/container";
 import {
-  createFeedbackNotesModule,
   presentFeedbackEntry,
 } from "@/modules/feedback-notes";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeRequiredText } from "../../validation";
 
 export async function PATCH(
@@ -19,9 +19,8 @@ export async function PATCH(
     if (!content) {
       return NextResponse.json({ error: "Entry content is required" }, { status: 400 });
     }
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const entry = await mod.updateEntry.execute(user.id, id, content);
+    feedbackNotesModule.bindRequest(supabase);
+    const entry = await feedbackNotesModule.updateEntry.execute(user.id, id, content);
     return NextResponse.json(presentFeedbackEntry(entry));
   } catch (error: unknown) {
     return handleDomainError(error);
@@ -36,9 +35,8 @@ export async function DELETE(
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    await mod.deleteEntry.execute(user.id, id);
+    feedbackNotesModule.bindRequest(supabase);
+    await feedbackNotesModule.deleteEntry.execute(user.id, id);
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     return handleDomainError(error);

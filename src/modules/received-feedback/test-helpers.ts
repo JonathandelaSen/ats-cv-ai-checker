@@ -9,7 +9,8 @@ import { ReceivedFeedbackText } from "./domain/value-objects/received-feedback-t
 import { SupabaseReceivedFeedbackRepository } from "./infrastructure/repositories/supabase-received-feedback.repository";
 
 export function makeReceivedFeedbackDeps() {
-  const receivedFeedbackRepo = new SupabaseReceivedFeedbackRepository(getSupabaseClient());
+  const receivedFeedbackRepo = new SupabaseReceivedFeedbackRepository();
+  receivedFeedbackRepo.bindRequest(getSupabaseClient());
   const tracker = createMockTracker();
   return { receivedFeedbackRepo, tracker };
 }

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createReceivedFeedbackModule,
-  presentReceivedFeedback,
-} from "@/modules/received-feedback";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { receivedFeedbackModule } from "@/lib/container";
+import { presentReceivedFeedback } from "@/modules/received-feedback";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeOptionalText,
@@ -15,10 +13,8 @@ export async function GET() {
   try {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createReceivedFeedbackModule(supabase, tracker);
-    const feedback = await mod.listReceivedFeedback.execute(user.id);
+    receivedFeedbackModule.bindRequest(supabase);
+    const feedback = await receivedFeedbackModule.listReceivedFeedback.execute(user.id);
 
     return NextResponse.json(feedback.map(presentReceivedFeedback));
   } catch (error: unknown) {
@@ -49,10 +45,8 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json({ error: "Invalid received feedback payload" }, { status: 400 });
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createReceivedFeedbackModule(supabase, tracker);
-    const feedback = await mod.createReceivedFeedback.execute({
+    receivedFeedbackModule.bindRequest(supabase);
+    const feedback = await receivedFeedbackModule.createReceivedFeedback.execute({
       userId: user.id,
       receivedDate,
       giverName,

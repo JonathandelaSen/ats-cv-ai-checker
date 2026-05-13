@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { ReceivedFeedback, type ReceivedFeedbackPrimitives } from "../../domain/entities/received-feedback.entity";
 import type {
   ReceivedFeedbackRepository,
@@ -45,11 +45,10 @@ function feedbackToRow(feedback: ReceivedFeedback): ReceivedFeedbackRow {
   };
 }
 
-export class SupabaseReceivedFeedbackRepository implements ReceivedFeedbackRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseReceivedFeedbackRepository extends BoundSupabaseRepository implements ReceivedFeedbackRepository {
 
   async search(criteria: ReceivedFeedbackSearchCriteria): Promise<ReceivedFeedback[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("received_feedback")
       .select("*")
       .eq("user_id", criteria.userId.toPrimitives())
@@ -62,7 +61,7 @@ export class SupabaseReceivedFeedbackRepository implements ReceivedFeedbackRepos
   }
 
   async findById(id: ReceivedFeedbackId, userId: UserId): Promise<ReceivedFeedback | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("received_feedback")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -74,7 +73,7 @@ export class SupabaseReceivedFeedbackRepository implements ReceivedFeedbackRepos
   }
 
   async save(feedback: ReceivedFeedback): Promise<ReceivedFeedback> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("received_feedback")
       .upsert(feedbackToRow(feedback), { onConflict: "id" })
       .select("*")
@@ -85,7 +84,7 @@ export class SupabaseReceivedFeedbackRepository implements ReceivedFeedbackRepos
   }
 
   async delete(id: ReceivedFeedbackId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("received_feedback")
       .delete()
       .eq("id", id.toPrimitives())

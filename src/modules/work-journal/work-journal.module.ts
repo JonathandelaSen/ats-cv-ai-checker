@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
+import { SupabaseEventTracker } from "@/modules/shared";
 import { SupabaseWorkJournalContextRepository } from "./infrastructure/repositories/supabase-work-journal-context.repository";
 import { SupabaseWorkJournalEntryRepository } from "./infrastructure/repositories/supabase-work-journal-entry.repository";
 import { SupabaseCVDataRepository } from "./infrastructure/repositories/supabase-cv-data.repository";
@@ -16,14 +17,12 @@ import { UpdateEntryUseCase } from "./application/use-cases/update-entry.use-cas
 import { DeleteEntryUseCase } from "./application/use-cases/delete-entry.use-case";
 import { DraftEntryUseCase } from "./application/use-cases/draft-entry.use-case";
 
-export function createWorkJournalModule(
-  supabase: SupabaseClient,
-  tracker: EventTracker
-) {
-  const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
-  const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
-  const cvDataRepo = new SupabaseCVDataRepository(supabase);
+const contextRepo = new SupabaseWorkJournalContextRepository();
+const entryRepo = new SupabaseWorkJournalEntryRepository();
+const cvDataRepo = new SupabaseCVDataRepository();
+const tracker: EventTracker = new SupabaseEventTracker();
 
+function createUseCases() {
   return {
     listContexts: new ListContextsUseCase({ contextRepo }),
     createContext: new CreateContextUseCase({ contextRepo, tracker }),
@@ -38,6 +37,24 @@ export function createWorkJournalModule(
     createDraftEntryUseCase: (aiConfig: { apiKey: string; model: string }) => {
       const aiService = new GeminiJournalAIService(aiConfig);
       return new DraftEntryUseCase({ contextRepo, aiService, tracker });
+    },
+  };
+}
+
+export type WorkJournalModule = ReturnType<typeof createUseCases> & {
+  bindRequest(client: SupabaseClient): WorkJournalModule;
+};
+
+export function createWorkJournalModule(): WorkJournalModule {
+  const useCases = createUseCases();
+
+  return {
+    ...useCases,
+    bindRequest(client: SupabaseClient) {
+      contextRepo.bindRequest(client);
+      entryRepo.bindRequest(client);
+      cvDataRepo.bindRequest(client);
+      return this;
     },
   };
 }

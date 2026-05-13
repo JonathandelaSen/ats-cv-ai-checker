@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule, presentWorkJournalEntry } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { workJournalModule } from "@/lib/container";
+import { presentWorkJournalEntry } from "@/modules/work-journal";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeInputMode,
@@ -56,11 +57,9 @@ export async function PATCH(
       if (!text) return NextResponse.json({ error: "Final text is required" }, { status: 400 });
       updates.final_text = text;
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-    const entry = await mod.updateEntry.execute(id, user.id, updates);
-    const contexts = await mod.listContexts.execute(user.id);
+    workJournalModule.bindRequest(supabase);
+    const entry = await workJournalModule.updateEntry.execute(id, user.id, updates);
+    const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
     return NextResponse.json(presentWorkJournalEntry(entry, context));
   } catch (error: unknown) {
@@ -76,10 +75,8 @@ export async function DELETE(
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-    await mod.deleteEntry.execute(id, user.id);
+    workJournalModule.bindRequest(supabase);
+    await workJournalModule.deleteEntry.execute(id, user.id);
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     return handleDomainError(error);

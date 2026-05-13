@@ -15,7 +15,8 @@ const supabase = getSupabaseClient();
 describe("DraftEntryUseCase", () => {
   it("validates context before calling the AI service and passes draft data", async () => {
     const user = await createTestUser("wj-draft-entry");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const context = await contextRepo.create({
       user_id: user.id,
       type: "employment",
@@ -54,7 +55,8 @@ describe("DraftEntryUseCase", () => {
 
   it("throws ContextNotFoundError without calling the AI service", async () => {
     const user = await createTestUser("wj-draft-entry-missing");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const aiService: JournalAIService = {
       draftEntry: vi.fn(async () => "Should not be used"),
     };

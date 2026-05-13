@@ -13,9 +13,12 @@ import { EnsureDefaultContextUseCase } from "./ensure-default-context.use-case";
 const supabase = getSupabaseClient();
 
 function makeUseCase() {
-  const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
-  const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
-  const cvDataRepo = new SupabaseCVDataRepository(supabase);
+  const contextRepo = new SupabaseWorkJournalContextRepository();
+  contextRepo.bindRequest(supabase);
+  const entryRepo = new SupabaseWorkJournalEntryRepository();
+  entryRepo.bindRequest(supabase);
+  const cvDataRepo = new SupabaseCVDataRepository();
+  cvDataRepo.bindRequest(supabase);
   const tracker = createMockTracker();
   return {
     contextRepo,

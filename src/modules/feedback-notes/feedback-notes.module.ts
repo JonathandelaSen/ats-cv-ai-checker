@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
+import { SupabaseEventTracker } from "@/modules/shared";
 import { CreateEntryUseCase } from "./application/use-cases/create-entry.use-case";
 import { CreateFeedbackUseCase } from "./application/use-cases/create-feedback.use-case";
 import { DeleteEntryUseCase } from "./application/use-cases/delete-entry.use-case";
@@ -15,13 +16,11 @@ import { SupabaseFeedbackEntryRepository } from "./infrastructure/repositories/s
 import { SupabaseFeedbackRepository } from "./infrastructure/repositories/supabase-feedback.repository";
 import { GeminiFeedbackAIService } from "./infrastructure/services/gemini-feedback-ai.service";
 
-export function createFeedbackNotesModule(
-  supabase: SupabaseClient,
-  tracker: EventTracker
-) {
-  const feedbackRepo = new SupabaseFeedbackRepository(supabase);
-  const entryRepo = new SupabaseFeedbackEntryRepository(supabase);
+const feedbackRepo = new SupabaseFeedbackRepository();
+const entryRepo = new SupabaseFeedbackEntryRepository();
+const tracker: EventTracker = new SupabaseEventTracker();
 
+function createUseCases() {
   return {
     listFeedbacks: new ListFeedbacksUseCase({ feedbackRepo }),
     createFeedback: new CreateFeedbackUseCase({ feedbackRepo, tracker }),
@@ -43,5 +42,22 @@ export function createFeedbackNotesModule(
         aiService: new GeminiFeedbackAIService(aiConfig),
         tracker,
       }),
+  };
+}
+
+export type FeedbackNotesModule = ReturnType<typeof createUseCases> & {
+  bindRequest(client: SupabaseClient): FeedbackNotesModule;
+};
+
+export function createFeedbackNotesModule(): FeedbackNotesModule {
+  const useCases = createUseCases();
+
+  return {
+    ...useCases,
+    bindRequest(client: SupabaseClient) {
+      feedbackRepo.bindRequest(client);
+      entryRepo.bindRequest(client);
+      return this;
+    },
   };
 }

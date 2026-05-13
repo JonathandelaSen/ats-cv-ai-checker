@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { receivedFeedbackModule } from "@/lib/container";
 import {
-  createReceivedFeedbackModule,
   presentReceivedFeedback,
 } from "@/modules/received-feedback";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeOptionalText,
@@ -56,10 +56,8 @@ export async function PATCH(
       }
       updates.userNote = userNote;
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createReceivedFeedbackModule(supabase, tracker);
-    const feedback = await mod.updateReceivedFeedback.execute(user.id, id, updates);
+    receivedFeedbackModule.bindRequest(supabase);
+    const feedback = await receivedFeedbackModule.updateReceivedFeedback.execute(user.id, id, updates);
 
     return NextResponse.json(presentReceivedFeedback(feedback));
   } catch (error: unknown) {
@@ -76,9 +74,8 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const tracker = new SupabaseEventTracker();
-    const mod = createReceivedFeedbackModule(supabase, tracker);
-    await mod.deleteReceivedFeedback.execute(user.id, id);
+    receivedFeedbackModule.bindRequest(supabase);
+    await receivedFeedbackModule.deleteReceivedFeedback.execute(user.id, id);
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {

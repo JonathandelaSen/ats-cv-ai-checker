@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
+import { SupabaseEventTracker } from "@/modules/shared";
 import { CreateCommitmentUseCase } from "./application/use-cases/create-commitment.use-case";
 import { CreateCommitmentContextUseCase } from "./application/use-cases/create-context.use-case";
 import { CreateCommitmentItemUseCase } from "./application/use-cases/create-item.use-case";
@@ -18,12 +19,13 @@ import { SupabaseCommitmentItemRepository } from "./infrastructure/repositories/
 import { SupabaseCommitmentOutcomeRepository } from "./infrastructure/repositories/supabase-commitment-outcome.repository";
 import { SupabaseCommitmentRepository } from "./infrastructure/repositories/supabase-commitment.repository";
 
-export function createCommitmentsModule(supabase: SupabaseClient, tracker: EventTracker) {
-  const contextRepo = new SupabaseCommitmentContextRepository(supabase);
-  const commitmentRepo = new SupabaseCommitmentRepository(supabase);
-  const itemRepo = new SupabaseCommitmentItemRepository(supabase);
-  const outcomeRepo = new SupabaseCommitmentOutcomeRepository(supabase);
+const contextRepo = new SupabaseCommitmentContextRepository();
+const commitmentRepo = new SupabaseCommitmentRepository();
+const itemRepo = new SupabaseCommitmentItemRepository();
+const outcomeRepo = new SupabaseCommitmentOutcomeRepository();
+const tracker: EventTracker = new SupabaseEventTracker();
 
+function createUseCases() {
   return {
     ensureDefaultContext: new EnsureDefaultCommitmentContextUseCase({ contextRepo }),
     listWorkspace: new ListCommitmentsWorkspaceUseCase({
@@ -43,5 +45,24 @@ export function createCommitmentsModule(supabase: SupabaseClient, tracker: Event
     createOutcome: new CreateCommitmentOutcomeUseCase({ outcomeRepo, tracker }),
     updateOutcome: new UpdateCommitmentOutcomeUseCase({ outcomeRepo, tracker }),
     deleteOutcome: new DeleteCommitmentOutcomeUseCase({ outcomeRepo, tracker }),
+  };
+}
+
+export type CommitmentsModule = ReturnType<typeof createUseCases> & {
+  bindRequest(client: SupabaseClient): CommitmentsModule;
+};
+
+export function createCommitmentsModule(): CommitmentsModule {
+  const useCases = createUseCases();
+
+  return {
+    ...useCases,
+    bindRequest(client: SupabaseClient) {
+      contextRepo.bindRequest(client);
+      commitmentRepo.bindRequest(client);
+      itemRepo.bindRequest(client);
+      outcomeRepo.bindRequest(client);
+      return this;
+    },
   };
 }

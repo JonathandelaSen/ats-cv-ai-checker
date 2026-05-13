@@ -14,7 +14,8 @@ const supabase = getSupabaseClient();
 describe("UpdateContextUseCase", () => {
   it("updates a context and records observability", async () => {
     const user = await createTestUser("wj-update-context");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const tracker = createMockTracker();
     const useCase = new UpdateContextUseCase({ contextRepo, tracker });
     const context = await contextRepo.create({
@@ -45,7 +46,8 @@ describe("UpdateContextUseCase", () => {
 
   it("throws ContextNotFoundError when the context does not exist", async () => {
     const user = await createTestUser("wj-update-context-missing");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const tracker = createMockTracker();
     const useCase = new UpdateContextUseCase({ contextRepo, tracker });
 

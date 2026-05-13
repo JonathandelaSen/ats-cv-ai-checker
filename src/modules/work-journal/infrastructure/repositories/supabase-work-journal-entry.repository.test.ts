@@ -8,8 +8,10 @@ import { SupabaseWorkJournalContextRepository } from "./supabase-work-journal-co
 import { SupabaseWorkJournalEntryRepository } from "./supabase-work-journal-entry.repository";
 
 const supabase = getSupabaseClient();
-const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
-const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
+const contextRepo = new SupabaseWorkJournalContextRepository();
+contextRepo.bindRequest(supabase);
+const entryRepo = new SupabaseWorkJournalEntryRepository();
+entryRepo.bindRequest(supabase);
 
 async function createContext(userId: string, name = testLabel("ctx")) {
   return contextRepo.create({

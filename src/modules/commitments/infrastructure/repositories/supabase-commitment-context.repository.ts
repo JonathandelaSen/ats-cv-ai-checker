@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { EntityId, UserId } from "@/modules/shared";
 import {
   CommitmentContext,
@@ -49,11 +49,10 @@ function contextToRow(context: CommitmentContext): CommitmentContextRow {
   };
 }
 
-export class SupabaseCommitmentContextRepository implements CommitmentContextRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository implements CommitmentContextRepository {
 
   async search(userId: UserId): Promise<CommitmentContext[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_contexts")
       .select("*")
       .eq("user_id", userId.toPrimitives())
@@ -64,7 +63,7 @@ export class SupabaseCommitmentContextRepository implements CommitmentContextRep
   }
 
   async findById(id: EntityId, userId: UserId): Promise<CommitmentContext | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_contexts")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -75,7 +74,7 @@ export class SupabaseCommitmentContextRepository implements CommitmentContextRep
   }
 
   async findDefault(userId: UserId): Promise<CommitmentContext | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_contexts")
       .select("*")
       .eq("user_id", userId.toPrimitives())
@@ -87,7 +86,7 @@ export class SupabaseCommitmentContextRepository implements CommitmentContextRep
   }
 
   async save(context: CommitmentContext): Promise<CommitmentContext> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_contexts")
       .upsert(contextToRow(context), { onConflict: "id" })
       .select("*")
@@ -97,7 +96,7 @@ export class SupabaseCommitmentContextRepository implements CommitmentContextRep
   }
 
   async delete(id: EntityId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("commitment_contexts")
       .delete()
       .eq("id", id.toPrimitives())

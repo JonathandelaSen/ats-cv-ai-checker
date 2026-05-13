@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCommitmentsModule, presentCommitmentOutcome } from "@/modules/commitments";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { commitmentsModule } from "@/lib/container";
+import { presentCommitmentOutcome } from "@/modules/commitments";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   optionalNumber,
@@ -36,8 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ) {
       return NextResponse.json({ error: "Invalid commitment outcome payload" }, { status: 400 });
     }
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const outcome = await mod.createOutcome.execute({
+    commitmentsModule.bindRequest(supabase);
+    const outcome = await commitmentsModule.createOutcome.execute({
       userId: user.id,
       commitmentId: id,
       type,

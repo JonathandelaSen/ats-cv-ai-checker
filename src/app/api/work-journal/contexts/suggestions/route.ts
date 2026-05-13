@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule, presentWorkJournalContext } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { workJournalModule } from "@/lib/container";
+import { presentWorkJournalContext } from "@/modules/work-journal";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeContextType,
@@ -27,11 +28,9 @@ export async function POST(req: NextRequest) {
     if (action !== "promote" && action !== "hide") {
       return NextResponse.json({ error: "Invalid suggestion action" }, { status: 400 });
     }
+    workJournalModule.bindRequest(supabase);
 
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-
-    const result = await mod.handleSuggestionAction.execute({
+    const result = await workJournalModule.handleSuggestionAction.execute({
       userId: user.id,
       action,
       type,

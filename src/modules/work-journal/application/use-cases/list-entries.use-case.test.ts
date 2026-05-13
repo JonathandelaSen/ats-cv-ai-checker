@@ -13,8 +13,10 @@ const supabase = getSupabaseClient();
 describe("ListEntriesUseCase", () => {
   it("delegates filters and returns matching entries", async () => {
     const user = await createTestUser("wj-list-entries");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
-    const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
+    const entryRepo = new SupabaseWorkJournalEntryRepository();
+    entryRepo.bindRequest(supabase);
     const useCase = new ListEntriesUseCase({ entryRepo });
     const context = await contextRepo.create({
       user_id: user.id,

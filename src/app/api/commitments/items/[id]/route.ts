@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCommitmentsModule, presentCommitmentItem } from "@/modules/commitments";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { commitmentsModule } from "@/lib/container";
+import { presentCommitmentItem } from "@/modules/commitments";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   optionalDate,
@@ -33,8 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ) {
       return NextResponse.json({ error: "Invalid commitment item payload" }, { status: 400 });
     }
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const item = await mod.updateItem.execute({
+    commitmentsModule.bindRequest(supabase);
+    const item = await commitmentsModule.updateItem.execute({
       userId: user.id,
       id,
       title,
@@ -56,8 +57,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    await mod.deleteItem.execute({ userId: user.id, id });
+    commitmentsModule.bindRequest(supabase);
+    await commitmentsModule.deleteItem.execute({ userId: user.id, id });
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     return handleDomainError(error);

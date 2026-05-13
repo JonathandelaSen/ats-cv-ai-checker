@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCommitmentsModule, presentCommitmentContext } from "@/modules/commitments";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { commitmentsModule } from "@/lib/container";
+import { presentCommitmentContext } from "@/modules/commitments";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   optionalText,
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
     if (!type || !name || (body.roleOrLabel !== undefined && roleOrLabel === undefined)) {
       return NextResponse.json({ error: "Invalid commitment context payload" }, { status: 400 });
     }
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const context = await mod.createContext.execute({ userId: user.id, type, name, roleOrLabel });
+    commitmentsModule.bindRequest(supabase);
+    const context = await commitmentsModule.createContext.execute({ userId: user.id, type, name, roleOrLabel });
     return NextResponse.json(presentCommitmentContext(context), { status: 201 });
   } catch (error: unknown) {
     return handleDomainError(error);

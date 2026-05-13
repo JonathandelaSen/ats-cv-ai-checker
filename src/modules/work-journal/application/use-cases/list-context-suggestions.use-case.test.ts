@@ -13,7 +13,8 @@ const supabase = getSupabaseClient();
 describe("ListContextSuggestionsUseCase", () => {
   it("suggests CV contexts while excluding existing and hidden contexts", async () => {
     const user = await createTestUser("wj-list-suggestions");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     await contextRepo.create({
       user_id: user.id,
       type: "employment",

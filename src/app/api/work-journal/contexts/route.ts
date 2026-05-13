@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { workJournalModule } from "@/lib/container";
 import {
-  createWorkJournalModule,
   presentWorkJournalContext,
   presentWorkJournalContextSuggestion,
 } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeContextType,
@@ -16,14 +16,12 @@ export async function GET() {
   try {
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    workJournalModule.bindRequest(supabase);
 
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-
-    await mod.ensureDefaultContext.execute(user.id);
+    await workJournalModule.ensureDefaultContext.execute(user.id);
     const [contexts, suggestions] = await Promise.all([
-      mod.listContexts.execute(user.id),
-      mod.listContextSuggestions.execute(user.id),
+      workJournalModule.listContexts.execute(user.id),
+      workJournalModule.listContextSuggestions.execute(user.id),
     ]);
 
     return NextResponse.json({
@@ -49,11 +47,9 @@ export async function POST(req: NextRequest) {
     if (!type || !name || role_or_label === undefined) {
       return NextResponse.json({ error: "Invalid context payload" }, { status: 400 });
     }
+    workJournalModule.bindRequest(supabase);
 
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-
-    const context = await mod.createContext.execute({
+    const context = await workJournalModule.createContext.execute({
       user_id: user.id,
       type,
       name,

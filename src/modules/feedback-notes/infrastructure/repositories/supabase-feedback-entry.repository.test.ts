@@ -5,7 +5,9 @@ import { FeedbackEntry } from "../../domain/entities/feedback-entry.entity";
 import { SupabaseFeedbackEntryRepository } from "./supabase-feedback-entry.repository";
 import { getSupabaseClient } from "@/modules/test-helpers/setup";
 
-const repo = new SupabaseFeedbackEntryRepository(getSupabaseClient());
+const repo = new SupabaseFeedbackEntryRepository();
+
+repo.bindRequest(getSupabaseClient());
 
 describe("SupabaseFeedbackEntryRepository", () => {
   it("persists entries and lists them chronologically for a feedback", async () => {

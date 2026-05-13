@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { IsoDate, OptionalIsoDate, Timestamp, UserId } from "@/modules/shared";
 import {
   WorkJournalEntry,
@@ -103,11 +103,10 @@ function toUserId(userId: UserId | string): UserId {
   return typeof userId === "string" ? UserId.fromPrimitives(userId) : userId;
 }
 
-export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseWorkJournalEntryRepository extends BoundSupabaseRepository implements WorkJournalEntryRepository {
 
   async search(criteria: WorkJournalEntrySearchCriteria): Promise<WorkJournalEntry[]> {
-    let query = this.supabase
+    let query = this.client
       .from("work_journal_entries")
       .select("*")
       .eq("user_id", criteria.userId.toPrimitives())
@@ -138,7 +137,7 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
   ): Promise<WorkJournalEntry | null> {
     const entryId = toEntryId(id);
     const ownerId = toUserId(userId);
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_entries")
       .select("*")
       .eq("id", entryId.toPrimitives())
@@ -150,7 +149,7 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
   }
 
   async save(entry: WorkJournalEntry): Promise<WorkJournalEntry> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_entries")
       .upsert(entryToRow(entry), { onConflict: "id" })
       .select("*")
@@ -163,7 +162,7 @@ export class SupabaseWorkJournalEntryRepository implements WorkJournalEntryRepos
   async delete(id: WorkJournalEntryId | string, userId: UserId | string): Promise<void> {
     const entryId = toEntryId(id);
     const ownerId = toUserId(userId);
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("work_journal_entries")
       .delete()
       .eq("id", entryId.toPrimitives())

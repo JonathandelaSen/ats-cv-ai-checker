@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCommitmentsModule, presentCommitmentContext } from "@/modules/commitments";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { commitmentsModule } from "@/lib/container";
+import { presentCommitmentContext } from "@/modules/commitments";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   optionalStringEnum,
@@ -24,8 +25,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (name === null || roleOrLabel === undefined) {
       return NextResponse.json({ error: "Invalid commitment context payload" }, { status: 400 });
     }
-    const mod = createCommitmentsModule(supabase, new SupabaseEventTracker());
-    const context = await mod.updateContext.execute({
+    commitmentsModule.bindRequest(supabase);
+    const context = await commitmentsModule.updateContext.execute({
       userId: user.id,
       id,
       type,

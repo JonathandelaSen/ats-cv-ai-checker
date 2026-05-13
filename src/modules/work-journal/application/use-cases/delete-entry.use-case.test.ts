@@ -15,8 +15,10 @@ const supabase = getSupabaseClient();
 describe("DeleteEntryUseCase", () => {
   it("deletes an existing entry", async () => {
     const user = await createTestUser("wj-delete-entry");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
-    const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
+    const entryRepo = new SupabaseWorkJournalEntryRepository();
+    entryRepo.bindRequest(supabase);
     const useCase = new DeleteEntryUseCase({
       entryRepo,
       tracker: createMockTracker(),
@@ -44,7 +46,8 @@ describe("DeleteEntryUseCase", () => {
 
   it("throws EntryNotFoundError when the entry does not exist", async () => {
     const user = await createTestUser("wj-delete-entry-missing");
-    const entryRepo = new SupabaseWorkJournalEntryRepository(supabase);
+    const entryRepo = new SupabaseWorkJournalEntryRepository();
+    entryRepo.bindRequest(supabase);
     const useCase = new DeleteEntryUseCase({
       entryRepo,
       tracker: createMockTracker(),

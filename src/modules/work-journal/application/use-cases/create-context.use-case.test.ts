@@ -13,7 +13,8 @@ const supabase = getSupabaseClient();
 describe("CreateContextUseCase", () => {
   it("creates a context and records observability events", async () => {
     const user = await createTestUser("wj-create-context");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const tracker = createMockTracker();
     const useCase = new CreateContextUseCase({ contextRepo, tracker });
     const name = testLabel("context");

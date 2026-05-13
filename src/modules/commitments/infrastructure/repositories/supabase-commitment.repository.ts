@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { EntityId, UserId } from "@/modules/shared";
 import {
   Commitment,
@@ -65,11 +65,10 @@ function commitmentToRow(commitment: Commitment): CommitmentRow {
   };
 }
 
-export class SupabaseCommitmentRepository implements CommitmentRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseCommitmentRepository extends BoundSupabaseRepository implements CommitmentRepository {
 
   async search(userId: UserId): Promise<Commitment[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitments")
       .select("*")
       .eq("user_id", userId.toPrimitives())
@@ -79,7 +78,7 @@ export class SupabaseCommitmentRepository implements CommitmentRepository {
   }
 
   async findById(id: EntityId, userId: UserId): Promise<Commitment | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitments")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -90,7 +89,7 @@ export class SupabaseCommitmentRepository implements CommitmentRepository {
   }
 
   async save(commitment: Commitment): Promise<Commitment> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitments")
       .upsert(commitmentToRow(commitment), { onConflict: "id" })
       .select("*")
@@ -100,7 +99,7 @@ export class SupabaseCommitmentRepository implements CommitmentRepository {
   }
 
   async delete(id: EntityId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("commitments")
       .delete()
       .eq("id", id.toPrimitives())

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { Timestamp, UserId } from "@/modules/shared";
 import {
   WorkJournalContext,
@@ -89,11 +89,10 @@ function rowToContext(row: WorkJournalContextRow): WorkJournalContext {
   return WorkJournalContext.fromPrimitives(rowToPrimitives(row));
 }
 
-export class SupabaseWorkJournalContextRepository implements WorkJournalContextRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepository implements WorkJournalContextRepository {
 
   async search(criteria: WorkJournalContextSearchCriteria): Promise<WorkJournalContext[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_contexts")
       .select("*")
       .eq("user_id", criteria.userId.toPrimitives())
@@ -108,7 +107,7 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
     id: WorkJournalContextId,
     userId: UserId
   ): Promise<WorkJournalContext | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_contexts")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -123,14 +122,14 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
     const row = contextToRow(context);
 
     if (row.is_default) {
-      await this.supabase
+      await this.client
         .from("work_journal_contexts")
         .update({ is_default: false })
         .eq("user_id", row.user_id)
         .neq("id", row.id);
     }
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_contexts")
       .upsert(row, { onConflict: "id" })
       .select("*")
@@ -141,7 +140,7 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
   }
 
   async delete(id: WorkJournalContextId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("work_journal_contexts")
       .delete()
       .eq("id", id.toPrimitives())
@@ -154,7 +153,7 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
     userId: UserId | string
   ): Promise<Set<WorkJournalSuggestionKey>> {
     const ownerId = toUserId(userId);
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("work_journal_hidden_context_suggestions")
       .select("type, name_key")
       .eq("user_id", ownerId.toPrimitives());
@@ -176,7 +175,7 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
     const ownerId = toUserId(userId);
     const suggestionType = suggestion.type;
     const suggestionName = suggestion.name;
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("work_journal_hidden_context_suggestions")
       .upsert(
         {
@@ -191,7 +190,7 @@ export class SupabaseWorkJournalContextRepository implements WorkJournalContextR
 
   async findLatestEntryContextId(userId: UserId | string): Promise<WorkJournalContextId | null> {
     const ownerId = toUserId(userId);
-    const { data } = await this.supabase
+    const { data } = await this.client
       .from("work_journal_entries")
       .select("context_id, updated_at")
       .eq("user_id", ownerId.toPrimitives())

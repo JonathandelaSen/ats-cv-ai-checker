@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { feedbackNotesModule } from "@/lib/container";
 import {
-  createFeedbackNotesModule,
   presentFeedbackEntry,
 } from "@/modules/feedback-notes";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { handleDomainError } from "@/modules/shared";
 import { getAuthedSupabase, normalizeRequiredText } from "../../../validation";
 
 export async function GET(
@@ -14,9 +14,8 @@ export async function GET(
     const { supabase, user } = await getAuthedSupabase();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const entries = await mod.listEntries.execute(user.id, id);
+    feedbackNotesModule.bindRequest(supabase);
+    const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
     return NextResponse.json(entries.map(presentFeedbackEntry));
   } catch (error: unknown) {
     return handleDomainError(error);
@@ -36,9 +35,8 @@ export async function POST(
     if (!content) {
       return NextResponse.json({ error: "Entry content is required" }, { status: 400 });
     }
-    const tracker = new SupabaseEventTracker();
-    const mod = createFeedbackNotesModule(supabase, tracker);
-    const entry = await mod.createEntry.execute({
+    feedbackNotesModule.bindRequest(supabase);
+    const entry = await feedbackNotesModule.createEntry.execute({
       user_id: user.id,
       feedback_id: id,
       content,

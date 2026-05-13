@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import {
   FeedbackEntry,
   type FeedbackEntryPrimitives,
@@ -11,11 +11,10 @@ function rowToEntry(row: FeedbackEntryRow): FeedbackEntry {
   return FeedbackEntry.fromPrimitives(row);
 }
 
-export class SupabaseFeedbackEntryRepository implements FeedbackEntryRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseFeedbackEntryRepository extends BoundSupabaseRepository implements FeedbackEntryRepository {
 
   async listByFeedback(feedbackId: string, userId: string): Promise<FeedbackEntry[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("feedback_notes_entries")
       .select("*")
       .eq("feedback_id", feedbackId)
@@ -27,7 +26,7 @@ export class SupabaseFeedbackEntryRepository implements FeedbackEntryRepository 
   }
 
   async findById(id: string, userId: string): Promise<FeedbackEntry | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("feedback_notes_entries")
       .select("*")
       .eq("id", id)
@@ -39,7 +38,7 @@ export class SupabaseFeedbackEntryRepository implements FeedbackEntryRepository 
   }
 
   async save(entry: FeedbackEntry): Promise<FeedbackEntry> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("feedback_notes_entries")
       .upsert(entry.toPrimitives(), { onConflict: "id" })
       .select("*")
@@ -50,7 +49,7 @@ export class SupabaseFeedbackEntryRepository implements FeedbackEntryRepository 
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("feedback_notes_entries")
       .delete()
       .eq("id", id)

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import {
   Feedback,
   type FeedbackPrimitives,
@@ -37,11 +37,10 @@ function feedbackToRow(feedback: Feedback): FeedbackPrimitives {
   return feedback.toPrimitives();
 }
 
-export class SupabaseFeedbackRepository implements FeedbackRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseFeedbackRepository extends BoundSupabaseRepository implements FeedbackRepository {
 
   async list(criteria: FeedbackSearchCriteria): Promise<Feedback[]> {
-    let query = this.supabase
+    let query = this.client
       .from("feedback_notes_feedbacks")
       .select("*")
       .eq("user_id", criteria.userId)
@@ -57,7 +56,7 @@ export class SupabaseFeedbackRepository implements FeedbackRepository {
   }
 
   async findById(id: string, userId: string): Promise<Feedback | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("feedback_notes_feedbacks")
       .select("*")
       .eq("id", id)
@@ -69,7 +68,7 @@ export class SupabaseFeedbackRepository implements FeedbackRepository {
   }
 
   async save(feedback: Feedback): Promise<Feedback> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("feedback_notes_feedbacks")
       .upsert(feedbackToRow(feedback), { onConflict: "id" })
       .select("*")
@@ -80,7 +79,7 @@ export class SupabaseFeedbackRepository implements FeedbackRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("feedback_notes_feedbacks")
       .delete()
       .eq("id", id)

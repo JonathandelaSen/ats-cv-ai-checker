@@ -7,8 +7,10 @@ import { SupabaseFeedbackRepository } from "./infrastructure/repositories/supaba
 
 export function makeFeedbackDeps() {
   const supabase = getSupabaseClient();
-  const feedbackRepo = new SupabaseFeedbackRepository(supabase);
-  const entryRepo = new SupabaseFeedbackEntryRepository(supabase);
+  const feedbackRepo = new SupabaseFeedbackRepository();
+  feedbackRepo.bindRequest(supabase);
+  const entryRepo = new SupabaseFeedbackEntryRepository();
+  entryRepo.bindRequest(supabase);
   const tracker = createMockTracker();
   return { feedbackRepo, entryRepo, tracker };
 }

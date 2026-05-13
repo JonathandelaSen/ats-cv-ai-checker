@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWorkJournalModule } from "@/modules/work-journal";
-import { SupabaseEventTracker, handleDomainError } from "@/modules/shared";
+import { workJournalModule } from "@/lib/container";
+import { handleDomainError } from "@/modules/shared";
 import {
   getAuthedSupabase,
   normalizeOptionalDate,
@@ -34,10 +34,8 @@ export async function POST(req: NextRequest) {
     if (!contextId || !dateStart || dateEnd === undefined || topic === undefined || !notes) {
       return NextResponse.json({ error: "Invalid draft payload" }, { status: 400 });
     }
-
-    const tracker = new SupabaseEventTracker();
-    const mod = createWorkJournalModule(supabase, tracker);
-    const draftUseCase = mod.createDraftEntryUseCase({ apiKey: geminiApiKey, model });
+    workJournalModule.bindRequest(supabase);
+    const draftUseCase = workJournalModule.createDraftEntryUseCase({ apiKey: geminiApiKey, model });
 
     const finalText = await draftUseCase.execute(user.id, contextId, {
       dateStart,

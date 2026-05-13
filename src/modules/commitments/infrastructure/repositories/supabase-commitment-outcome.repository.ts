@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { BoundSupabaseRepository } from "@/modules/shared";
 import { EntityId, UserId } from "@/modules/shared";
 import {
   CommitmentOutcome,
@@ -58,11 +58,10 @@ function outcomeToRow(outcome: CommitmentOutcome): CommitmentOutcomeRow {
   };
 }
 
-export class SupabaseCommitmentOutcomeRepository implements CommitmentOutcomeRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+export class SupabaseCommitmentOutcomeRepository extends BoundSupabaseRepository implements CommitmentOutcomeRepository {
 
   async searchByUser(userId: UserId): Promise<CommitmentOutcome[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_outcomes")
       .select("*")
       .eq("user_id", userId.toPrimitives())
@@ -72,7 +71,7 @@ export class SupabaseCommitmentOutcomeRepository implements CommitmentOutcomeRep
   }
 
   async searchByCommitment(commitmentId: EntityId, userId: UserId): Promise<CommitmentOutcome[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_outcomes")
       .select("*")
       .eq("commitment_id", commitmentId.toPrimitives())
@@ -83,7 +82,7 @@ export class SupabaseCommitmentOutcomeRepository implements CommitmentOutcomeRep
   }
 
   async findById(id: EntityId, userId: UserId): Promise<CommitmentOutcome | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_outcomes")
       .select("*")
       .eq("id", id.toPrimitives())
@@ -94,7 +93,7 @@ export class SupabaseCommitmentOutcomeRepository implements CommitmentOutcomeRep
   }
 
   async save(outcome: CommitmentOutcome): Promise<CommitmentOutcome> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.client
       .from("commitment_outcomes")
       .upsert(outcomeToRow(outcome), { onConflict: "id" })
       .select("*")
@@ -104,7 +103,7 @@ export class SupabaseCommitmentOutcomeRepository implements CommitmentOutcomeRep
   }
 
   async delete(id: EntityId, userId: UserId): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await this.client
       .from("commitment_outcomes")
       .delete()
       .eq("id", id.toPrimitives())

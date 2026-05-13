@@ -12,7 +12,8 @@ const supabase = getSupabaseClient();
 describe("HandleSuggestionActionUseCase", () => {
   it("promotes a suggestion into a CV-created context and records observability", async () => {
     const user = await createTestUser("wj-suggestion-promote");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const tracker = createMockTracker();
     const useCase = new HandleSuggestionActionUseCase({ contextRepo, tracker });
 
@@ -54,7 +55,8 @@ describe("HandleSuggestionActionUseCase", () => {
 
   it("hides a suggestion and records observability", async () => {
     const user = await createTestUser("wj-suggestion-hide");
-    const contextRepo = new SupabaseWorkJournalContextRepository(supabase);
+    const contextRepo = new SupabaseWorkJournalContextRepository();
+    contextRepo.bindRequest(supabase);
     const tracker = createMockTracker();
     const useCase = new HandleSuggestionActionUseCase({ contextRepo, tracker });
 
