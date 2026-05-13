@@ -3,7 +3,7 @@ import type { Analysis, CVRecord } from "@/lib/analysis-types";
 import {
   INTERVIEW_QUESTION_SYSTEM_PROMPT,
   buildInterviewQuestionPrompt,
-} from "@/lib/ai-interview-question-prompts";
+} from "./interview-question-prompts";
 
 export interface InterviewQuestionAIInput {
   apiKey: string;
@@ -17,7 +17,7 @@ export interface InterviewQuestionAIInput {
   analysis?: Analysis | null;
 }
 
-export function parseInterviewQuestionAIResponse(rawText: string): string {
+function parseInterviewQuestionAIResponse(rawText: string): string {
   const parsed = JSON.parse(rawText || "{}") as Record<string, unknown>;
   const answer = typeof parsed.answer === "string" ? parsed.answer.trim() : "";
 

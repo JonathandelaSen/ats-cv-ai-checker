@@ -4,7 +4,7 @@ import {
   generatePublicCVId,
   normalizePublicCVSlug,
   type PublicCVSettingsRequest,
-} from "@/lib/public-cv";
+} from "@/modules/cv-library/domain/services/public-cv";
 import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";

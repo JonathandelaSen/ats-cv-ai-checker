@@ -1,10 +1,10 @@
 # Chat con la AI Sobre la Oferta
 
 ## Source
-- Prompt source file: `src/lib/ai-offer-chat-prompts.ts`
+- Prompt source file: `src/modules/analysis-chat/infrastructure/services/analysis-chat-prompts.ts`
 - System prompt constant: `OFFER_CHAT_SYSTEM_PROMPT`
 - Prompt builder: `buildOfferChatPrompt`
-- Model controller: `src/lib/ai-offer-chat.ts`
+- AI service (controller): `src/modules/analysis-chat/infrastructure/services/gemini-analysis-chat-ai.service.ts`
 - API route: `src/app/api/analyses/[id]/chat/route.ts`
 
 ## Current Prompt

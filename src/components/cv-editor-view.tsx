@@ -26,7 +26,7 @@ import type { CVRecommendationAnalysis } from "@/lib/analysis-types";
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library";
 import { getCVTemplate, type CVTemplateLocale } from "@/lib/cv-templates";
 import { getErrorMessage } from "@/lib/errors";
-import { buildPublicCVPath, normalizePublicCVSlug } from "@/lib/public-cv";
+import { buildPublicCVPath, normalizePublicCVSlug } from "@/modules/cv-library/domain/services/public-cv";
 import {
   normalizeStandardCVProfile,
   type StandardCVProfile,

@@ -2,7 +2,7 @@
 
 ## Current Prompt
 
-System prompt source: `src/lib/ai-feedback-notes-prompts.ts`
+System prompt source: `src/modules/feedback-notes/infrastructure/services/feedback-notes-prompts.ts`
 
 The system prompt tells the model to turn private raw feedback notes into useful peer feedback, write in the same language as the notes, use only the provided notes, avoid invented facts, preserve uncertainty, and return JSON only.
 
@@ -15,9 +15,8 @@ The user prompt includes:
 
 ## Source Files
 
-- Prompt builder: `src/lib/ai-feedback-notes-prompts.ts`
-- Model-call controller: `src/lib/ai-feedback-notes.ts`
-- Module AI adapter: `src/modules/feedback-notes/infrastructure/services/gemini-feedback-ai.service.ts`
+- Prompt builder: `src/modules/feedback-notes/infrastructure/services/feedback-notes-prompts.ts`
+- AI service (model calls + response parsing): `src/modules/feedback-notes/infrastructure/services/gemini-feedback-ai.service.ts`
 - Generate use case: `src/modules/feedback-notes/application/use-cases/generate-final-feedback.use-case.ts`
 
 ## Data Flow
@@ -26,4 +25,4 @@ The route receives a Gemini API key and model, composes the Feedback Notes modul
 
 ## Maintenance Notes
 
-Keep prompt text and prompt builders in `src/lib/ai-feedback-notes-prompts.ts`. Keep Gemini SDK calls and response parsing in `src/lib/ai-feedback-notes.ts`. When changing the prompt, the input data, response shape, or generate controller behavior, update this document in the same change.
+Keep prompt text and prompt builders in `src/modules/feedback-notes/infrastructure/services/feedback-notes-prompts.ts`. Keep Gemini SDK calls and response parsing in `src/modules/feedback-notes/infrastructure/services/gemini-feedback-ai.service.ts`. When changing the prompt, the input data, response shape, or generate controller behavior, update this document in the same change.

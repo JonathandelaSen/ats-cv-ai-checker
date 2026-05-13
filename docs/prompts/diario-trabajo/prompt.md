@@ -2,8 +2,8 @@
 
 ## Source files
 
-- Prompt builders and system instructions: `src/lib/ai-work-journal-prompts.ts`
-- Model-call controller: `src/lib/ai-work-journal.ts`
+- Prompt builders and system instructions: `src/modules/work-journal/infrastructure/services/work-journal-prompts.ts`
+- Model-call controller: `src/modules/work-journal/infrastructure/services/gemini-journal-ai.service.ts`
 
 ## Current prompts
 
@@ -43,4 +43,4 @@ It asks the model to return:
 
 - Keep prompt text and model-call code separate.
 - Do not ask the model to infer facts that are not present in entries or additional evidence.
-- When changing response shape, update `src/lib/ai-work-journal.ts`, API routes, UI handling, and this document in the same change.
+- When changing response shape, update `src/modules/work-journal/infrastructure/services/gemini-journal-ai.service.ts`, API routes, UI handling, and this document in the same change.

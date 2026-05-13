@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { editInterviewQuestionAnswer } from "@/lib/ai-interview-question-generation";
+import { editInterviewQuestionAnswer } from "@/modules/selection-process/infrastructure/services/gemini-interview-question-ai.service";
 import { getBestCVText } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
 import {

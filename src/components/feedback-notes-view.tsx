@@ -20,7 +20,7 @@ import {
 import {
   buildFeedbackNotesFinalPrompt,
   type FeedbackNotesFinalPromptEntry,
-} from "@/lib/ai-feedback-notes-prompts";
+} from "@/modules/feedback-notes/infrastructure/services/feedback-notes-prompts";
 import type {
   FeedbackEntryPrimitives,
   FeedbackPrimitives,

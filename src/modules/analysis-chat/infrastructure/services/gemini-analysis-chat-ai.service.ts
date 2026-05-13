@@ -1,6 +1,10 @@
-import { generateOfferChatAnswer } from "@/lib/ai-offer-chat";
+import { GoogleGenAI } from "@google/genai";
 import type { Analysis, CVRecord } from "@/lib/analysis-types";
-import type { OfferChatHistoryMessage } from "@/lib/ai-offer-chat-prompts";
+import {
+  OFFER_CHAT_SYSTEM_PROMPT,
+  buildOfferChatPrompt,
+  type OfferChatHistoryMessage,
+} from "./analysis-chat-prompts";
 import type {
   AnalysisChatAIInput,
   AnalysisChatAIService,
@@ -8,9 +12,7 @@ import type {
 
 export class GeminiAnalysisChatAIService implements AnalysisChatAIService {
   async generateAnswer(input: AnalysisChatAIInput): Promise<string> {
-    return generateOfferChatAnswer({
-      apiKey: input.apiKey,
-      model: input.model,
+    const promptInput = {
       message: input.message,
       analysis: input.context.analysis as Analysis,
       cv: input.context.cv as CVRecord | null,
@@ -19,6 +21,35 @@ export class GeminiAnalysisChatAIService implements AnalysisChatAIService {
         role: message.role,
         content: message.content,
       })) satisfies OfferChatHistoryMessage[],
+    };
+
+    const googleAI = new GoogleGenAI({ apiKey: input.apiKey });
+    const response = await googleAI.models.generateContent({
+      model: input.model,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: buildOfferChatPrompt(promptInput) }],
+        },
+      ],
+      config: {
+        systemInstruction: OFFER_CHAT_SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+      },
     });
+
+    return this.parseResponse(response.text || "{}");
+  }
+
+  private parseResponse(rawText: string): string {
+    const parsed = JSON.parse(rawText || "{}") as Record<string, unknown>;
+    const answer =
+      typeof parsed.answer === "string" ? parsed.answer.trim() : "";
+
+    if (!answer) {
+      throw new Error("La IA no pudo generar una respuesta con este contexto.");
+    }
+
+    return answer;
   }
 }

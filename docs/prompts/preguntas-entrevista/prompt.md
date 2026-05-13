@@ -1,10 +1,10 @@
 # Preguntas de Entrevista
 
 ## Source
-- Prompt source file: `src/lib/ai-interview-question-prompts.ts`
+- Prompt source file: `src/modules/selection-process/infrastructure/services/interview-question-prompts.ts`
 - System prompt constant: `INTERVIEW_QUESTION_SYSTEM_PROMPT`
 - Prompt builder: `buildInterviewQuestionPrompt`
-- Model controller: `src/lib/ai-interview-question-generation.ts`
+- Model controller: `src/modules/selection-process/infrastructure/services/gemini-interview-question-ai.service.ts`
 
 ## Current Prompt
 ```text

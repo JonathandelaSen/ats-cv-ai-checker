@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import CVTemplatePreview from "@/components/cv-template-preview";
 import { cvLibraryModule } from "@/lib/container";
-import { buildPublicCVPath } from "@/lib/public-cv";
+import { buildPublicCVPath } from "@/modules/cv-library/domain/services/public-cv";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { presentCVDocument } from "@/modules/cv-library";

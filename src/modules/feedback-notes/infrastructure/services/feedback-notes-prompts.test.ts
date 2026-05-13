@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeedbackNotesFinalPrompt } from "./ai-feedback-notes-prompts";
+import { buildFeedbackNotesFinalPrompt } from "./feedback-notes-prompts";
 
 describe("buildFeedbackNotesFinalPrompt", () => {
   it("includes the person name and dated entries", () => {
