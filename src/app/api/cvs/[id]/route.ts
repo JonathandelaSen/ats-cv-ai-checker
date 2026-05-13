@@ -1,11 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteCV,
-  getCV,
-  updateCVName,
-  updateCVProfile,
-  updateCVPublicSettings,
-} from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   generatePublicCVId,
@@ -13,6 +6,8 @@ import {
   type PublicCVSettingsRequest,
 } from "@/lib/public-cv";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument } from "@/modules/cv-library";
 
 async function getAuthedSupabase() {
   const supabase = await createClient();
@@ -34,12 +29,14 @@ export async function GET(
     }
 
     const { id } = await params;
-    const cv = await getCV(supabase, id, user.id);
+    const cv = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cv);
+    return NextResponse.json(presentCVDocument(cv));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -67,7 +64,10 @@ export async function PATCH(
       body.public_slug !== undefined ||
       body.confirmPublicExposure !== undefined
     ) {
-      const existing = await getCV(supabase, id, user.id);
+      const existingDocument = await cvLibraryModule
+        .bindRequest(supabase)
+        .getCVDocument.execute({ id, userId: user.id });
+      const existing = existingDocument ? presentCVDocument(existingDocument) : null;
       if (!existing || existing.type !== "template") {
         return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
       }
@@ -94,27 +94,35 @@ export async function PATCH(
         );
       }
 
-      const updated = await updateCVPublicSettings(supabase, id, user.id, {
-        public_enabled: nextEnabled,
-        public_id: existing.public_id ?? generatePublicCVId(),
-        public_slug: normalizedSlug,
-      });
+      const updated = await cvLibraryModule
+        .bindRequest(supabase)
+        .updateCVDocumentPublicSettings.execute({
+          id,
+          userId: user.id,
+          publicEnabled: nextEnabled,
+          publicId: existing.public_id ?? generatePublicCVId(),
+          publicSlug: normalizedSlug,
+        });
       if (!updated) {
         return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
       }
-      return NextResponse.json(updated);
+      return NextResponse.json(presentCVDocument(updated));
     }
 
     if (body.profile || body.template_locale) {
-      const updated = await updateCVProfile(supabase, id, user.id, {
-        ...(body.name?.trim() ? { name: body.name.trim() } : {}),
-        ...(body.profile ? { profile: body.profile as never } : {}),
-        ...(body.template_locale ? { template_locale: body.template_locale } : {}),
-      });
+      const updated = await cvLibraryModule
+        .bindRequest(supabase)
+        .updateTemplateCVDocumentProfile.execute({
+          id,
+          userId: user.id,
+          ...(body.name?.trim() ? { name: body.name.trim() } : {}),
+          ...(body.profile ? { profile: body.profile } : {}),
+          ...(body.template_locale ? { templateLocale: body.template_locale } : {}),
+        });
       if (!updated) {
         return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
       }
-      return NextResponse.json(updated);
+      return NextResponse.json(presentCVDocument(updated));
     }
 
     const trimmedName = body.name?.trim();
@@ -122,12 +130,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const cv = await updateCVName(supabase, id, user.id, trimmedName);
+    const cv = await cvLibraryModule
+      .bindRequest(supabase)
+      .updateCVDocumentName.execute({ id, userId: user.id, name: trimmedName });
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cv);
+    return NextResponse.json(presentCVDocument(cv));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -144,7 +154,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const result = await deleteCV(supabase, id, user.id);
+    const result = await cvLibraryModule
+      .bindRequest(supabase)
+      .deleteCVDocument.execute({ id, userId: user.id });
     if (result.status === "not_found") {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getCV,
-  getCVStructuredProfile,
-  getLatestRecommendationAnalysisForCV,
-  upsertCVStructuredProfile,
-} from "@/lib/db";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +8,8 @@ import {
   type CVTemplateId,
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 
 export const maxDuration = 60;
 
@@ -69,12 +66,20 @@ export async function POST(
       );
     }
 
-    const cv = await getCV(supabase, id, user.id);
+    const cvDocument = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = cvDocument ? presentCVDocument(cvDocument) : null;
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    const structured = await getCVStructuredProfile(supabase, id, user.id);
+    const structuredDocument = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
+    const structured = structuredDocument
+      ? presentCVStructuredProfile(structuredDocument)
+      : null;
     if (!structured) {
       return NextResponse.json(
         { error: "Structured profile not found" },
@@ -121,16 +126,19 @@ export async function POST(
       recommendations,
     });
 
-    const profile = await upsertCVStructuredProfile(supabase, {
-      user_id: user.id,
-      cv_id: id,
-      schema_version: structured.schema_version,
-      source_text_hash: structured.source_text_hash,
-      ai_model: model,
+    const profile = await cvLibraryModule
+      .bindRequest(supabase)
+      .upsertCVStructuredProfile.execute({
+      userId: user.id,
+      cvDocumentId: id,
+      schemaVersion: structured.schema_version,
+      sourceTextHash: structured.source_text_hash,
+      aiModel: model,
       profile: editedProfile,
+      requestId: `cv-profile-edit-${id}`,
     });
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({ profile: presentCVStructuredProfile(profile) });
   } catch (error: unknown) {
     console.error("Structured profile edit error:", error);
     return NextResponse.json(

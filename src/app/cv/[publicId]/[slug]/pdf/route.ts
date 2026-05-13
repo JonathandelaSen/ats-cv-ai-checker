@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
-import { getPublishedCVByPublicId } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument } from "@/modules/cv-library";
 
 export async function GET(
   _req: NextRequest,
@@ -12,7 +13,10 @@ export async function GET(
   try {
     const { publicId, slug } = await params;
     const supabase = createAdminClient();
-    const cv = await getPublishedCVByPublicId(supabase, publicId);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getPublishedCVDocument.execute({ publicId });
+    const cv = document ? presentCVDocument(document) : null;
 
     if (!cv?.profile || !cv.template_id || !cv.public_id || !cv.public_slug) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });

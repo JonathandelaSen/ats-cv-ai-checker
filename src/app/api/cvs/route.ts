@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PDFS_BUCKET, createCV, listCVs } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -10,6 +9,8 @@ import {
 } from "@/lib/observability";
 import { extractPdfText } from "@/lib/pdf-extraction";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { CV_PDFS_BUCKET, presentCVDocument, presentCVDocuments } from "@/modules/cv-library";
 
 async function getAuthedSupabase() {
   const supabase = await createClient();
@@ -27,8 +28,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const cvs = await listCVs(supabase, user.id);
-    return NextResponse.json(cvs);
+    const cvs = await cvLibraryModule
+      .bindRequest(supabase)
+      .listCVDocuments.execute({ userId: user.id });
+    return NextResponse.json(presentCVDocuments(cvs));
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -175,17 +178,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cv = await createCV(supabase, {
+    const cv = await cvLibraryModule
+      .bindRequest(supabase)
+      .createUploadedCVDocument.execute({
       id: cvId,
-      user_id: user.id,
+      userId: user.id,
       name: requestedName || file.name.replace(/\.pdf$/i, ""),
       filename: file.name,
-      file_size: file.size,
-      pdf_storage_path: pdfStoragePath,
-      ...extracted,
+      fileSize: file.size,
+      pdfStoragePath,
+      textPython: extracted.text_python,
+      textPdfjs: extracted.text_pdfjs,
+      textNode: extracted.text_node,
+      extractErrorPython: extracted.extract_error_python,
+      extractErrorPdfjs: extracted.extract_error_pdfjs,
+      extractErrorNode: extracted.extract_error_node,
+      requestId,
     });
+    const responseCV = presentCVDocument(cv);
 
-    const texts = [cv.text_python, cv.text_pdfjs, cv.text_node];
+    const texts = [responseCV.text_python, responseCV.text_pdfjs, responseCV.text_node];
     await recordProcessingEvent({
       userId,
       cvId,
@@ -195,20 +207,20 @@ export async function POST(req: NextRequest) {
       source: "api_cvs",
       fileSize: file.size,
       textLength: Math.max(
-        cv.text_python?.length ?? 0,
-        cv.text_pdfjs?.length ?? 0,
-        cv.text_node?.length ?? 0
+        responseCV.text_python?.length ?? 0,
+        responseCV.text_pdfjs?.length ?? 0,
+        responseCV.text_node?.length ?? 0
       ),
       errorCode: hasExtractedText(texts) ? null : "no_extracted_text_available",
       errorMessage: hasExtractedText(texts)
         ? null
         : "CV uploaded, but no parser produced usable text.",
       metadata: {
-        filename: cv.filename,
+        filename: responseCV.filename,
       },
     });
 
-    return NextResponse.json(cv);
+    return NextResponse.json(responseCV);
   } catch (error: unknown) {
     console.error("Create CV error:", error);
     await recordProcessingEvent({

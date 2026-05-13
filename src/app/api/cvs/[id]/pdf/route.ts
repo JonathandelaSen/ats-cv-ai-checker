@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PDFS_BUCKET, getCV } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { CV_PDFS_BUCKET, presentCVDocument } from "@/modules/cv-library";
 
 export async function GET(
   req: NextRequest,
@@ -17,7 +18,10 @@ export async function GET(
     }
 
     const { id } = await params;
-    const cv = await getCV(supabase, id, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = document ? presentCVDocument(document) : null;
 
     if (cv?.type === "template") {
       const targetUrl = new URL(`/api/cvs/${id}/template-pdf`, req.url);

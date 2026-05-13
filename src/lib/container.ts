@@ -3,6 +3,7 @@ import {
   createAnalysisChatModule,
   registerAnalysisChatQueries,
 } from "@/modules/analysis-chat";
+import { createCVLibraryModule } from "@/modules/cv-library";
 import { createCommitmentsModule } from "@/modules/commitments";
 import { createFeedbackNotesModule } from "@/modules/feedback-notes";
 import { createReceivedFeedbackModule } from "@/modules/received-feedback";
@@ -12,6 +13,7 @@ const queryBus = new InMemoryQueryBus();
 registerAnalysisChatQueries(queryBus);
 
 export const analysisChatModule = createAnalysisChatModule(queryBus);
+export const cvLibraryModule = createCVLibraryModule();
 export const commitmentsModule = createCommitmentsModule();
 export const feedbackNotesModule = createFeedbackNotesModule();
 export const receivedFeedbackModule = createReceivedFeedbackModule();

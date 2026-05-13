@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PDFS_BUCKET, createCV } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -10,6 +9,8 @@ import {
 } from "@/lib/observability";
 import { extractPdfText } from "@/lib/pdf-extraction";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { CV_PDFS_BUCKET, presentCVDocument } from "@/modules/cv-library";
 
 export async function POST(req: NextRequest) {
   const requestId = createRequestId("parse");
@@ -148,15 +149,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cv = await createCV(supabase, {
+    const cvDocument = await cvLibraryModule
+      .bindRequest(supabase)
+      .createUploadedCVDocument.execute({
       id: cvId,
-      user_id: user.id,
+      userId: user.id,
       name: requestedName || file.name.replace(/\.pdf$/i, ""),
       filename: file.name,
-      file_size: file.size,
-      pdf_storage_path: pdfStoragePath,
-      ...extracted,
+      fileSize: file.size,
+      pdfStoragePath,
+      textPython: extracted.text_python,
+      textPdfjs: extracted.text_pdfjs,
+      textNode: extracted.text_node,
+      extractErrorPython: extracted.extract_error_python,
+      extractErrorPdfjs: extracted.extract_error_pdfjs,
+      extractErrorNode: extracted.extract_error_node,
+      requestId,
     });
+    const cv = presentCVDocument(cvDocument);
 
     const texts = [cv.text_python, cv.text_pdfjs, cv.text_node];
     await recordProcessingEvent({

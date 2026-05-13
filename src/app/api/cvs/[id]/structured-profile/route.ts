@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getCV,
-  getCVStructuredProfile,
-  upsertCVStructuredProfile,
-} from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { structureCVProfileWithAI } from "@/lib/ai-cv-structuring";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 
 async function getAuthedSupabase() {
   const supabase = await createClient();
@@ -29,13 +26,19 @@ export async function GET(
     }
 
     const { id } = await params;
-    const cv = await getCV(supabase, id, user.id);
+    const cv = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    const profile = await getCVStructuredProfile(supabase, id, user.id);
-    return NextResponse.json({ profile });
+    const profile = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
+    return NextResponse.json({
+      profile: profile ? presentCVStructuredProfile(profile) : null,
+    });
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
@@ -72,7 +75,10 @@ export async function POST(
       );
     }
 
-    const cv = await getCV(supabase, id, user.id);
+    const cvDocument = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = cvDocument ? presentCVDocument(cvDocument) : null;
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
@@ -86,9 +92,12 @@ export async function POST(
     }
 
     const sourceTextHash = getCVSourceTextHash(text);
-    const existing = await getCVStructuredProfile(supabase, id, user.id);
-    if (existing && existing.source_text_hash === sourceTextHash && !force) {
-      return NextResponse.json({ profile: existing, cached: true });
+    const existing = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
+    const existingResponse = existing ? presentCVStructuredProfile(existing) : null;
+    if (existingResponse && existingResponse.source_text_hash === sourceTextHash && !force) {
+      return NextResponse.json({ profile: existingResponse, cached: true });
     }
 
     const structured = await structureCVProfileWithAI({
@@ -97,16 +106,19 @@ export async function POST(
       text,
     });
 
-    const profile = await upsertCVStructuredProfile(supabase, {
-      user_id: user.id,
-      cv_id: id,
-      schema_version: structured.schemaVersion,
-      source_text_hash: sourceTextHash,
-      ai_model: model,
+    const profile = await cvLibraryModule
+      .bindRequest(supabase)
+      .upsertCVStructuredProfile.execute({
+      userId: user.id,
+      cvDocumentId: id,
+      schemaVersion: structured.schemaVersion,
+      sourceTextHash,
+      aiModel: model,
       profile: structured.profile,
+      requestId: `cv-profile-${id}`,
     });
 
-    return NextResponse.json({ profile, cached: false });
+    return NextResponse.json({ profile: presentCVStructuredProfile(profile), cached: false });
   } catch (error: unknown) {
     console.error("Structured profile error:", error);
     return NextResponse.json(

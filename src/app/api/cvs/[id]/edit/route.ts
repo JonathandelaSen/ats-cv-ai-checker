@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getCV,
-  getLatestRecommendationAnalysisForCV,
-  updateCVProfile,
-} from "@/lib/db";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument } from "@/modules/cv-library";
 
 export const maxDuration = 60;
 
@@ -59,7 +57,10 @@ export async function POST(
       );
     }
 
-    const cv = await getCV(supabase, id, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = document ? presentCVDocument(document) : null;
     if (!cv || cv.type !== "template") {
       return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
     }
@@ -90,12 +91,16 @@ export async function POST(
       recommendations,
     });
 
-    const updated = await updateCVProfile(supabase, id, user.id, {
-      ai_model: model,
+    const updated = await cvLibraryModule
+      .bindRequest(supabase)
+      .updateTemplateCVDocumentProfile.execute({
+      id,
+      userId: user.id,
+      aiModel: model,
       profile: editedProfile,
     });
 
-    return NextResponse.json({ version: updated });
+    return NextResponse.json({ version: updated ? presentCVDocument(updated) : null });
   } catch (error: unknown) {
     console.error("CV edit error:", error);
     return NextResponse.json(

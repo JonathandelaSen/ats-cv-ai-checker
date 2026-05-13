@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createTemplateCV,
-  getCV,
-  getCVStructuredProfile,
-  upsertCVStructuredProfile,
-} from "@/lib/db";
 import { structureCVProfileWithAI } from "@/lib/ai-cv-structuring";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
@@ -13,6 +7,8 @@ import {
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 
 export async function POST(
   req: NextRequest,
@@ -49,7 +45,10 @@ export async function POST(
       ? (locale as CVTemplateLocale)
       : "es";
 
-    const cv = await getCV(supabase, id, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = document ? presentCVDocument(document) : null;
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
@@ -69,7 +68,12 @@ export async function POST(
         updated_at: cv.updated_at,
       };
     } else {
-      profile = await getCVStructuredProfile(supabase, id, user.id);
+      const structuredDocument = await cvLibraryModule
+        .bindRequest(supabase)
+        .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
+      profile = structuredDocument
+        ? presentCVStructuredProfile(structuredDocument)
+        : null;
     }
 
     if (!profile) {
@@ -96,29 +100,36 @@ export async function POST(
         model,
         text,
       });
-      profile = await upsertCVStructuredProfile(supabase, {
-        user_id: user.id,
-        cv_id: id,
-        schema_version: structured.schemaVersion,
-        source_text_hash: getCVSourceTextHash(text),
-        ai_model: model,
+      const savedProfile = await cvLibraryModule
+        .bindRequest(supabase)
+        .upsertCVStructuredProfile.execute({
+        userId: user.id,
+        cvDocumentId: id,
+        schemaVersion: structured.schemaVersion,
+        sourceTextHash: getCVSourceTextHash(text),
+        aiModel: model,
         profile: structured.profile,
+        requestId: `cv-template-profile-${id}`,
       });
+      profile = presentCVStructuredProfile(savedProfile);
     }
 
-    const templateCV = await createTemplateCV(supabase, {
-      user_id: user.id,
-      source_cv_id: id,
+    const templateCV = await cvLibraryModule
+      .bindRequest(supabase)
+      .createTemplateCVDocument.execute({
+      userId: user.id,
+      sourceCvId: id,
       name: `${cv.name} · ${template.name}`,
-      template_id: template.templateId,
-      template_locale: selectedLocale,
-      schema_version: profile.schema_version,
-      source_text_hash: profile.source_text_hash,
-      ai_model: profile.ai_model,
+      templateId: template.templateId,
+      templateLocale: selectedLocale,
+      schemaVersion: profile.schema_version,
+      sourceTextHash: profile.source_text_hash,
+      aiModel: profile.ai_model,
       profile: profile.profile,
+      requestId: `cv-template-${id}`,
     });
 
-    return NextResponse.json({ version: templateCV, profile });
+    return NextResponse.json({ version: presentCVDocument(templateCV), profile });
   } catch (error: unknown) {
     const message = getErrorMessage(error);
     console.error("Template selection error:", message, error);

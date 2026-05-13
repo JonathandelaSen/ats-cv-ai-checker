@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCV } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument } from "@/modules/cv-library";
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +20,10 @@ export async function GET(
     }
 
     const { id } = await params;
-    const cv = await getCV(supabase, id, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = document ? presentCVDocument(document) : null;
     if (!cv || cv.type !== "template") {
       return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
     }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCV, getLatestRecommendationAnalysisForCV } from "@/lib/db";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
 
 export async function GET(
   _req: NextRequest,
@@ -17,7 +18,9 @@ export async function GET(
     }
 
     const { id } = await params;
-    const cv = await getCV(supabase, id, user.id);
+    const cv = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }

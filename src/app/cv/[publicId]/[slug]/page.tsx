@@ -4,10 +4,11 @@ import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import CVTemplatePreview from "@/components/cv-template-preview";
-import { getPublishedCVByPublicId } from "@/lib/db";
+import { cvLibraryModule } from "@/lib/container";
 import { buildPublicCVPath } from "@/lib/public-cv";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
+import { presentCVDocument } from "@/modules/cv-library";
 
 type PublicCVPageProps = {
   params: Promise<{
@@ -18,7 +19,10 @@ type PublicCVPageProps = {
 
 const getPublicCV = cache(async (publicId: string) => {
   const supabase = createAdminClient();
-  return getPublishedCVByPublicId(supabase, publicId);
+  const cv = await cvLibraryModule
+    .bindRequest(supabase)
+    .getPublishedCVDocument.execute({ publicId });
+  return cv ? presentCVDocument(cv) : null;
 });
 
 export async function generateMetadata({

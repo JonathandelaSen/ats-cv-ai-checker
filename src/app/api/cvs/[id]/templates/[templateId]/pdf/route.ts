@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCV, getCVStructuredProfile } from "@/lib/db";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getCVTemplate,
@@ -8,6 +7,8 @@ import {
 } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { createClient } from "@/lib/supabase/server";
+import { cvLibraryModule } from "@/lib/container";
+import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 
 export async function GET(
   req: NextRequest,
@@ -28,12 +29,20 @@ export async function GET(
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
-    const cv = await getCV(supabase, id, user.id);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id, userId: user.id });
+    const cv = document ? presentCVDocument(document) : null;
     if (!cv) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    const structured = await getCVStructuredProfile(supabase, id, user.id);
+    const structuredDocument = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
+    const structured = structuredDocument
+      ? presentCVStructuredProfile(structuredDocument)
+      : null;
     if (!structured) {
       return NextResponse.json(
         { error: "Structured profile not found" },
