@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { getAnalysis, getCV, type Analysis, type CVRecord } from "@/lib/db";
+import { getAnalysisFacade } from "@/lib/analysis-facade";
+import { cvLibraryModule } from "@/lib/container";
 import { createClient } from "@/lib/supabase/server";
+import { presentCVDocument, type CVDocumentResponse } from "@/modules/cv-library";
+
+type QuestionAnalysis = NonNullable<
+  Awaited<ReturnType<typeof getAnalysisFacade>>
+>;
 
 export async function getAuthedSupabase(): Promise<{
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -40,14 +46,17 @@ export async function validateQuestionLinks(
     analysis_id?: string | null;
   }
 ): Promise<
-  | { ok: true; cv: CVRecord | null; analysis: Analysis | null }
+  | { ok: true; cv: CVDocumentResponse | null; analysis: QuestionAnalysis | null }
   | { ok: false; response: NextResponse }
 > {
-  let cv: CVRecord | null = null;
-  let analysis: Analysis | null = null;
+  let cv: CVDocumentResponse | null = null;
+  let analysis: QuestionAnalysis | null = null;
 
   if (input.cv_id) {
-    cv = await getCV(supabase, input.cv_id, userId);
+    const document = await cvLibraryModule
+      .bindRequest(supabase)
+      .getCVDocument.execute({ id: input.cv_id, userId });
+    cv = document ? presentCVDocument(document) : null;
     if (!cv) {
       return {
         ok: false,
@@ -57,7 +66,7 @@ export async function validateQuestionLinks(
   }
 
   if (input.analysis_id) {
-    analysis = await getAnalysis(supabase, input.analysis_id, userId);
+    analysis = await getAnalysisFacade(supabase, input.analysis_id, userId);
     if (!analysis) {
       return {
         ok: false,
