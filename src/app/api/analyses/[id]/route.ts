@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  OFFER_STATUSES,
-  deleteAnalysis,
-  updateAnalysis,
-  type OfferStatus,
-} from "@/lib/db";
-import { getAnalysisFacade } from "@/lib/analysis-facade";
+  deleteAnalysisFacade,
+  getAnalysisFacade,
+  updateAnalysisJobUrlFacade,
+} from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { selectionProcessModule } from "@/lib/container";
 
+const OFFER_STATUSES = [
+  "interesante",
+  "aplicado",
+  "entrevista",
+  "oferta",
+  "rechazado",
+  "descartado",
+] as const;
+type OfferStatus = (typeof OFFER_STATUSES)[number];
+
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -28,7 +36,7 @@ export async function GET(
     if (!analysis) {
       return NextResponse.json(
         { error: "Analysis not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json(analysis);
@@ -36,14 +44,14 @@ export async function GET(
     console.error("Get analysis error:", error);
     return NextResponse.json(
       { error: "Failed to get analysis", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -55,11 +63,11 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const deleted = await deleteAnalysis(supabase, id, user.id);
+    const deleted = await deleteAnalysisFacade(supabase, id, user.id);
     if (!deleted) {
       return NextResponse.json(
         { error: "Analysis not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json({ success: true });
@@ -67,14 +75,14 @@ export async function DELETE(
     console.error("Delete analysis error:", error);
     return NextResponse.json(
       { error: "Failed to delete analysis", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -102,7 +110,7 @@ export async function PATCH(
       return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
     };
 
-    const allowedUpdates: Parameters<typeof updateAnalysis>[3] = {};
+    const allowedUpdates: { job_url?: string | null } = {};
     const followUpUpdates: {
       status?: OfferStatus;
       notes?: string | null;
@@ -113,10 +121,7 @@ export async function PATCH(
     if (data.job_url !== undefined) {
       const jobUrl = normalizeOptionalText(data.job_url);
       if (jobUrl === undefined) {
-        return NextResponse.json(
-          { error: "Invalid job URL" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid job URL" }, { status: 400 });
       }
       allowedUpdates.job_url = jobUrl;
     }
@@ -128,7 +133,7 @@ export async function PATCH(
       ) {
         return NextResponse.json(
           { error: "Invalid offer status" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       followUpUpdates.status = data.offer_status as OfferStatus;
@@ -139,7 +144,7 @@ export async function PATCH(
       if (offerNotes === undefined) {
         return NextResponse.json(
           { error: "Invalid offer notes" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       followUpUpdates.notes = offerNotes;
@@ -150,7 +155,7 @@ export async function PATCH(
       if (nextAction === undefined) {
         return NextResponse.json(
           { error: "Invalid offer next action" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       followUpUpdates.nextAction = nextAction;
@@ -161,7 +166,7 @@ export async function PATCH(
       if (nextActionAt === undefined) {
         return NextResponse.json(
           { error: "Invalid offer next action date" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       followUpUpdates.nextActionAt = nextActionAt;
@@ -176,7 +181,7 @@ export async function PATCH(
     if (Object.keys(allowedUpdates).length === 0 && !includesOfferTracking) {
       return NextResponse.json(
         { error: "No valid fields to update" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -186,13 +191,13 @@ export async function PATCH(
       if (!existing) {
         return NextResponse.json(
           { error: "Analysis not found or update failed" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (existing.analysis_mode !== "job_match") {
         return NextResponse.json(
           { error: "Offer tracking is only available for job match analyses" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       const followUp = await selectionProcessModule
@@ -205,19 +210,24 @@ export async function PATCH(
       if (!followUp) {
         return NextResponse.json(
           { error: "Analysis not found or update failed" },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
 
     const updated =
       Object.keys(allowedUpdates).length > 0
-        ? await updateAnalysis(supabase, id, user.id, allowedUpdates)
+        ? await updateAnalysisJobUrlFacade(
+            supabase,
+            id,
+            user.id,
+            allowedUpdates.job_url ?? null,
+          )
         : existing;
     if (!updated) {
       return NextResponse.json(
         { error: "Analysis not found or update failed" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -240,7 +250,7 @@ export async function PATCH(
     console.error("Update analysis error:", error);
     return NextResponse.json(
       { error: "Failed to update analysis", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

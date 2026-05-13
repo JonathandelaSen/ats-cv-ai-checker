@@ -10,7 +10,9 @@ describe("ListJobMatchAnalysesUseCase", () => {
       save: vi.fn(),
       delete: vi.fn(),
     } satisfies JobMatchAnalysisRepository;
-    await new ListJobMatchAnalysesUseCase({ repo }).execute({ userId: "user-1" });
+    await new ListJobMatchAnalysesUseCase({ repo }).execute({
+      userId: "user-1",
+    });
     expect(repo.search).toHaveBeenCalledOnce();
   });
 });

@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   CV_PDFS_BUCKET,
-  createAnalysis,
-  deleteAnalysis,
   getCV,
   updateCVExtraction,
   type CVRecord,
   type AIContext,
   type AnalysisMode,
 } from "@/lib/db";
-import { listAnalysisFacade } from "@/lib/analysis-facade";
-import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
+import {
+  createAnalysisFacade,
+  deleteAnalysisFacade,
+  listAnalysisFacade,
+} from "@/lib/analysis-facade";
+import {
+  getCVTemplate,
+  type CVTemplateId,
+  type CVTemplateLocale,
+} from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText } from "@/lib/cv-profile";
@@ -56,21 +62,24 @@ async function retryCVExtraction(input: {
 
   if (error) throw error;
 
-  const extracted = await extractPdfText(Buffer.from(await data.arrayBuffer()), {
-    userId: input.userId,
-    cvId: input.cv.id,
-    requestId: input.requestId,
-    fileSize: input.cv.file_size,
-    filename: input.cv.filename,
-    pdfStoragePath: input.cv.pdf_storage_path,
-  });
+  const extracted = await extractPdfText(
+    Buffer.from(await data.arrayBuffer()),
+    {
+      userId: input.userId,
+      cvId: input.cv.id,
+      requestId: input.requestId,
+      fileSize: input.cv.file_size,
+      filename: input.cv.filename,
+      pdfStoragePath: input.cv.pdf_storage_path,
+    },
+  );
 
   return (
     (await updateCVExtraction(
       input.supabase,
       input.cv.id,
       input.userId,
-      extracted
+      extracted,
     )) ?? input.cv
   );
 }
@@ -223,7 +232,10 @@ export async function GET() {
     const analyses = await listAnalysisFacade(supabase, user.id);
     return NextResponse.json(analyses);
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }
 
@@ -268,7 +280,7 @@ export async function POST(req: NextRequest) {
     if (mode === "job_match" && !jobDescription?.trim()) {
       return NextResponse.json(
         { error: "Job description is required for job match mode" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     let cv = await getCV(supabase, cvId, user.id);
@@ -356,7 +368,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         { error: "No extracted text available for this CV" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -376,7 +388,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const analysis = await createAnalysis(supabase, {
+    const analysis = await createAnalysisFacade(supabase, {
       id: analysisIdForEvents,
       user_id: user.id,
       cv_id: cv.id,
@@ -384,26 +396,20 @@ export async function POST(req: NextRequest) {
       filename: templatePdfExtraction?.filename ?? cv.filename ?? "",
       file_size: templatePdfExtraction?.fileSize ?? cv.file_size,
       pdf_storage_path: cv.pdf_storage_path,
-      text_python: analysisExtraction.text_python,
-      text_pdfjs: analysisExtraction.text_pdfjs,
-      text_node: analysisExtraction.text_node,
-      extract_error_python: analysisExtraction.extract_error_python,
-      extract_error_pdfjs: analysisExtraction.extract_error_pdfjs,
-      extract_error_node: analysisExtraction.extract_error_node,
+      extracted_text: {
+        text_python: analysisExtraction.text_python,
+        text_pdfjs: analysisExtraction.text_pdfjs,
+        text_node: analysisExtraction.text_node,
+        extract_error_python: analysisExtraction.extract_error_python,
+        extract_error_pdfjs: analysisExtraction.extract_error_pdfjs,
+        extract_error_node: analysisExtraction.extract_error_node,
+      },
       analysis_mode: mode,
       ai_model: model,
-      job_description: mode === "job_match" ? jobDescription?.trim() ?? null : null,
+      job_description:
+        mode === "job_match" ? (jobDescription?.trim() ?? null) : null,
       job_url: mode === "job_match" ? jobUrl?.trim() || null : null,
       ai_context: mode === "general" ? (context ?? null) : null,
-      ai_score: null,
-      ai_feedback: null,
-      ai_keywords: null,
-      ai_improvements: null,
-      job_key_data: null,
-      job_keywords: [],
-      cv_keywords: [],
-      matching_keywords: [],
-      missing_keywords: [],
     });
 
     await recordProcessingEvent({
@@ -438,7 +444,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: "Failed to create analysis", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -452,10 +458,13 @@ export async function DELETE() {
 
     const analyses = await listAnalysisFacade(supabase, user.id);
     for (const a of analyses) {
-      await deleteAnalysis(supabase, a.id, user.id);
+      await deleteAnalysisFacade(supabase, a.id, user.id);
     }
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }

@@ -1,16 +1,12 @@
 import { UserId } from "@/modules/shared";
-import type { JobMatchAnalysis } from "../../domain/entities/job-match-analysis.entity";
 import type { JobMatchAnalysisRepository } from "../../domain/repositories/job-match-analysis.repository";
 import { JobMatchAnalysisId } from "../../domain/value-objects/job-match-analysis-id.value-object";
 
-export class GetJobMatchAnalysisByIdUseCase {
+export class DeleteJobMatchAnalysisUseCase {
   constructor(private readonly deps: { repo: JobMatchAnalysisRepository }) {}
 
-  async execute(input: {
-    id: string;
-    userId: string;
-  }): Promise<JobMatchAnalysis | null> {
-    return this.deps.repo.findById(
+  async execute(input: { id: string; userId: string }): Promise<boolean> {
+    return this.deps.repo.delete(
       JobMatchAnalysisId.fromPrimitives(input.id),
       UserId.fromPrimitives(input.userId),
     );

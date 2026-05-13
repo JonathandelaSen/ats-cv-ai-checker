@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { AIContext, AnalysisMode } from "@/lib/db";
 import {
-  getAnalysis,
-  updateAnalysisWithAI,
-  type AIContext,
-  type AnalysisMode,
-} from "@/lib/db";
+  getAnalysisFacade,
+  updateAnalysisAIResultFacade,
+} from "@/lib/analysis-facade";
 import { scoreCVWithAI } from "@/lib/ai-scoring";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (!analysisId) {
       return NextResponse.json(
         { error: "No analysisId provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     analysisIdForEvents = analysisId;
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
     if (mode === "job_match" && !jobDescription?.trim()) {
       return NextResponse.json(
         { error: "Job description is required for job match mode" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,15 +68,15 @@ export async function POST(req: NextRequest) {
           error:
             "Configura tu API key de Gemini en Configuración antes de lanzar el análisis.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const analysis = await getAnalysis(supabase, analysisId, user.id);
+    const analysis = await getAnalysisFacade(supabase, analysisId, user.id);
     if (!analysis) {
       return NextResponse.json(
         { error: "Analysis not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     cvIdForEvents = analysis.cv_id;
@@ -108,7 +107,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         { error: "No extracted text available for this analysis" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -143,22 +142,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const updated = await updateAnalysisWithAI(supabase, analysisId, user.id, {
-      analysis_mode: mode,
-      ai_model: model,
-      job_description: mode === "job_match" ? jobDescription?.trim() ?? null : null,
-      job_url: mode === "job_match" ? jobUrl?.trim() || null : null,
-      ai_context: mode === "general" ? (context ?? null) : null,
-      ai_score: parsedResult.score,
-      ai_feedback: parsedResult.feedback,
-      ai_keywords: parsedResult.keywordsFound,
-      ai_improvements: parsedResult.improvements,
-      job_key_data: parsedResult.jobKeyData,
-      job_keywords: parsedResult.jobKeywords,
-      cv_keywords: parsedResult.cvKeywords,
-      matching_keywords: parsedResult.matchingKeywords,
-      missing_keywords: parsedResult.missingKeywords,
-    });
+    const updated = await updateAnalysisAIResultFacade(
+      supabase,
+      analysisId,
+      user.id,
+      {
+        analysis_mode: mode,
+        ai_model: model,
+        job_description:
+          mode === "job_match" ? (jobDescription?.trim() ?? null) : null,
+        job_url: mode === "job_match" ? jobUrl?.trim() || null : null,
+        ai_context: mode === "general" ? (context ?? null) : null,
+        ai_score: parsedResult.score,
+        ai_feedback: parsedResult.feedback,
+        ai_keywords: parsedResult.keywordsFound,
+        ai_improvements: parsedResult.improvements,
+        job_key_data: parsedResult.jobKeyData,
+        job_keywords: parsedResult.jobKeywords,
+        cv_keywords: parsedResult.cvKeywords,
+        matching_keywords: parsedResult.matchingKeywords,
+        missing_keywords: parsedResult.missingKeywords,
+      },
+    );
 
     await recordProcessingEvent({
       userId,
@@ -194,7 +199,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: "Failed to score CV with ATS", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

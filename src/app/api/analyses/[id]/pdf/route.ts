@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PDFS_BUCKET, getAnalysis } from "@/lib/db";
+import { CV_PDFS_BUCKET } from "@/lib/db";
+import { getAnalysisFacade } from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -17,13 +18,10 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analysis = await getAnalysis(supabase, id, user.id);
+    const analysis = await getAnalysisFacade(supabase, id, user.id);
 
     if (!analysis || !analysis.pdf_storage_path) {
-      return NextResponse.json(
-        { error: "PDF no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "PDF no encontrado" }, { status: 404 });
     }
 
     const { data, error } = await supabase.storage
@@ -31,10 +29,7 @@ export async function GET(
       .download(analysis.pdf_storage_path);
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: "PDF no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "PDF no encontrado" }, { status: 404 });
     }
 
     const disposition = req.nextUrl.searchParams.get("download")
@@ -51,7 +46,7 @@ export async function GET(
     console.error("Download PDF error:", error);
     return NextResponse.json(
       { error: "Error descargando el PDF", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
