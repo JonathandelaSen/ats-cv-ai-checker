@@ -1,4 +1,4 @@
-import type { Analysis, CVRecord } from "@/lib/db";
+import type { Analysis, CVRecord } from "@/lib/analysis-types";
 
 export interface OfferChatHistoryMessage {
   role: "user" | "assistant";
@@ -30,7 +30,9 @@ function section(title: string, value: string | null | undefined) {
   return trimmed ? `\n\n${title}:\n---\n${trimmed}\n---` : "";
 }
 
-function stringifyJson(value: string | Record<string, unknown> | null | undefined) {
+function stringifyJson(
+  value: string | Record<string, unknown> | null | undefined,
+) {
   if (!value) return "";
   return typeof value === "string" ? value : JSON.stringify(value);
 }
@@ -40,7 +42,10 @@ function recentConversation(history: OfferChatHistoryMessage[] | undefined) {
   if (recent.length === 0) return "";
 
   return recent
-    .map((message) => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`)
+    .map(
+      (message) =>
+        `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`,
+    )
     .join("\n\n");
 }
 
@@ -60,7 +65,9 @@ export function buildOfferChatPrompt(input: OfferChatPromptInput): string {
   const analysisSummary = [
     `Analysis title: ${input.analysis.title}`,
     `Score: ${input.analysis.ai_score ?? "not available"}`,
-    input.analysis.ai_feedback ? `Feedback: ${input.analysis.ai_feedback}` : null,
+    input.analysis.ai_feedback
+      ? `Feedback: ${input.analysis.ai_feedback}`
+      : null,
     input.analysis.job_url ? `URL: ${input.analysis.job_url}` : null,
     input.analysis.job_key_data
       ? `job_key_data JSON: ${stringifyJson(input.analysis.job_key_data)}`

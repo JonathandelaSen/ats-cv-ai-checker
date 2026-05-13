@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CV_PDFS_BUCKET } from "@/lib/db";
 import { getAnalysisFacade } from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { CV_PDFS_BUCKET } from "@/modules/cv-library";
 
 export async function GET(
   req: NextRequest,

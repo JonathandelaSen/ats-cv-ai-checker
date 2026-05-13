@@ -1,6 +1,6 @@
 "use server";
 
-import { CV_PDFS_BUCKET } from "@/lib/db";
+import { CV_PDFS_BUCKET } from "@/modules/cv-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
@@ -66,7 +66,7 @@ function isEmailNotConfirmedError(error: { code?: string; message?: string }) {
 
 export async function signIn(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const credentials = getCredentials(formData);
   if ("error" in credentials) return { error: credentials.error };
@@ -91,7 +91,7 @@ export async function signIn(
 
 export async function signUp(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const credentials = getCredentials(formData);
   if ("error" in credentials) return { error: credentials.error };
@@ -109,7 +109,8 @@ export async function signUp(
   }
 
   return {
-    message: "Te hemos enviado un email para confirmar tu cuenta antes de entrar.",
+    message:
+      "Te hemos enviado un email para confirmar tu cuenta antes de entrar.",
     email: credentials.email,
     canResendConfirmation: true,
   };
@@ -117,7 +118,7 @@ export async function signUp(
 
 export async function resendConfirmationEmail(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const email = String(formData.get("email") || "").trim();
 
@@ -135,7 +136,8 @@ export async function resendConfirmationEmail(
   });
 
   return {
-    message: "Si hay una cuenta pendiente para ese email, recibirás otro enlace.",
+    message:
+      "Si hay una cuenta pendiente para ese email, recibirás otro enlace.",
     email,
     canResendConfirmation: true,
   };
@@ -143,7 +145,7 @@ export async function resendConfirmationEmail(
 
 export async function updatePasswordFromRecovery(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const passwordResult = getPasswordChange(formData);
   if ("error" in passwordResult) return { error: passwordResult.error };
@@ -170,7 +172,7 @@ export async function updatePasswordFromRecovery(
 
 export async function changePasswordWithCurrent(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const currentPassword = String(formData.get("currentPassword") || "");
   const passwordResult = getPasswordChange(formData);
@@ -213,10 +215,10 @@ export async function changePasswordWithCurrent(
 
 export async function deleteAccount(
   _state: AuthFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthFormState> {
   const emailConfirmation = String(
-    formData.get("emailConfirmation") || ""
+    formData.get("emailConfirmation") || "",
   ).trim();
   const password = String(formData.get("password") || "");
 
@@ -277,8 +279,8 @@ export async function deleteAccount(
     new Set(
       [...(cvs ?? []), ...(analyses ?? [])]
         .map((item) => item.pdf_storage_path)
-        .filter((path): path is string => Boolean(path))
-    )
+        .filter((path): path is string => Boolean(path)),
+    ),
   );
 
   if (storagePaths.length > 0) {

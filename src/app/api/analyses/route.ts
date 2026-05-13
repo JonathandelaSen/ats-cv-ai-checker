@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  CV_PDFS_BUCKET,
-  getCV,
-  updateCVExtraction,
-  type CVRecord,
-  type AIContext,
-  type AnalysisMode,
-} from "@/lib/db";
+import { getCV, updateCVExtraction, type CVRecord } from "@/lib/db";
+import type { AIContext, AnalysisMode } from "@/lib/analysis-types";
 import {
   createAnalysisFacade,
   deleteAnalysisFacade,
@@ -29,6 +23,7 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
+import { CV_PDFS_BUCKET } from "@/modules/cv-library";
 
 async function getAuthedSupabase() {
   const supabase = await createClient();

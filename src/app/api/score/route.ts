@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AIContext, AnalysisMode } from "@/lib/db";
+import type { AIContext, AnalysisMode } from "@/lib/analysis-types";
 import {
   getAnalysisFacade,
   updateAnalysisAIResultFacade,

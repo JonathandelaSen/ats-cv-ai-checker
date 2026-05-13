@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
+import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
@@ -22,7 +22,7 @@ function parseStringArray(value: string | null): string[] {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -47,13 +47,13 @@ export async function POST(
     if (!geminiApiKey?.trim()) {
       return NextResponse.json(
         { error: "Configura tu API key de Gemini antes de editar el CV." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!instruction?.trim()) {
       return NextResponse.json(
         { error: "Escribe una instrucción para editar el CV." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,7 +62,10 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = document ? presentCVDocument(document) : null;
     if (!cv || cv.type !== "template") {
-      return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template CV not found" },
+        { status: 404 },
+      );
     }
     if (!cv.profile) {
       return NextResponse.json({ error: "CV has no profile" }, { status: 400 });
@@ -70,13 +73,18 @@ export async function POST(
 
     const sourceCvId = cv.source_cv_id;
     const latestAnalysis = sourceCvId
-      ? await getLatestRecommendationAnalysisForCV(supabase, sourceCvId, user.id)
+      ? await getLatestRecommendationAnalysisForCVFacade(
+          supabase,
+          sourceCvId,
+          user.id,
+        )
       : null;
     const recommendations = latestAnalysis
       ? [
           ...parseStringArray(latestAnalysis.ai_improvements),
           ...parseStringArray(latestAnalysis.missing_keywords).map(
-            (keyword) => `Consider adding or strengthening this missing keyword if it is truthful: ${keyword}`
+            (keyword) =>
+              `Consider adding or strengthening this missing keyword if it is truthful: ${keyword}`,
           ),
         ]
       : [];
@@ -94,18 +102,20 @@ export async function POST(
     const updated = await cvLibraryModule
       .bindRequest(supabase)
       .updateTemplateCVDocumentProfile.execute({
-      id,
-      userId: user.id,
-      aiModel: model,
-      profile: editedProfile,
-    });
+        id,
+        userId: user.id,
+        aiModel: model,
+        profile: editedProfile,
+      });
 
-    return NextResponse.json({ version: updated ? presentCVDocument(updated) : null });
+    return NextResponse.json({
+      version: updated ? presentCVDocument(updated) : null,
+    });
   } catch (error: unknown) {
     console.error("CV edit error:", error);
     return NextResponse.json(
       { error: "Failed to edit CV", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

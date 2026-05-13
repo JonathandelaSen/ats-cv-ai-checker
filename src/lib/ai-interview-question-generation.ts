@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Analysis, CVRecord } from "@/lib/db";
+import type { Analysis, CVRecord } from "@/lib/analysis-types";
 import {
   INTERVIEW_QUESTION_SYSTEM_PROMPT,
   buildInterviewQuestionPrompt,
@@ -23,7 +23,7 @@ export function parseInterviewQuestionAIResponse(rawText: string): string {
 
   if (!answer) {
     throw new Error(
-      "La IA no pudo generar una respuesta segura. Añade más contexto personal."
+      "La IA no pudo generar una respuesta segura. Añade más contexto personal.",
     );
   }
 
@@ -31,7 +31,7 @@ export function parseInterviewQuestionAIResponse(rawText: string): string {
 }
 
 async function runInterviewQuestionModel(
-  input: InterviewQuestionAIInput
+  input: InterviewQuestionAIInput,
 ): Promise<string> {
   const googleAI = new GoogleGenAI({ apiKey: input.apiKey });
   const response = await googleAI.models.generateContent({
@@ -52,13 +52,13 @@ async function runInterviewQuestionModel(
 }
 
 export async function generateInterviewQuestionAnswer(
-  input: InterviewQuestionAIInput
+  input: InterviewQuestionAIInput,
 ): Promise<string> {
   return runInterviewQuestionModel(input);
 }
 
 export async function editInterviewQuestionAnswer(
-  input: InterviewQuestionAIInput
+  input: InterviewQuestionAIInput,
 ): Promise<string> {
   return runInterviewQuestionModel(input);
 }

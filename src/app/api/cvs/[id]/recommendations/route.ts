@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
+import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -25,13 +25,16 @@ export async function GET(
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    const analysis = await getLatestRecommendationAnalysisForCV(
+    const analysis = await getLatestRecommendationAnalysisForCVFacade(
       supabase,
       id,
-      user.id
+      user.id,
     );
     return NextResponse.json({ analysis });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }

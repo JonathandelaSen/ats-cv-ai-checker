@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { AIContext, AnalysisMode, JobKeyData } from "@/lib/db";
+import type { AIContext, AnalysisMode, JobKeyData } from "@/lib/analysis-types";
 import {
   getErrorCode,
   recordProcessingEvent,
@@ -53,7 +53,9 @@ function buildGeneralPrompt(context: AIContext | null): string {
   const contextLines: string[] = [];
 
   if (context?.additionalContext) {
-    contextLines.push(`- Additional context from the user: ${context.additionalContext}`);
+    contextLines.push(
+      `- Additional context from the user: ${context.additionalContext}`,
+    );
   }
 
   const contextBlock =
@@ -75,7 +77,10 @@ You must respond ONLY with valid JSON using this exact format:
 }`;
 }
 
-function buildJobMatchPrompt(jobDescription: string, jobUrl?: string | null): string {
+function buildJobMatchPrompt(
+  jobDescription: string,
+  jobUrl?: string | null,
+): string {
   const urlBlock = jobUrl?.trim()
     ? `\nThe source URL provided by the user is: ${jobUrl.trim()}\n`
     : "";

@@ -1,6 +1,6 @@
 import { generateOfferChatAnswer } from "@/lib/ai-offer-chat";
+import type { Analysis, CVRecord } from "@/lib/analysis-types";
 import type { OfferChatHistoryMessage } from "@/lib/ai-offer-chat-prompts";
-import type { Analysis, CVRecord } from "@/lib/db";
 import type {
   AnalysisChatAIInput,
   AnalysisChatAIService,

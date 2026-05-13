@@ -1,4 +1,4 @@
-import type { Analysis, CVRecord } from "@/lib/db";
+import type { Analysis, CVRecord } from "@/lib/analysis-types";
 
 export interface InterviewQuestionPromptInput {
   question: string;
@@ -29,13 +29,15 @@ function section(title: string, value: string | null | undefined) {
 }
 
 export function buildInterviewQuestionPrompt(
-  input: InterviewQuestionPromptInput
+  input: InterviewQuestionPromptInput,
 ): string {
   const cvSummary = input.cv
     ? [
         `CV linked: ${input.cv.name}`,
         input.cv.type ? `Type: ${input.cv.type}` : null,
-        input.cv.profile ? `Structured profile JSON: ${JSON.stringify(input.cv.profile)}` : null,
+        input.cv.profile
+          ? `Structured profile JSON: ${JSON.stringify(input.cv.profile)}`
+          : null,
       ]
         .filter(Boolean)
         .join("\n")

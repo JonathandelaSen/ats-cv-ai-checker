@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCV } from "@/lib/db";
+import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +9,10 @@ import {
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
 import { cvLibraryModule } from "@/lib/container";
-import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
+import {
+  presentCVDocument,
+  presentCVStructuredProfile,
+} from "@/modules/cv-library";
 
 export const maxDuration = 60;
 
@@ -26,7 +29,7 @@ function parseStringArray(value: string | null): string[] {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -55,14 +58,14 @@ export async function POST(
     if (!geminiApiKey?.trim()) {
       return NextResponse.json(
         { error: "Configura tu API key de Gemini antes de editar el CV." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!instruction?.trim()) {
       return NextResponse.json(
         { error: "Escribe una instrucción para editar el CV." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +86,7 @@ export async function POST(
     if (!structured) {
       return NextResponse.json(
         { error: "Structured profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -91,27 +94,28 @@ export async function POST(
     if (!template) {
       return NextResponse.json(
         { error: "Selecciona una plantilla antes de editar el CV." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const requestedLocale = locale ?? cv.template_locale ?? "es";
     const selectedTemplateId = template.templateId satisfies CVTemplateId;
     const selectedLocale = template.locales.includes(
-      requestedLocale as CVTemplateLocale
+      requestedLocale as CVTemplateLocale,
     )
       ? (requestedLocale as CVTemplateLocale)
       : "es";
-    const latestAnalysis = await getLatestRecommendationAnalysisForCV(
+    const latestAnalysis = await getLatestRecommendationAnalysisForCVFacade(
       supabase,
       id,
-      user.id
+      user.id,
     );
 
     const recommendations = latestAnalysis
       ? [
           ...parseStringArray(latestAnalysis.ai_improvements),
           ...parseStringArray(latestAnalysis.missing_keywords).map(
-            (keyword) => `Consider adding or strengthening this missing keyword if it is truthful: ${keyword}`
+            (keyword) =>
+              `Consider adding or strengthening this missing keyword if it is truthful: ${keyword}`,
           ),
         ]
       : [];
@@ -129,14 +133,14 @@ export async function POST(
     const profile = await cvLibraryModule
       .bindRequest(supabase)
       .upsertCVStructuredProfile.execute({
-      userId: user.id,
-      cvDocumentId: id,
-      schemaVersion: structured.schema_version,
-      sourceTextHash: structured.source_text_hash,
-      aiModel: model,
-      profile: editedProfile,
-      requestId: `cv-profile-edit-${id}`,
-    });
+        userId: user.id,
+        cvDocumentId: id,
+        schemaVersion: structured.schema_version,
+        sourceTextHash: structured.source_text_hash,
+        aiModel: model,
+        profile: editedProfile,
+        requestId: `cv-profile-edit-${id}`,
+      });
 
     return NextResponse.json({ profile: presentCVStructuredProfile(profile) });
   } catch (error: unknown) {
@@ -146,7 +150,7 @@ export async function POST(
         error: "Failed to edit CV profile",
         details: getErrorMessage(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
