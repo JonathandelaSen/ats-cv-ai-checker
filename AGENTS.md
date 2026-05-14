@@ -123,6 +123,14 @@ Each step should be a separate commit.
   - `scripts/verify-ddd-route-imports.mjs`: files under `src/app/`, `src/components/`, and `src/lib/` that import from `@/modules/<name>` must use the barrel (`@/modules/<name>` or `@/modules/<name>/index`), never reach into internal paths like `@/modules/<name>/infrastructure/...`. `@/modules/shared` is exempt.
   - `scripts/verify-ddd-barrel-exports.mjs`: module barrel files (`index.ts`) must not re-export from `infrastructure/` or from `domain/repositories/`. Infrastructure details must be accessed through use cases, and repository port interfaces are module-internal (consumers use them via relative/alias imports within the same module). `@/modules/shared` is exempt.
 
+### Re-export shims in `src/lib/`
+
+Some `src/lib/` files are thin re-export shims that bridge old import paths to domain files inside modules (e.g., `src/lib/cv-profile.ts` → `@/modules/cv-library/domain/cv-profile`). These shims **must import from the domain file directly**, not from the module barrel (`@/modules/<name>`), because the barrel re-exports the full module (use cases, repositories, etc.) and Next.js Turbopack does not tree-shake barrel re-exports in client components — importing the barrel from a client component drags in `server-only` code and breaks the build. These shim files are listed in the `reExportShims` set in `scripts/verify-ddd-route-imports.mjs` so they are exempt from the barrel-only rule.
+
+### Build verification
+
+After any change under `src/modules/`, `src/lib/`, `src/app/`, or `src/components/`, run `npm run build` before finishing. Type-checking alone (`tsc --noEmit`) does not catch Next.js server/client boundary errors — only the full build does.
+
 ## Agent Workflow Preferences
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.
 

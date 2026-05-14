@@ -1,4 +1,4 @@
-import { normalizeStandardCVProfile } from "@/lib/cv-profile";
+import { normalizeStandardCVProfile } from "../../domain/cv-profile";
 import { BoundSupabaseRepository, type UserId } from "@/modules/shared";
 import { CVStructuredProfile } from "../../domain/entities/cv-structured-profile.entity";
 import type { CVStructuredProfileRepository } from "../../domain/repositories/cv-structured-profile.repository";

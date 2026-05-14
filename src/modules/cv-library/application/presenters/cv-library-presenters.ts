@@ -1,4 +1,4 @@
-import type { StandardCVProfile } from "@/lib/cv-profile";
+import type { StandardCVProfile } from "../../domain/cv-profile";
 import type { ExtractedPdfText } from "@/lib/pdf-extraction";
 import type {
   CVDocument,

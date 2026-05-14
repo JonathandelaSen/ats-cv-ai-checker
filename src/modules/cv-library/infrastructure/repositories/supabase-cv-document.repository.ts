@@ -1,5 +1,5 @@
 import { BoundSupabaseRepository } from "@/modules/shared";
-import { normalizeStandardCVProfile } from "@/lib/cv-profile";
+import { normalizeStandardCVProfile } from "../../domain/cv-profile";
 import { CVDocument } from "../../domain/entities/cv-document.entity";
 import type {
   CVAnalysisUsageSummary,
