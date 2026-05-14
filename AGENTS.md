@@ -91,6 +91,121 @@ src/modules/
 - Push business workflow logic into modules. Rendering a template CV for analysis, extracting text, choosing the best extracted text, persisting extraction results, producing extraction diagnostics, and recording observability for backend actions belong in module application/infrastructure services, not in `src/app/api` helpers.
 - Avoid vague shared helper names for business workflows. Use names that express the use case, such as `EnsureCVDocumentExtractionUseCase` or `PrepareAnalysisInputUseCase`, rather than generic helpers like `create-analysis-input`.
 
+### API controller anatomy
+
+Every route handler in `src/app/api/**` must follow this exact structure. There are no exceptions.
+
+#### 1. Auth + Supabase client — always via `getAuthenticatedRequestContext()`
+
+Use `getAuthenticatedRequestContext()` from `@/app/api/_shared/auth/request-context` as the very first step inside the `try` block. It creates the per-request Supabase client **and** verifies the session in one call, returning a discriminated union:
+
+```ts
+const authContext = await getAuthenticatedRequestContext();
+if (!authContext.ok) return authContext.response; // 401 already serialized
+const { supabase, user } = authContext;
+```
+
+- **Never** call `createClient()` directly inside a route handler — always go through `getAuthenticatedRequestContext()`.
+- **Never** call `supabase.auth.getUser()` manually in a route handler.
+- Extract `supabase` and `user` immediately after the guard.
+
+#### 2. Bind the Supabase client to the module
+
+After obtaining `supabase`, bind it to every module you'll use in this request **before** calling any use case:
+
+```ts
+myModule.bindRequest(supabase);
+```
+
+Call `bindRequest` once per module per request, right before the first use-case call. If the handler orchestrates multiple modules, bind all of them.
+
+#### 3. Validate the request payload — always before `bindRequest`
+
+Parse and validate query params or body **before** binding and executing use cases. Use a dedicated `parse*` function from the route-local `validation.ts` file. These functions return `{ ok: true, value }` or `{ ok: false, error: { message, status } }`:
+
+```ts
+const parsed = parseCreateFeedbackRequest(body);
+if (!parsed.ok) {
+  return errorResponse(parsed.error); // 400 with error message
+}
+```
+
+`errorResponse` is imported from `@/modules/shared`.
+
+#### 4. Error handling — always `handleApiError` in the `catch`
+
+Wrap the entire handler body in `try/catch` and delegate all error handling to `handleApiError`:
+
+```ts
+} catch (error: unknown) {
+  return handleApiError(error);
+}
+```
+
+`handleApiError` (from `@/modules/shared`) handles:
+- `HttpError` (thrown by `notFound()`, `badRequest()`, `forbidden()`, `conflict()`) → proper 4xx status.
+- `DomainError` subclasses → 404 for `*NotFoundError`, 400 otherwise.
+- Anything else → 500 with console error log.
+
+Do **not** use the legacy `handleDomainError()` from `domain-error-handler.ts` in new route handlers — it uses string-matching on error names and is not maintained. Use `handleApiError` exclusively.
+
+#### 5. Response helpers
+
+Use the response helpers from `@/modules/shared` — never construct `NextResponse` manually:
+
+| Helper | Status | Use for |
+|---|---|---|
+| `ok(data)` | 200 | Successful reads |
+| `created(data)` | 201 | Successful creates |
+| `errorResponse(error)` | variable | Validation failures (from `parse*`) |
+| `notFound(msg)` | throws 404 | Resource not found (throw inside use case or controller) |
+| `badRequest(msg)` | throws 400 | Invalid state detected in controller |
+| `forbidden(msg)` | throws 403 | Authorization failure beyond auth check |
+| `conflict(msg)` | throws 409 | Conflicting resource state |
+
+#### Complete canonical example
+
+```ts
+import { NextRequest } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
+import { myModule } from "@/lib/container";
+import { presentMyEntity } from "@/modules/my-module";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
+import { parseCreateMyEntityRequest } from "./validation";
+
+export async function GET() {
+  try {
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
+
+    myModule.bindRequest(supabase);
+    const entities = await myModule.listEntities.execute(user.id);
+    return ok(entities.map(presentMyEntity));
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
+
+    const body = await req.json();
+    const parsed = parseCreateMyEntityRequest(body);
+    if (!parsed.ok) return errorResponse(parsed.error);
+
+    myModule.bindRequest(supabase);
+    const entity = await myModule.createEntity.execute({ userId: user.id, ...parsed.value });
+    return created(presentMyEntity(entity));
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+```
+
 ### When adding features to a migrated module
 
 1. Add the domain type/error if needed.
