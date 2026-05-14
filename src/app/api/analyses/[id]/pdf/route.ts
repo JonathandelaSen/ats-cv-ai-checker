@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnalysisFacade } from "@/lib/analysis-facade";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { cvAnalysisModule, jobMatchAnalysisModule } from "@/lib/container";
+import { presentCVAnalysis } from "@/modules/cv-analysis";
+import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { CV_PDFS_BUCKET } from "@/modules/cv-library";
 
 export async function GET(
@@ -18,7 +20,19 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analysis = await getAnalysisFacade(supabase, id, user.id);
+    const cvEntity = await cvAnalysisModule
+      .bindRequest(supabase)
+      .getCVAnalysisById.execute({ id, userId: user.id });
+    const jobEntity = cvEntity
+      ? null
+      : await jobMatchAnalysisModule
+          .bindRequest(supabase)
+          .getJobMatchAnalysisById.execute({ id, userId: user.id });
+    const analysis = cvEntity
+      ? presentCVAnalysis(cvEntity)
+      : jobEntity
+        ? presentJobMatchAnalysis(jobEntity)
+        : null;
 
     if (!analysis || !analysis.pdf_storage_path) {
       return NextResponse.json({ error: "PDF no encontrado" }, { status: 404 });

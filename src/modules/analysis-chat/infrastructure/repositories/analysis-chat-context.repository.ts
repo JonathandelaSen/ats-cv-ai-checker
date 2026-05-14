@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Analysis } from "@/lib/analysis-types";
 import { getBestCVText } from "@/lib/cv-profile";
-import { getAnalysisFacade } from "@/lib/analysis-facade";
+import type { QueryBus } from "@/modules/shared";
 import type { SupabaseAware } from "@/modules/shared/infrastructure/supabase-aware";
+import { GetCVAnalysisByIdQuery } from "@/modules/cv-analysis";
+import { GetJobMatchAnalysisByIdQuery } from "@/modules/job-match-analysis";
 import type { AnalysisChatContext } from "../../domain/repositories/analysis-chat-ai-service.repository";
 import type { AnalysisChatContextReader } from "../../domain/repositories/analysis-chat-context.repository";
 
@@ -9,6 +12,8 @@ export class AnalysisChatContextRepository
   implements AnalysisChatContextReader, SupabaseAware
 {
   private client!: SupabaseClient;
+
+  constructor(private readonly queryBus: QueryBus) {}
 
   bindRequest(client: SupabaseClient) {
     this.client = client;
@@ -18,11 +23,7 @@ export class AnalysisChatContextRepository
     analysisId: string;
     userId: string;
   }): Promise<AnalysisChatContext | null> {
-    const analysis = await getAnalysisFacade(
-      this.client,
-      input.analysisId,
-      input.userId,
-    );
+    const analysis = await this.getAnalysis(input.analysisId, input.userId);
     if (!analysis) return null;
 
     const { data: cv, error } = analysis.cv_id
@@ -43,5 +44,22 @@ export class AnalysisChatContextRepository
       cv,
       cvText: getBestCVText(analysis),
     };
+  }
+
+  private async getAnalysis(
+    id: string,
+    userId: string,
+  ): Promise<Analysis | null> {
+    const cvAnalysis = await this.queryBus.execute<Analysis | null>(
+      new GetCVAnalysisByIdQuery({ id, userId }),
+    );
+    if (cvAnalysis) return cvAnalysis;
+
+    const jobMatchAnalysis = await this.queryBus.execute<Analysis | null>(
+      new GetJobMatchAnalysisByIdQuery({ id, userId }),
+    );
+    if (jobMatchAnalysis) return jobMatchAnalysis;
+
+    return null;
   }
 }

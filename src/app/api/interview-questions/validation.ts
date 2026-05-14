@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { getAnalysisFacade } from "@/lib/analysis-facade";
-import { cvLibraryModule } from "@/lib/container";
+import type { Analysis } from "@/lib/analysis-types";
+import {
+  cvAnalysisModule,
+  cvLibraryModule,
+  jobMatchAnalysisModule,
+} from "@/lib/container";
 import { createClient } from "@/lib/supabase/server";
+import { presentCVAnalysis } from "@/modules/cv-analysis";
+import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { presentCVDocument, type CVDocumentResponse } from "@/modules/cv-library";
-
-type QuestionAnalysis = NonNullable<
-  Awaited<ReturnType<typeof getAnalysisFacade>>
->;
 
 export async function getAuthedSupabase(): Promise<{
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -38,6 +40,24 @@ export function normalizeRequiredText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+async function getAnalysisById(
+  supabase: SupabaseClient,
+  id: string,
+  userId: string,
+): Promise<Analysis | null> {
+  const cvAnalysis = await cvAnalysisModule
+    .bindRequest(supabase)
+    .getCVAnalysisById.execute({ id, userId });
+  if (cvAnalysis) return presentCVAnalysis(cvAnalysis);
+
+  const jobMatch = await jobMatchAnalysisModule
+    .bindRequest(supabase)
+    .getJobMatchAnalysisById.execute({ id, userId });
+  if (jobMatch) return presentJobMatchAnalysis(jobMatch);
+
+  return null;
+}
+
 export async function validateQuestionLinks(
   supabase: SupabaseClient,
   userId: string,
@@ -46,11 +66,11 @@ export async function validateQuestionLinks(
     analysis_id?: string | null;
   }
 ): Promise<
-  | { ok: true; cv: CVDocumentResponse | null; analysis: QuestionAnalysis | null }
+  | { ok: true; cv: CVDocumentResponse | null; analysis: Analysis | null }
   | { ok: false; response: NextResponse }
 > {
   let cv: CVDocumentResponse | null = null;
-  let analysis: QuestionAnalysis | null = null;
+  let analysis: Analysis | null = null;
 
   if (input.cv_id) {
     const document = await cvLibraryModule
@@ -66,7 +86,7 @@ export async function validateQuestionLinks(
   }
 
   if (input.analysis_id) {
-    analysis = await getAnalysisFacade(supabase, input.analysis_id, userId);
+    analysis = await getAnalysisById(supabase, input.analysis_id, userId);
     if (!analysis) {
       return {
         ok: false,

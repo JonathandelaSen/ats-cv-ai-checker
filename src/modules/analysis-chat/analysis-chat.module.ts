@@ -17,11 +17,13 @@ import { GeminiAnalysisChatAIService } from "./infrastructure/services/gemini-an
 
 const conversationRepo = new SupabaseConversationRepository();
 const messageRepo = new SupabaseChatMessageRepository();
-const contextReader = new AnalysisChatContextRepository();
 const aiService = new GeminiAnalysisChatAIService();
 const tracker: EventTracker = new SupabaseEventTracker();
 
-function createUseCases(queryBus: QueryBus) {
+function createUseCases(
+  queryBus: QueryBus,
+  contextReader: AnalysisChatContextRepository,
+) {
   return {
     listConversations: new ListConversationsUseCase({ conversationRepo }),
     createConversation: new CreateConversationUseCase({
@@ -57,7 +59,8 @@ export type AnalysisChatModule = ReturnType<typeof createUseCases> & {
 export function createAnalysisChatModule(
   queryBus: QueryBus,
 ): AnalysisChatModule {
-  const useCases = createUseCases(queryBus);
+  const contextReader = new AnalysisChatContextRepository(queryBus);
+  const useCases = createUseCases(queryBus, contextReader);
 
   return {
     ...useCases,

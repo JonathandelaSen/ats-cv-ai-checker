@@ -1,8 +1,49 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  createAnalysisFacade,
-  updateAnalysisAIResultFacade,
-} from "@/lib/analysis-facade";
+  createCVAnalysisModule,
+  presentCVAnalysis,
+} from "@/modules/cv-analysis";
+import {
+  createJobMatchAnalysisModule,
+  presentJobMatchAnalysis,
+} from "@/modules/job-match-analysis";
+
+export async function createTestCVAnalysis(
+  supabase: SupabaseClient,
+  input: {
+    id: string;
+    userId: string;
+    cvId: string | null;
+    title: string;
+    filename?: string;
+    text?: string | null;
+  },
+) {
+  const module = createCVAnalysisModule();
+  module.bindRequest(supabase);
+
+  const entity = await module.createCVAnalysis.execute({
+    id: input.id,
+    userId: input.userId,
+    cvDocumentId: input.cvId,
+    title: input.title,
+    filename: input.filename ?? "cv.pdf",
+    fileSize: null,
+    pdfStoragePath: null,
+    extractedText: {
+      textPython: input.text ?? null,
+      textPdfjs: null,
+      textNode: null,
+      extractErrorPython: null,
+      extractErrorPdfjs: null,
+      extractErrorNode: null,
+    },
+    aiModel: null,
+    aiContext: null,
+  });
+
+  return presentCVAnalysis(entity);
+}
 
 export async function createTestJobMatchAnalysis(
   supabase: SupabaseClient,
@@ -16,47 +57,49 @@ export async function createTestJobMatchAnalysis(
     score?: number | null;
   },
 ) {
-  const analysis = await createAnalysisFacade(supabase, {
+  const module = createJobMatchAnalysisModule();
+  module.bindRequest(supabase);
+
+  const entity = await module.createJobMatchAnalysis.execute({
     id: input.id,
-    user_id: input.userId,
-    cv_id: input.cvId,
+    userId: input.userId,
+    cvDocumentId: input.cvId,
     title: input.title,
     filename: input.filename ?? "cv.pdf",
-    file_size: 100,
-    pdf_storage_path: null,
-    extracted_text: {
-      text_python: input.text ?? "Analysis text",
-      text_pdfjs: null,
-      text_node: null,
-      extract_error_python: null,
-      extract_error_pdfjs: null,
-      extract_error_node: null,
+    fileSize: 100,
+    pdfStoragePath: null,
+    extractedText: {
+      textPython: input.text ?? "Analysis text",
+      textPdfjs: null,
+      textNode: null,
+      extractErrorPython: null,
+      extractErrorPdfjs: null,
+      extractErrorNode: null,
     },
-    analysis_mode: "job_match",
-    ai_model: "model",
-    job_description: "Job",
-    job_url: null,
-    ai_context: null,
+    aiModel: "model",
+    jobDescription: "Job",
+    jobUrl: null,
   });
 
   if (typeof input.score === "number") {
-    return updateAnalysisAIResultFacade(supabase, analysis.id, input.userId, {
-      analysis_mode: "job_match",
-      ai_model: "model",
-      job_description: "Job",
-      job_url: null,
-      ai_context: null,
-      ai_score: input.score,
-      ai_feedback: "Good",
-      ai_keywords: ["ts"],
-      ai_improvements: ["more"],
-      job_key_data: null,
-      job_keywords: [],
-      cv_keywords: ["ts"],
-      matching_keywords: ["ts"],
-      missing_keywords: [],
+    const scored = await module.updateJobMatchAnalysisAIResult.execute({
+      id: entity.toPrimitives().id,
+      userId: input.userId,
+      aiModel: "model",
+      jobDescription: "Job",
+      jobUrl: null,
+      score: input.score,
+      feedback: "Good",
+      aiKeywords: ["ts"],
+      improvements: ["more"],
+      jobKeyData: null,
+      jobKeywords: [],
+      cvKeywords: ["ts"],
+      matchingKeywords: ["ts"],
+      missingKeywords: [],
     });
+    return scored ? presentJobMatchAnalysis(scored) : presentJobMatchAnalysis(entity);
   }
 
-  return analysis;
+  return presentJobMatchAnalysis(entity);
 }

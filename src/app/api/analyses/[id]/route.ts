@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteAnalysisFacade,
-  getAnalysisFacade,
-  updateAnalysisJobUrlFacade,
-} from "@/lib/analysis-facade";
+import type { Analysis } from "@/lib/analysis-types";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
-import { selectionProcessModule } from "@/lib/container";
+import {
+  cvAnalysisModule,
+  jobMatchAnalysisModule,
+  selectionProcessModule,
+} from "@/lib/container";
+import { presentCVAnalysis } from "@/modules/cv-analysis";
+import {
+  presentJobMatchAnalysis,
+} from "@/modules/job-match-analysis";
+
+async function getAnalysisById(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+  userId: string,
+): Promise<Analysis | null> {
+  const cvAnalysis = await cvAnalysisModule
+    .bindRequest(supabase)
+    .getCVAnalysisById.execute({ id, userId });
+  if (cvAnalysis) return presentCVAnalysis(cvAnalysis);
+
+  const jobMatch = await jobMatchAnalysisModule
+    .bindRequest(supabase)
+    .getJobMatchAnalysisById.execute({ id, userId });
+  if (jobMatch) return presentJobMatchAnalysis(jobMatch);
+
+  return null;
+}
+
+async function deleteAnalysis(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+  userId: string,
+): Promise<boolean> {
+  const deletedCV = await cvAnalysisModule
+    .bindRequest(supabase)
+    .deleteCVAnalysis.execute({ id, userId });
+  if (deletedCV) return true;
+
+  return jobMatchAnalysisModule
+    .bindRequest(supabase)
+    .deleteJobMatchAnalysis.execute({ id, userId });
+}
 
 const OFFER_STATUSES = [
   "interesante",
@@ -32,7 +69,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const analysis = await getAnalysisFacade(supabase, id, user.id);
+    const analysis = await getAnalysisById(supabase, id, user.id);
     if (!analysis) {
       return NextResponse.json(
         { error: "Analysis not found" },
@@ -63,7 +100,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const deleted = await deleteAnalysisFacade(supabase, id, user.id);
+    const deleted = await deleteAnalysis(supabase, id, user.id);
     if (!deleted) {
       return NextResponse.json(
         { error: "Analysis not found" },
@@ -187,7 +224,7 @@ export async function PATCH(
 
     let existing = null;
     if (includesOfferTracking) {
-      existing = await getAnalysisFacade(supabase, id, user.id);
+      existing = await getAnalysisById(supabase, id, user.id);
       if (!existing) {
         return NextResponse.json(
           { error: "Analysis not found or update failed" },
@@ -217,12 +254,16 @@ export async function PATCH(
 
     const updated =
       Object.keys(allowedUpdates).length > 0
-        ? await updateAnalysisJobUrlFacade(
-            supabase,
-            id,
-            user.id,
-            allowedUpdates.job_url ?? null,
-          )
+        ? await (async () => {
+            const entity = await jobMatchAnalysisModule
+              .bindRequest(supabase)
+              .updateJobMatchAnalysisJobUrl.execute({
+                id,
+                userId: user.id,
+                jobUrl: allowedUpdates.job_url ?? null,
+              });
+            return entity ? presentJobMatchAnalysis(entity) : null;
+          })()
         : existing;
     if (!updated) {
       return NextResponse.json(

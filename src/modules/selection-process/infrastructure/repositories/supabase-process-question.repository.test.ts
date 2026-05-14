@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysisFacade } from "@/lib/analysis-facade";
+import { createTestJobMatchAnalysis } from "@/modules/test-helpers/analysis-fixtures";
 import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
@@ -30,27 +30,13 @@ async function createLegacyLinks(userId: string) {
     extract_error_pdfjs: null,
     extract_error_node: null,
   });
-  const analysis = await createAnalysisFacade(supabase, {
+  const analysis = await createTestJobMatchAnalysis(supabase, {
     id: crypto.randomUUID(),
-    user_id: userId,
-    cv_id: cv.id,
+    userId,
+    cvId: cv.id,
     title: "Offer",
     filename: "cv.pdf",
-    file_size: 100,
-    pdf_storage_path: null,
-    extracted_text: {
-      text_python: "CV text",
-      text_pdfjs: null,
-      text_node: null,
-      extract_error_python: null,
-      extract_error_pdfjs: null,
-      extract_error_node: null,
-    },
-    analysis_mode: "job_match",
-    ai_model: null,
-    job_description: "Job",
-    job_url: null,
-    ai_context: null,
+    text: "CV text",
   });
   return { cv, analysis };
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
@@ -73,7 +73,7 @@ export async function POST(
 
     const sourceCvId = cv.source_cv_id;
     const latestAnalysis = sourceCvId
-      ? await getLatestRecommendationAnalysisForCVFacade(
+      ? await getLatestRecommendationAnalysisForCV(
           supabase,
           sourceCvId,
           user.id,

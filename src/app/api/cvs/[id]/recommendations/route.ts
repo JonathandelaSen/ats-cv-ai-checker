@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
@@ -25,7 +25,7 @@ export async function GET(
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
 
-    const analysis = await getLatestRecommendationAnalysisForCVFacade(
+    const analysis = await getLatestRecommendationAnalysisForCV(
       supabase,
       id,
       user.id,

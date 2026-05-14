@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysisFacade } from "@/lib/analysis-facade";
+import { createTestCVAnalysis } from "@/modules/test-helpers/analysis-fixtures";
 import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
@@ -100,27 +100,12 @@ describe("SupabaseCVDocumentRepository", () => {
         public_slug: "ada-cv",
       })
       .eq("id", cv.id);
-    await createAnalysisFacade(supabase, {
+    await createTestCVAnalysis(supabase, {
       id: crypto.randomUUID(),
-      user_id: user.id,
-      cv_id: cv.id,
+      userId: user.id,
+      cvId: cv.id,
       title: "Analysis",
       filename: "cv.pdf",
-      file_size: null,
-      pdf_storage_path: null,
-      extracted_text: {
-        text_python: null,
-        text_pdfjs: null,
-        text_node: null,
-        extract_error_python: null,
-        extract_error_pdfjs: null,
-        extract_error_node: null,
-      },
-      analysis_mode: "general",
-      ai_model: null,
-      job_description: null,
-      job_url: null,
-      ai_context: null,
     });
 
     const published = await repo.findPublishedByPublicId(publicId);

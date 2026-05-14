@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AIContext, AnalysisMode } from "@/lib/analysis-types";
 import {
-  createAnalysisFacade,
-  deleteAnalysisFacade,
-  listAnalysisFacade,
-} from "@/lib/analysis-facade";
-import {
   getCVTemplate,
   type CVTemplateId,
   type CVTemplateLocale,
@@ -14,7 +9,19 @@ import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText } from "@/lib/cv-profile";
 import { extractPdfText } from "@/lib/pdf-extraction";
-import { cvLibraryModule } from "@/lib/container";
+import {
+  cvAnalysisModule,
+  cvLibraryModule,
+  jobMatchAnalysisModule,
+} from "@/lib/container";
+import {
+  presentCVAnalysis,
+  presentCVAnalysisSummary,
+} from "@/modules/cv-analysis";
+import {
+  presentJobMatchAnalysis,
+  presentJobMatchAnalysisSummary,
+} from "@/modules/job-match-analysis";
 import {
   createRequestId,
   getErrorCode,
@@ -236,7 +243,14 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const analyses = await listAnalysisFacade(supabase, user.id);
+    const [cvAnalyses, jobMatchAnalyses] = await Promise.all([
+      cvAnalysisModule.bindRequest(supabase).listCVAnalyses.execute({ userId: user.id }),
+      jobMatchAnalysisModule.bindRequest(supabase).listJobMatchAnalyses.execute({ userId: user.id }),
+    ]);
+    const analyses = [
+      ...cvAnalyses.map(presentCVAnalysisSummary),
+      ...jobMatchAnalyses.map(presentJobMatchAnalysisSummary),
+    ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     return NextResponse.json(analyses);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -398,29 +412,51 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const analysis = await createAnalysisFacade(supabase, {
-      id: analysisIdForEvents,
-      user_id: user.id,
-      cv_id: cv.id,
-      title: trimmedTitle,
-      filename: templatePdfExtraction?.filename ?? cv.filename ?? "",
-      file_size: templatePdfExtraction?.fileSize ?? cv.file_size,
-      pdf_storage_path: cv.pdf_storage_path,
-      extracted_text: {
-        text_python: analysisExtraction.text_python,
-        text_pdfjs: analysisExtraction.text_pdfjs,
-        text_node: analysisExtraction.text_node,
-        extract_error_python: analysisExtraction.extract_error_python,
-        extract_error_pdfjs: analysisExtraction.extract_error_pdfjs,
-        extract_error_node: analysisExtraction.extract_error_node,
-      },
-      analysis_mode: mode,
-      ai_model: model,
-      job_description:
-        mode === "job_match" ? (jobDescription?.trim() ?? null) : null,
-      job_url: mode === "job_match" ? jobUrl?.trim() || null : null,
-      ai_context: mode === "general" ? (context ?? null) : null,
-    });
+    const extractedText = {
+      textPython: analysisExtraction.text_python,
+      textPdfjs: analysisExtraction.text_pdfjs,
+      textNode: analysisExtraction.text_node,
+      extractErrorPython: analysisExtraction.extract_error_python,
+      extractErrorPdfjs: analysisExtraction.extract_error_pdfjs,
+      extractErrorNode: analysisExtraction.extract_error_node,
+    };
+
+    const analysis =
+      mode === "general"
+        ? presentCVAnalysis(
+            await cvAnalysisModule
+              .bindRequest(supabase)
+              .createCVAnalysis.execute({
+                id: analysisIdForEvents,
+                userId: user.id,
+                cvDocumentId: cv.id,
+                title: trimmedTitle,
+                filename: templatePdfExtraction?.filename ?? cv.filename ?? "",
+                fileSize: templatePdfExtraction?.fileSize ?? cv.file_size,
+                pdfStoragePath: cv.pdf_storage_path,
+                extractedText,
+                aiModel: model,
+                aiContext: context ?? null,
+              }),
+          )
+        : presentJobMatchAnalysis(
+            await jobMatchAnalysisModule
+              .bindRequest(supabase)
+              .createJobMatchAnalysis.execute({
+                id: analysisIdForEvents,
+                userId: user.id,
+                cvDocumentId: cv.id,
+                title: trimmedTitle,
+                filename: templatePdfExtraction?.filename ?? cv.filename ?? "",
+                fileSize: templatePdfExtraction?.fileSize ?? cv.file_size,
+                pdfStoragePath: cv.pdf_storage_path,
+                extractedText,
+                aiModel: model,
+                jobDescription:
+                  jobDescription?.trim() ?? null,
+                jobUrl: jobUrl?.trim() || null,
+              }),
+          );
 
     await recordProcessingEvent({
       userId,
@@ -466,10 +502,18 @@ export async function DELETE() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const analyses = await listAnalysisFacade(supabase, user.id);
-    for (const a of analyses) {
-      await deleteAnalysisFacade(supabase, a.id, user.id);
-    }
+    const [cvAnalyses, jobMatchAnalyses] = await Promise.all([
+      cvAnalysisModule.bindRequest(supabase).listCVAnalyses.execute({ userId: user.id }),
+      jobMatchAnalysisModule.bindRequest(supabase).listJobMatchAnalyses.execute({ userId: user.id }),
+    ]);
+    await Promise.all([
+      ...cvAnalyses.map((a) =>
+        cvAnalysisModule.bindRequest(supabase).deleteCVAnalysis.execute({ id: a.toPrimitives().id, userId: user.id }),
+      ),
+      ...jobMatchAnalyses.map((a) =>
+        jobMatchAnalysisModule.bindRequest(supabase).deleteJobMatchAnalysis.execute({ id: a.toPrimitives().id, userId: user.id }),
+      ),
+    ]);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(

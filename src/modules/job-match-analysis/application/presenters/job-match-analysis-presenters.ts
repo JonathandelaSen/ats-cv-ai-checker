@@ -1,3 +1,4 @@
+import type { Analysis, AnalysisSummary } from "@/lib/analysis-types";
 import type { JobMatchAnalysis } from "../../domain/entities/job-match-analysis.entity";
 
 function snapshotField(snapshot: unknown, key: string): unknown {
@@ -6,7 +7,7 @@ function snapshotField(snapshot: unknown, key: string): unknown {
     : null;
 }
 
-export function presentJobMatchAnalysisSummary(analysis: JobMatchAnalysis) {
+export function presentJobMatchAnalysisSummary(analysis: JobMatchAnalysis): AnalysisSummary {
   const primitives = analysis.toPrimitives();
   return {
     id: primitives.id,
@@ -23,7 +24,7 @@ export function presentJobMatchAnalysisSummary(analysis: JobMatchAnalysis) {
   };
 }
 
-export function presentJobMatchAnalysis(analysis: JobMatchAnalysis) {
+export function presentJobMatchAnalysis(analysis: JobMatchAnalysis): Analysis {
   const primitives = analysis.toPrimitives();
   return {
     ...presentJobMatchAnalysisSummary(analysis),

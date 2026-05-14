@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLatestRecommendationAnalysisForCVFacade } from "@/lib/analysis-facade";
+import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
 import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -104,7 +104,7 @@ export async function POST(
     )
       ? (requestedLocale as CVTemplateLocale)
       : "es";
-    const latestAnalysis = await getLatestRecommendationAnalysisForCVFacade(
+    const latestAnalysis = await getLatestRecommendationAnalysisForCV(
       supabase,
       id,
       user.id,

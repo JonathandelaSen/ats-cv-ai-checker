@@ -3,18 +3,29 @@ import {
   createAnalysisChatModule,
   registerAnalysisChatQueries,
 } from "@/modules/analysis-chat";
-import { createCVAnalysisModule } from "@/modules/cv-analysis";
+import {
+  createCVAnalysisModule,
+  GetCVAnalysisByIdQuery,
+  GetCVAnalysisByIdQueryHandler,
+  ListCVAnalysesQuery,
+  ListCVAnalysesQueryHandler,
+} from "@/modules/cv-analysis";
 import { createCVLibraryModule } from "@/modules/cv-library";
 import { createCommitmentsModule } from "@/modules/commitments";
 import { createFeedbackNotesModule } from "@/modules/feedback-notes";
-import { createJobMatchAnalysisModule } from "@/modules/job-match-analysis";
+import {
+  createJobMatchAnalysisModule,
+  GetJobMatchAnalysisByIdQuery,
+  GetJobMatchAnalysisByIdQueryHandler,
+  ListJobMatchAnalysesQuery,
+  ListJobMatchAnalysesQueryHandler,
+} from "@/modules/job-match-analysis";
 import { createReceivedFeedbackModule } from "@/modules/received-feedback";
 import { createSelectionProcessModule } from "@/modules/selection-process";
 import { createWorkJournalModule } from "@/modules/work-journal";
 
 const queryBus = new InMemoryQueryBus();
-export const analysisChatModule = createAnalysisChatModule(queryBus);
-registerAnalysisChatQueries(queryBus, analysisChatModule);
+
 export const cvAnalysisModule = createCVAnalysisModule();
 export const cvLibraryModule = createCVLibraryModule();
 export const commitmentsModule = createCommitmentsModule();
@@ -23,3 +34,23 @@ export const jobMatchAnalysisModule = createJobMatchAnalysisModule();
 export const receivedFeedbackModule = createReceivedFeedbackModule();
 export const selectionProcessModule = createSelectionProcessModule();
 export const workJournalModule = createWorkJournalModule();
+
+queryBus.register(
+  GetCVAnalysisByIdQuery.queryName,
+  new GetCVAnalysisByIdQueryHandler(cvAnalysisModule.getCVAnalysisById),
+);
+queryBus.register(
+  ListCVAnalysesQuery.queryName,
+  new ListCVAnalysesQueryHandler(cvAnalysisModule.listCVAnalyses),
+);
+queryBus.register(
+  GetJobMatchAnalysisByIdQuery.queryName,
+  new GetJobMatchAnalysisByIdQueryHandler(jobMatchAnalysisModule.getJobMatchAnalysisById),
+);
+queryBus.register(
+  ListJobMatchAnalysesQuery.queryName,
+  new ListJobMatchAnalysesQueryHandler(jobMatchAnalysisModule.listJobMatchAnalyses),
+);
+
+export const analysisChatModule = createAnalysisChatModule(queryBus);
+registerAnalysisChatQueries(queryBus, analysisChatModule);

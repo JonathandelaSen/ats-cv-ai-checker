@@ -74,12 +74,13 @@ function violationForImport(sourceInfo, targetInfo, targetRelativePath) {
 
   if (
     sourceInfo.moduleName !== targetInfo.moduleName &&
-    targetRelativePath.startsWith("src/modules/")
+    targetRelativePath.startsWith("src/modules/") &&
+    targetInfo.layer !== "composition"
   ) {
     return {
       rule: "cross-module-internal-import",
       reason:
-        "Feature modules should depend on their own internals or shared ports, not another feature module's internals.",
+        "Feature modules should depend on their own internals or shared ports, not another feature module's internals. Use barrel imports (@/modules/<name>) for cross-module access.",
     };
   }
 

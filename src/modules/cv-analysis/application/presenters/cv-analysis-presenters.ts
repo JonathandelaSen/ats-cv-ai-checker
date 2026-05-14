@@ -1,6 +1,7 @@
+import type { AIContext, Analysis, AnalysisSummary } from "@/lib/analysis-types";
 import type { CVAnalysis } from "../../domain/entities/cv-analysis.entity";
 
-export function presentCVAnalysisSummary(analysis: CVAnalysis) {
+export function presentCVAnalysisSummary(analysis: CVAnalysis): AnalysisSummary {
   const primitives = analysis.toPrimitives();
   return {
     id: primitives.id,
@@ -17,7 +18,7 @@ export function presentCVAnalysisSummary(analysis: CVAnalysis) {
   };
 }
 
-export function presentCVAnalysis(analysis: CVAnalysis) {
+export function presentCVAnalysis(analysis: CVAnalysis): Analysis {
   const primitives = analysis.toPrimitives();
   return {
     ...presentCVAnalysisSummary(analysis),
@@ -29,7 +30,7 @@ export function presentCVAnalysis(analysis: CVAnalysis) {
     job_description: null,
     offer_notes: null,
     offer_next_action: null,
-    ai_context: primitives.aiContext,
+    ai_context: (primitives.aiContext as AIContext | null) ?? null,
     ai_feedback: primitives.feedback,
     ai_keywords: JSON.stringify(primitives.keywords),
     ai_improvements: JSON.stringify(primitives.improvements),
