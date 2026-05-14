@@ -82,6 +82,16 @@ src/modules/
 - **Cross-module port interfaces** provide minimal contracts (e.g., `CVDataRepository` exposes only what the consuming module needs) when shared infrastructure is unavoidable.
 - **`getAuthedSupabase()`** and `validation.ts` helpers stay in the route handler layer, not in the module.
 
+### API controllers, helpers, and CQRS boundaries
+
+- Avoid business-logic helpers under `src/app/api/**`. API-layer helpers should be limited to HTTP concerns such as auth wrappers, request parsing, validation normalization, response mapping, or thin infrastructure adapters that genuinely belong to the API layer.
+- API controllers may orchestrate multiple module use cases/commands when the flow requires it. This orchestration is acceptable, but the business decisions and side effects must live inside module use cases, not in controller helper functions.
+- Queries must be side-effect free. A query must not persist data, upload/delete files, retry extraction, record business workflow actions, or trigger commands.
+- Queries must not execute commands. If a flow needs to read state and then perform an action, orchestrate that explicitly from the API controller or from a command/use case designed for that workflow.
+- Prefer explicit idempotent commands for “ensure/retry/prepare” behavior. For example, a flow like “return existing CV extraction if present, otherwise download the CV, extract text, persist it, and return the result” should be modeled as a command/use case, not as a query or API helper.
+- Push business workflow logic into modules. Rendering a template CV for analysis, extracting text, choosing the best extracted text, persisting extraction results, producing extraction diagnostics, and recording observability for backend actions belong in module application/infrastructure services, not in `src/app/api` helpers.
+- Avoid vague shared helper names for business workflows. Use names that express the use case, such as `EnsureCVDocumentExtractionUseCase` or `PrepareAnalysisInputUseCase`, rather than generic helpers like `create-analysis-input`.
+
 ### When adding features to a migrated module
 
 1. Add the domain type/error if needed.
@@ -133,4 +143,3 @@ After any change under `src/modules/`, `src/lib/`, `src/app/`, or `src/component
 
 ## Agent Workflow Preferences
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.
-
