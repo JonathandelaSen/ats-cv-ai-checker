@@ -33,8 +33,8 @@ export async function generateMetadata({
   const name = cv?.profile?.basics?.name ?? cv?.name ?? "CV público";
 
   return {
-    title: `${name} | ATS CV AI Checker`,
-    description: "CV público creado y compartido desde ATS CV AI Checker.",
+    title: `${name} | JulyLog`,
+    description: "CV público creado y compartido desde JulyLog",
     robots: { index: false, follow: false },
   };
 }
@@ -65,7 +65,7 @@ export default async function PublicCVPage({ params }: PublicCVPageProps) {
       <header className="border-b border-zinc-200/80 bg-[#f4f1ec]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link href="/" className="text-sm font-bold tracking-tight text-zinc-950">
-            ATS CV AI Checker
+            JulyLog
           </Link>
           <div className="flex items-center gap-2">
             <a

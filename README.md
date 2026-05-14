@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🚀 ATS CV AI Checker
+# 🚀 JulyLog
 
-**AI-driven analysis, optimization, and elevation of your CV.**
+**Your intelligent Work Journal and Career Toolkit. Track your progress, build your CV, and land your next job with AI.**
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Local_Ready-green?logo=supabase)](https://supabase.com/)
@@ -15,8 +15,9 @@
 
 ## ✨ Key Features
 
-It's not just a parser; it's a complete toolkit for your resume:
+It's not just a CV parser; it's a complete operating system for your career:
 
+- 📔 **Work Journal:** Log your daily work, achievements, and challenges. Let the AI automatically use your journal entries to enrich your CV and prepare you for interviews.
 - 🎯 **Targeted Job Matching:** Paste a job description and get an ATS-style match rate and targeted recommendations.
 - 📊 **General Profile Review:** Receive a comprehensive evaluation and a custom questionnaire to improve your CV.
 - 🎨 **AI-Powered Templates:** Choose from professional designs and let the AI automatically structure and fill them with your CV data.
