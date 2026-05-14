@@ -120,10 +120,20 @@ export default function AppShell({
   // Fetch analyses list
   const fetchAnalyses = useCallback(async () => {
     try {
-      const res = await fetch("/api/analyses");
-      if (res.ok) {
-        const data = await res.json();
-        setAnalyses(data);
+      const [cvRes, jobMatchRes] = await Promise.all([
+        fetch("/api/cv-analyses"),
+        fetch("/api/job-match-analyses"),
+      ]);
+      if (cvRes.ok && jobMatchRes.ok) {
+        const [cvAnalyses, jobMatchAnalyses] = await Promise.all([
+          cvRes.json(),
+          jobMatchRes.json(),
+        ]);
+        setAnalyses(
+          [...cvAnalyses, ...jobMatchAnalyses].sort((a, b) =>
+            b.created_at.localeCompare(a.created_at),
+          ),
+        );
       }
     } catch {
       // silent
@@ -187,9 +197,24 @@ export default function AppShell({
   const fetchAnalysisDetail = useCallback(async (id: string) => {
     setLoadingDetail(true);
     try {
-      const res = await fetch(`/api/analyses/${id}`);
-      if (res.ok) {
-        const data: FullAnalysis = await res.json();
+      const knownMode = analyses.find((analysis) => analysis.id === id)
+        ?.analysis_mode;
+      const endpoints =
+        knownMode === "job_match"
+          ? [`/api/job-match-analyses/${id}`]
+          : knownMode === "general"
+            ? [`/api/cv-analyses/${id}`]
+            : [`/api/cv-analyses/${id}`, `/api/job-match-analyses/${id}`];
+
+      let data: FullAnalysis | null = null;
+      for (const endpoint of endpoints) {
+        const res = await fetch(endpoint);
+        if (res.ok) {
+          data = await res.json();
+          break;
+        }
+      }
+      if (data) {
         setActiveAnalysis(data);
         setViewTab(data.ai_score !== null ? "analysis" : "extraction");
         setActiveView("analysis");
@@ -199,7 +224,7 @@ export default function AppShell({
     } finally {
       setLoadingDetail(false);
     }
-  }, []);
+  }, [analyses]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -411,7 +436,14 @@ export default function AppShell({
   // Handle delete
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/analyses/${id}`, { method: "DELETE" });
+      const mode =
+        analyses.find((analysis) => analysis.id === id)?.analysis_mode ??
+        activeAnalysis?.analysis_mode;
+      const endpoint =
+        mode === "job_match"
+          ? `/api/job-match-analyses/${id}`
+          : `/api/cv-analyses/${id}`;
+      const res = await fetch(endpoint, { method: "DELETE" });
       if (res.ok) {
         await fetchAnalyses();
         if (activeAnalysisId === id) {
@@ -436,7 +468,12 @@ export default function AppShell({
 
       {/* Sidebar */}
       <Sidebar
-        analyses={analyses}
+        generalAnalyses={analyses.filter(
+          (analysis) => analysis.analysis_mode === "general",
+        )}
+        jobMatchAnalyses={analyses.filter(
+          (analysis) => analysis.analysis_mode === "job_match",
+        )}
         activeId={activeAnalysisId}
         activeView={activeView}
         onSelect={handleSelect}

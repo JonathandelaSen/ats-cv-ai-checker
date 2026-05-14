@@ -60,7 +60,8 @@ export interface AnalysisSummary {
 }
 
 interface SidebarProps {
-  analyses: AnalysisSummary[];
+  generalAnalyses: AnalysisSummary[];
+  jobMatchAnalyses: AnalysisSummary[];
   activeId: string | null;
   activeView:
     | "new"
@@ -94,7 +95,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
-  analyses,
+  generalAnalyses,
+  jobMatchAnalyses,
   activeId,
   activeView,
   onSelect,
@@ -137,8 +139,7 @@ export default function Sidebar({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const generalAnalyses = analyses.filter((a) => a.analysis_mode === "general");
-  const jobAnalyses = analyses.filter((a) => a.analysis_mode === "job_match");
+  const hasAnalyses = generalAnalyses.length > 0 || jobMatchAnalyses.length > 0;
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -343,7 +344,7 @@ export default function Sidebar({
 
         {/* Analysis List */}
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 scrollbar-thin">
-          {analyses.length === 0 && !collapsed && (
+          {!hasAnalyses && !collapsed && (
             <div className="text-center py-8 px-4">
               <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-zinc-800/50 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-zinc-600" />
@@ -445,13 +446,13 @@ export default function Sidebar({
             </div>
           ))}
 
-          {!collapsed && jobAnalyses.length > 0 && (
+          {!collapsed && jobMatchAnalyses.length > 0 && (
             <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
               Ofertas aplicadas
             </p>
           )}
 
-          {jobAnalyses.map((a) => (
+          {jobMatchAnalyses.map((a) => (
             <div
               key={a.id}
               role="button"

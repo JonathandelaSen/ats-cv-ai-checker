@@ -271,7 +271,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
   const handleSaveUrl = async () => {
     setIsSavingUrl(true);
     try {
-      const res = await fetch(`/api/analyses/${analysis.id}`, {
+      const res = await fetch(`/api/job-match-analyses/${analysis.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_url: editedUrl.trim() || null }),
@@ -291,7 +291,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
   const handleSaveTracking = async () => {
     setIsSavingTracking(true);
     try {
-      const res = await fetch(`/api/analyses/${analysis.id}`, {
+      const res = await fetch(`/api/job-match-analyses/${analysis.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

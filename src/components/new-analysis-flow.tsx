@@ -97,7 +97,7 @@ export default function NewAnalysisFlow({
     try {
       const cvId = source === "upload" ? await uploadCV() : selectedCvId;
 
-      const res = await fetch("/api/analyses", {
+      const res = await fetch("/api/cv-analyses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

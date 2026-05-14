@@ -34,6 +34,7 @@ interface ExtractionViewProps {
     cv_id?: string | null;
     title?: string;
     filename: string;
+    analysis_mode: AnalysisMode;
     ai_score: number | null;
     job_url?: string | null;
     cv?: {
@@ -122,7 +123,9 @@ export default function ExtractionView({
     ? analysis.cv?.type === "template"
       ? `/api/cvs/${analysis.cv_id}/template-pdf`
       : `/api/cvs/${analysis.cv_id}/pdf`
-    : `/api/analyses/${analysis.id}/pdf`;
+    : analysis.analysis_mode === "job_match"
+      ? `/api/job-match-analyses/${analysis.id}/pdf`
+      : `/api/cv-analyses/${analysis.id}/pdf`;
 
   const wordCount = currentText
     ? currentText.split(/\s+/).filter(Boolean).length
