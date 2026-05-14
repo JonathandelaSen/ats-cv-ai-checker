@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { cvAnalysisModule } from "@/lib/container";
-import { downloadAnalysisPdf } from "../../../analysis-helpers/download-analysis-pdf";
+import { downloadAnalysisPdf } from "../../../_services/download-analysis-pdf.service";
 
 export async function GET(
   req: NextRequest,

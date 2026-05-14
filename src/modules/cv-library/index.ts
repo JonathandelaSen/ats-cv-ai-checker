@@ -50,6 +50,10 @@ export {
   type CVDocumentSummaryResponse,
   type CVStructuredProfileResponse,
 } from "./application/presenters/cv-library-presenters";
+export type {
+  PrepareCVAnalysisInputInput,
+  PrepareCVAnalysisInputResult,
+} from "./application/use-cases/prepare-cv-analysis-input.use-case";
 export type { DeleteCVDocumentResult } from "./application/use-cases/delete-cv-document.use-case";
 export {
   PUBLIC_CV_SLUG_MAX_LENGTH,

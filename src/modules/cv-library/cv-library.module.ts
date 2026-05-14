@@ -8,6 +8,7 @@ import { GetCVDocumentUseCase } from "./application/use-cases/get-cv-document.us
 import { GetCVStructuredProfileUseCase } from "./application/use-cases/get-cv-structured-profile.use-case";
 import { GetPublishedCVDocumentUseCase } from "./application/use-cases/get-published-cv-document.use-case";
 import { ListCVDocumentsUseCase } from "./application/use-cases/list-cv-documents.use-case";
+import { PrepareCVAnalysisInputUseCase } from "./application/use-cases/prepare-cv-analysis-input.use-case";
 import { UpdateCVDocumentNameUseCase } from "./application/use-cases/update-cv-document-name.use-case";
 import { UpdateCVDocumentExtractionUseCase } from "./application/use-cases/update-cv-document-extraction.use-case";
 import { UpdateCVDocumentPublicSettingsUseCase } from "./application/use-cases/update-cv-document-public-settings.use-case";
@@ -15,9 +16,15 @@ import { UpdateTemplateCVDocumentProfileUseCase } from "./application/use-cases/
 import { UpsertCVStructuredProfileUseCase } from "./application/use-cases/upsert-cv-structured-profile.use-case";
 import { SupabaseCVDocumentRepository } from "./infrastructure/repositories/supabase-cv-document.repository";
 import { SupabaseCVStructuredProfileRepository } from "./infrastructure/repositories/supabase-cv-structured-profile.repository";
+import { PdfTextExtractor } from "./infrastructure/services/pdf-text-extractor.service";
+import { SupabaseCVPdfStorage } from "./infrastructure/services/supabase-cv-pdf-storage.service";
+import { TemplateCVPdfRenderer } from "./infrastructure/services/template-cv-pdf-renderer.service";
 
 const documentRepo = new SupabaseCVDocumentRepository();
 const profileRepo = new SupabaseCVStructuredProfileRepository();
+const pdfStorage = new SupabaseCVPdfStorage();
+const textExtractor = new PdfTextExtractor();
+const templateRenderer = new TemplateCVPdfRenderer();
 const tracker: EventTracker = new SupabaseEventTracker();
 
 function createUseCases() {
@@ -38,6 +45,13 @@ function createUseCases() {
     }),
     updateCVDocumentExtraction: new UpdateCVDocumentExtractionUseCase({
       documentRepo,
+      tracker,
+    }),
+    prepareCVAnalysisInput: new PrepareCVAnalysisInputUseCase({
+      documentRepo,
+      pdfStorage,
+      textExtractor,
+      templateRenderer,
       tracker,
     }),
     updateCVDocumentPublicSettings: new UpdateCVDocumentPublicSettingsUseCase({
@@ -71,6 +85,7 @@ export function createCVLibraryModule(): CVLibraryModule {
     bindRequest(client: SupabaseClient) {
       documentRepo.bindRequest(client);
       profileRepo.bindRequest(client);
+      pdfStorage.bindRequest(client);
       return this;
     },
   };

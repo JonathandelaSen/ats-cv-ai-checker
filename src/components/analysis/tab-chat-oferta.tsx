@@ -234,7 +234,7 @@ export default function TabChatOferta({
     setIsLoadingConversations(true);
     setError(null);
     try {
-      const res = await fetch(`/api/analyses/${analysisId}/chat`);
+      const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok)
         throw new Error(data.error || "Error cargando conversaciones.");
@@ -258,7 +258,7 @@ export default function TabChatOferta({
       setError(null);
       try {
         const res = await fetch(
-          `/api/analyses/${analysisId}/chat?conversationId=${conversationId}`,
+          `/api/job-match-analyses/${analysisId}/chat?conversationId=${conversationId}`,
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Error cargando mensajes.");
@@ -301,7 +301,7 @@ export default function TabChatOferta({
   const createConversation = async () => {
     setError(null);
     try {
-      const res = await fetch(`/api/analyses/${analysisId}/chat`, {
+      const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create_conversation" }),
@@ -322,7 +322,7 @@ export default function TabChatOferta({
 
   const renameConversation = async (id: string, title: string) => {
     try {
-      const res = await fetch(`/api/analyses/${analysisId}/chat`, {
+      const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -342,7 +342,7 @@ export default function TabChatOferta({
 
   const deleteConversation = async (id: string) => {
     try {
-      await fetch(`/api/analyses/${analysisId}/chat`, {
+      await fetch(`/api/job-match-analyses/${analysisId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -375,7 +375,7 @@ export default function TabChatOferta({
 
     if (!conversationId) {
       try {
-        const res = await fetch(`/api/analyses/${analysisId}/chat`, {
+        const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "create_conversation" }),
@@ -398,7 +398,7 @@ export default function TabChatOferta({
     setIsSending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/analyses/${analysisId}/chat`, {
+      const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

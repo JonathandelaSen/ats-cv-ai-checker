@@ -7,12 +7,11 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
-import { jobMatchAnalysisModule } from "@/lib/container";
+import { cvLibraryModule, jobMatchAnalysisModule } from "@/lib/container";
 import {
   presentJobMatchAnalysis,
   presentJobMatchAnalysisSummary,
 } from "@/modules/job-match-analysis";
-import { prepareAnalysisInput } from "../analysis-helpers/create-analysis-input";
 
 const ROUTE_SOURCE = "api_job_match_analyses";
 
@@ -86,13 +85,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prepared = await prepareAnalysisInput({
-      supabase,
-      userId: user.id,
-      cvId,
-      requestId,
-      source: ROUTE_SOURCE,
-    });
+    const prepared = await cvLibraryModule
+      .bindRequest(supabase)
+      .prepareCVAnalysisInput.execute({
+        userId: user.id,
+        cvId,
+        requestId,
+        source: ROUTE_SOURCE,
+      });
     if (!prepared) {
       return NextResponse.json({ error: "CV not found" }, { status: 404 });
     }
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
           title: trimmedTitle,
           filename: prepared.filename,
           fileSize: prepared.fileSize,
-          pdfStoragePath: prepared.cv.pdf_storage_path,
+          pdfStoragePath: prepared.pdfStoragePath,
           extractedText: prepared.extractedText,
           aiModel: model,
           jobDescription: jobDescription.trim(),
