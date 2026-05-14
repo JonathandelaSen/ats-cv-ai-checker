@@ -340,14 +340,14 @@ export default function Sidebar({
             )}
           </AnimatePresence>
 
-          {/* ── Sección: Búsqueda de empleo ── */}
+          {/* ── Sección: Carrera Profesional ── */}
           {!collapsed && (
             <button
               onClick={() => setJobSectionOpen((o) => !o)}
               className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-400 hover:bg-white/[0.03] transition-colors mt-1"
             >
               <Briefcase className="w-3 h-3 shrink-0" />
-              <span className="flex-1 text-left">Búsqueda de empleo</span>
+              <span className="flex-1 text-left">Carrera Profesional</span>
               <ChevronDown
                 className={`w-3 h-3 shrink-0 transition-transform duration-200 ${jobSectionOpen ? "" : "-rotate-90"}`}
               />
