@@ -5,6 +5,7 @@ import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
+import { parseEditCVProfileRequest } from "../../validation";
 
 export const maxDuration = 60;
 
@@ -29,27 +30,10 @@ export async function POST(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const {
-      geminiApiKey,
-      model = "gemini-3.1-pro-preview",
-      instruction,
-    } = (await req.json()) as {
-      geminiApiKey?: string;
-      model?: string;
-      instruction?: string;
-    };
-
-    if (!geminiApiKey?.trim()) {
-      return NextResponse.json(
-        { error: "Configura tu API key de Gemini antes de editar el CV." },
-        { status: 400 },
-      );
-    }
-    if (!instruction?.trim()) {
-      return NextResponse.json(
-        { error: "Escribe una instrucción para editar el CV." },
-        { status: 400 },
-      );
+    const body = await req.json();
+    const parsed = parseEditCVProfileRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const document = await cvLibraryModule
@@ -87,10 +71,10 @@ export async function POST(
     const editedProfile = await cvLibraryModule
       .bindRequest(supabase)
       .editCVProfileWithAI.execute({
-        apiKey: geminiApiKey.trim(),
-        model,
+        apiKey: parsed.value.geminiApiKey,
+        model: parsed.value.model,
         profile: cv.profile,
-        instruction: instruction.trim(),
+        instruction: parsed.value.instruction,
         templateId: (cv.template_id ?? "compact") as CVTemplateId,
         locale: (cv.template_locale ?? "es") as CVTemplateLocale,
         recommendations,
@@ -101,7 +85,7 @@ export async function POST(
       .updateTemplateCVDocumentProfile.execute({
         id,
         userId: user.id,
-        aiModel: model,
+        aiModel: parsed.value.model,
         profile: editedProfile,
       });
 

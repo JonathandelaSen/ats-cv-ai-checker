@@ -5,10 +5,7 @@ import {
   presentFeedback,
 } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
-import {
-  normalizeOptionalText,
-  normalizeRequiredText,
-} from "../../validation";
+import { parseUpdateFeedbackRequest } from "../../validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -19,25 +16,13 @@ export async function PATCH(
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-    const updates: { person_name?: string; final_feedback?: string | null } = {};
-
-    if (body.person_name !== undefined) {
-      const personName = normalizeRequiredText(body.person_name);
-      if (!personName) {
-        return NextResponse.json({ error: "Person name is required" }, { status: 400 });
-      }
-      updates.person_name = personName;
-    }
-    if (body.final_feedback !== undefined) {
-      const finalFeedback = normalizeOptionalText(body.final_feedback);
-      if (finalFeedback === undefined) {
-        return NextResponse.json({ error: "Invalid final feedback" }, { status: 400 });
-      }
-      updates.final_feedback = finalFeedback;
+    const body = await req.json();
+    const parsed = parseUpdateFeedbackRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     feedbackNotesModule.bindRequest(supabase);
-    const feedback = await feedbackNotesModule.updateFeedback.execute(user.id, id, updates);
+    const feedback = await feedbackNotesModule.updateFeedback.execute(user.id, id, parsed.value);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
     return NextResponse.json(presentFeedback(feedback, entries.length));
   } catch (error: unknown) {

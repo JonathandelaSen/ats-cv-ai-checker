@@ -9,7 +9,7 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import {
-  normalizeOptionalText,
+  parseGenerateInterviewQuestionRequest,
   validateQuestionLinks,
 } from "../../validation";
 import { selectionProcessModule } from "@/lib/container";
@@ -58,19 +58,9 @@ export async function POST(
     cvIdForEvents = existing.cv_id;
     analysisIdForEvents = existing.analysis_id;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
-    const model =
-      normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
-    const context = normalizeOptionalText(body.context) ?? existing.context;
-    const cv_id =
-      body.cv_id === undefined ? existing.cv_id : normalizeOptionalText(body.cv_id);
-    const analysis_id =
-      body.analysis_id === undefined
-        ? existing.analysis_id
-        : normalizeOptionalText(body.analysis_id);
-
-    if (!geminiApiKey) {
+    const body = await req.json();
+    const parsed = parseGenerateInterviewQuestionRequest(body, existing);
+    if (!parsed.ok) {
       await recordProcessingEvent({
         userId,
         cvId: cvIdForEvents,
@@ -80,37 +70,15 @@ export async function POST(
         status: "warning",
         source: "api_interview_questions",
         durationMs: performance.now() - startedAt,
-        errorCode: "missing_gemini_api_key",
-        errorMessage: "Gemini API key is required",
-        metadata: { questionId: id, model },
+        errorCode:
+          parsed.error.message.includes("Gemini") ? "missing_gemini_api_key" :
+          parsed.error.message.includes("Context") ? "context_required" : "invalid_links",
+        errorMessage: parsed.error.message,
+        metadata: { questionId: id },
       });
-      return NextResponse.json(
-        { error: "Configura tu API key de Gemini antes de generar respuestas." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
-    if (!context?.trim()) {
-      await recordProcessingEvent({
-        userId,
-        cvId: cvIdForEvents,
-        analysisId: analysisIdForEvents,
-        requestId,
-        stage: "interview_question_generate",
-        status: "warning",
-        source: "api_interview_questions",
-        durationMs: performance.now() - startedAt,
-        errorCode: "context_required",
-        errorMessage: "Context is required for AI generation",
-        metadata: { questionId: id, model },
-      });
-      return NextResponse.json(
-        { error: "Context is required for AI generation" },
-        { status: 400 }
-      );
-    }
-    if (cv_id === undefined || analysis_id === undefined) {
-      return NextResponse.json({ error: "Invalid links" }, { status: 400 });
-    }
+    const { geminiApiKey, model, context, cv_id, analysis_id } = parsed.value;
 
     const links = await validateQuestionLinks(supabase, user.id, {
       cv_id,

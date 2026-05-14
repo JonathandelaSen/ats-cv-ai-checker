@@ -4,11 +4,8 @@ import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
 import { handleDomainError } from "@/modules/shared";
 import {
-  normalizeInputMode,
-  normalizeOptionalDate,
-  normalizeOptionalText,
-  normalizeRequiredDate,
-  normalizeRequiredText,
+  parseCreateWorkJournalEntryRequest,
+  parseListWorkJournalEntriesRequest,
 } from "../validation";
 
 export async function GET(req: NextRequest) {
@@ -18,15 +15,12 @@ export async function GET(req: NextRequest) {
     const { supabase, user } = authContext;
     workJournalModule.bindRequest(supabase);
 
-    const params = req.nextUrl.searchParams;
+    const parsed = parseListWorkJournalEntriesRequest(req.nextUrl.searchParams);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
     const [entries, contexts] = await Promise.all([
-      workJournalModule.listEntries.execute(user.id, {
-        contextId: params.get("contextId"),
-        search: params.get("q"),
-        topic: params.get("topic"),
-        dateFrom: params.get("dateFrom"),
-        dateTo: params.get("dateTo"),
-      }),
+      workJournalModule.listEntries.execute(user.id, parsed.value),
       workJournalModule.listContexts.execute(user.id),
     ]);
     const contextsById = new Map(contexts.map((context) => [context.id, context]));
@@ -44,29 +38,16 @@ export async function POST(req: NextRequest) {
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const context_id = normalizeRequiredText(body.context_id);
-    const date_start = normalizeRequiredDate(body.date_start);
-    const date_end = normalizeOptionalDate(body.date_end);
-    const topic = normalizeOptionalText(body.topic);
-    const input_mode = normalizeInputMode(body.input_mode) ?? "manual";
-    const raw_notes = normalizeRequiredText(body.raw_notes);
-    const final_text = normalizeRequiredText(body.final_text);
-
-    if (!context_id || !date_start || date_end === undefined || topic === undefined || !raw_notes || !final_text) {
-      return NextResponse.json({ error: "Invalid entry payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateWorkJournalEntryRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     workJournalModule.bindRequest(supabase);
 
     const entry = await workJournalModule.createEntry.execute({
       user_id: user.id,
-      context_id,
-      date_start,
-      date_end,
-      topic,
-      input_mode,
-      raw_notes,
-      final_text,
+      ...parsed.value,
     });
 
     const contexts = await workJournalModule.listContexts.execute(user.id);

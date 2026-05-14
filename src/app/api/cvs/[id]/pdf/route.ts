@@ -3,6 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { getErrorMessage } from "@/lib/errors";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument } from "@/modules/cv-library";
+import { parseTemplatePdfRequest } from "../../validation";
 
 export async function GET(
   req: NextRequest,
@@ -21,7 +22,8 @@ export async function GET(
 
     if (cv?.type === "template") {
       const targetUrl = new URL(`/api/cvs/${id}/template-pdf`, req.url);
-      if (req.nextUrl.searchParams.has("download")) {
+      const parsedPdfRequest = parseTemplatePdfRequest(req.nextUrl.searchParams);
+      if (parsedPdfRequest.value.download) {
         targetUrl.searchParams.set("download", "1");
       }
       return NextResponse.redirect(targetUrl);
@@ -45,7 +47,8 @@ export async function GET(
       );
     }
 
-    const disposition = req.nextUrl.searchParams.get("download")
+    const parsedPdfRequest = parseTemplatePdfRequest(req.nextUrl.searchParams);
+    const disposition = parsedPdfRequest.value.download
       ? "attachment"
       : "inline";
 

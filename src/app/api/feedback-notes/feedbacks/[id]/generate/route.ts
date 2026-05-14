@@ -5,7 +5,7 @@ import {
   presentFeedback,
 } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
-import { normalizeRequiredText } from "../../../validation";
+import { parseGenerateFeedbackRequest } from "../../../validation";
 
 export const maxDuration = 60;
 
@@ -18,19 +18,15 @@ export async function POST(
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-    const geminiApiKey = normalizeRequiredText(body.geminiApiKey);
-    const model = normalizeRequiredText(body.model) ?? "gemini-3.1-pro-preview";
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        { error: "Configura tu API key de Gemini antes de generar feedback." },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const parsed = parseGenerateFeedbackRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     feedbackNotesModule.bindRequest(supabase);
     const useCase = feedbackNotesModule.createGenerateFinalFeedbackUseCase({
-      apiKey: geminiApiKey,
-      model,
+      apiKey: parsed.value.geminiApiKey,
+      model: parsed.value.model,
     });
     const feedback = await useCase.execute(user.id, id);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);

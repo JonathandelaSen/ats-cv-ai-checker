@@ -3,6 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { getErrorMessage } from "@/lib/errors";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
+import { parseSaveTemplateAsCVRequest } from "../../validation";
 
 export async function POST(
   req: NextRequest,
@@ -14,13 +15,10 @@ export async function POST(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const { name } = (await req.json()) as { name?: string };
-
-    if (!name?.trim()) {
-      return NextResponse.json(
-        { error: "Proporciona un nombre para el nuevo CV." },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const parsed = parseSaveTemplateAsCVRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const templateDocument = await cvLibraryModule
@@ -38,7 +36,7 @@ export async function POST(
       .bindRequest(supabase)
       .createTemplateCVDocument.execute({
       userId: user.id,
-      name: name.trim(),
+      name: parsed.value.name,
       sourceCvId: templateCV.id,
       profile: templateCV.profile,
       filename: `version-${templateCV.template_id}.json`,

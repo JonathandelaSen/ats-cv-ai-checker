@@ -4,16 +4,7 @@ import { commitmentsModule } from "@/lib/container";
 import { presentCommitment,
   presentCommitmentsWorkspace } from "@/modules/commitments";
 import { handleDomainError } from "@/modules/shared";
-import {
-  optionalDate,
-  optionalStringEnum,
-  optionalText,
-  requiredStringEnum,
-  requiredText,
-} from "./validation";
-
-const sources = ["manager", "self", "company", "project", "other"] as const;
-const priorities = ["low", "medium", "high"] as const;
+import { parseCreateCommitmentRequest } from "./validation";
 
 export async function GET() {
   try {
@@ -33,40 +24,16 @@ export async function POST(req: NextRequest) {
     const authContext = await getAuthenticatedRequestContext();
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
-    const body = (await req.json()) as Record<string, unknown>;
-    const contextId = requiredText(body.contextId);
-    const title = requiredText(body.title);
-    const source = requiredStringEnum(body.source, sources);
-    const description = optionalText(body.description);
-    const successCriteria = optionalText(body.successCriteria);
-    const resultNotes = optionalText(body.resultNotes);
-    const priority = optionalStringEnum(body.priority, priorities) ?? null;
-    const startDate = optionalDate(body.startDate);
-    const targetDate = optionalDate(body.targetDate);
-    if (
-      !contextId ||
-      !title ||
-      !source ||
-      (body.description !== undefined && description === undefined) ||
-      (body.successCriteria !== undefined && successCriteria === undefined) ||
-      (body.resultNotes !== undefined && resultNotes === undefined) ||
-      (body.startDate !== undefined && startDate === undefined) ||
-      (body.targetDate !== undefined && targetDate === undefined)
-    ) {
-      return NextResponse.json({ error: "Invalid commitment payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateCommitmentRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     commitmentsModule.bindRequest(supabase);
     const commitment = await commitmentsModule.createCommitment.execute({
       userId: user.id,
-      contextId,
-      title,
-      source,
-      description,
-      successCriteria,
-      resultNotes,
-      priority,
-      startDate: startDate ?? undefined,
-      targetDate,
+      ...parsed.value,
+      startDate: parsed.value.startDate ?? undefined,
     });
     return NextResponse.json(presentCommitment(commitment), { status: 201 });
   } catch (error: unknown) {

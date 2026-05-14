@@ -5,6 +5,7 @@ import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/c
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
+import { parseTemplatePdfRequest } from "../../validation";
 
 export async function GET(
   req: NextRequest,
@@ -39,7 +40,8 @@ export async function GET(
     });
 
     const filename = `${cv.name.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
-    const disposition = req.nextUrl.searchParams.get("download")
+    const parsed = parseTemplatePdfRequest(req.nextUrl.searchParams);
+    const disposition = parsed.value.download
       ? "attachment"
       : "inline";
 

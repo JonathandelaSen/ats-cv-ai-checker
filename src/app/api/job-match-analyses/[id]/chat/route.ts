@@ -14,12 +14,9 @@ import {
   recordProcessingEvent,
   sanitizeErrorMessage,
 } from "@/lib/observability";
+import { parseListOfferChatRequest, parseOfferChatPostRequest } from "./validation";
 
 export const maxDuration = 60;
-
-function normalizeRequiredText(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
 
 async function validateJobMatch(analysisId: string, userId: string) {
   const context = await analysisChatModule.getAnalysisChatContext.execute({
@@ -55,7 +52,8 @@ export async function GET(
       );
     }
 
-    const conversationId = req.nextUrl.searchParams.get("conversationId");
+    const parsed = parseListOfferChatRequest(req.nextUrl.searchParams);
+    const { conversationId } = parsed.value;
 
     if (conversationId) {
       const messages = await analysisChatModule.listMessages.execute({
@@ -96,9 +94,11 @@ export async function POST(
 
     const { id } = await params;
     analysisIdForEvents = id;
-    const body = (await req.json()) as Record<string, unknown>;
-
-    const action = typeof body.action === "string" ? body.action : "message";
+    const body = await req.json();
+    const parsed = parseOfferChatPostRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
 
     analysisChatModule.bindRequest(supabase);
     const validationError = await validateJobMatch(id, user.id);
@@ -109,79 +109,35 @@ export async function POST(
       );
     }
 
-    if (action === "create_conversation") {
-      const title = normalizeRequiredText(body.title) ?? "Nueva conversación";
+    if (parsed.value.action === "create_conversation") {
       const conversation = await analysisChatModule.createConversation.execute({
         userId: user.id,
         analysisId: id,
-        title,
+        title: parsed.value.title,
         requestId,
       });
       return NextResponse.json({ conversation: presentConversation(conversation) });
     }
 
-    if (action === "rename_conversation") {
-      const conversationId = normalizeRequiredText(body.conversationId);
-      const title = normalizeRequiredText(body.title);
-      if (!conversationId || !title) {
-        return NextResponse.json(
-          { error: "conversationId and title are required" },
-          { status: 400 }
-        );
-      }
+    if (parsed.value.action === "rename_conversation") {
       const conversation = await analysisChatModule.renameConversation.execute({
         userId: user.id,
         analysisId: id,
-        conversationId,
-        title,
+        conversationId: parsed.value.conversationId,
+        title: parsed.value.title,
         requestId,
       });
       return NextResponse.json({ conversation: presentConversation(conversation) });
     }
 
-    if (action === "delete_conversation") {
-      const conversationId = normalizeRequiredText(body.conversationId);
-      if (!conversationId) {
-        return NextResponse.json(
-          { error: "conversationId is required" },
-          { status: 400 }
-        );
-      }
+    if (parsed.value.action === "delete_conversation") {
       await analysisChatModule.deleteConversation.execute({
         userId: user.id,
         analysisId: id,
-        conversationId,
+        conversationId: parsed.value.conversationId,
         requestId,
       });
       return NextResponse.json({ ok: true });
-    }
-
-    const message = normalizeRequiredText(body.message);
-    const geminiApiKey = normalizeRequiredText(body.geminiApiKey);
-    const model =
-      normalizeRequiredText(body.model) ?? "gemini-3.1-pro-preview";
-    const conversationId = normalizeRequiredText(body.conversationId);
-
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
-    }
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Configura tu API key de Gemini antes de chatear con la IA.",
-        },
-        { status: 400 }
-      );
-    }
-    if (!conversationId) {
-      return NextResponse.json(
-        { error: "conversationId is required" },
-        { status: 400 }
-      );
     }
 
     const context = await analysisChatModule.getAnalysisChatContext.execute({
@@ -193,10 +149,10 @@ export async function POST(
     const result = await analysisChatModule.sendMessage.execute({
       userId: user.id,
       analysisId: id,
-      conversationId,
-      message,
-      apiKey: geminiApiKey,
-      model,
+      conversationId: parsed.value.conversationId,
+      message: parsed.value.message,
+      apiKey: parsed.value.geminiApiKey,
+      model: parsed.value.model,
       requestId,
       startedAt,
     });

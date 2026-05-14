@@ -9,6 +9,7 @@ import {
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
+import { parseTemplatePdfRequest } from "../../../../validation";
 
 export async function GET(
   req: NextRequest,
@@ -46,7 +47,8 @@ export async function GET(
       );
     }
 
-    const requestedLocale = req.nextUrl.searchParams.get("locale") ?? "es";
+    const parsed = parseTemplatePdfRequest(req.nextUrl.searchParams);
+    const requestedLocale = parsed.value.locale;
     const locale = template.locales.includes(requestedLocale as CVTemplateLocale)
       ? (requestedLocale as CVTemplateLocale)
       : "es";

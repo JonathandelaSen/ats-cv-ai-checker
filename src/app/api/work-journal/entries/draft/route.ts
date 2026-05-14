@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { handleDomainError } from "@/modules/shared";
-import {
-  normalizeOptionalDate,
-  normalizeOptionalText,
-  normalizeRequiredDate,
-  normalizeRequiredText,
-} from "../../validation";
+import { parseDraftWorkJournalEntryRequest } from "../../validation";
 
 export const maxDuration = 60;
 
@@ -17,32 +12,22 @@ export async function POST(req: NextRequest) {
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const geminiApiKey = normalizeRequiredText(body.geminiApiKey);
-    const model = normalizeRequiredText(body.model) ?? "gemini-3.1-pro-preview";
-    const contextId = normalizeRequiredText(body.context_id);
-    const dateStart = normalizeRequiredDate(body.date_start);
-    const dateEnd = normalizeOptionalDate(body.date_end);
-    const topic = normalizeOptionalText(body.topic);
-    const notes = normalizeRequiredText(body.notes);
-
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        { error: "Configura tu API key de Gemini antes de redactar con IA." },
-        { status: 400 }
-      );
-    }
-    if (!contextId || !dateStart || dateEnd === undefined || topic === undefined || !notes) {
-      return NextResponse.json({ error: "Invalid draft payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseDraftWorkJournalEntryRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     workJournalModule.bindRequest(supabase);
-    const draftUseCase = workJournalModule.createDraftEntryUseCase({ apiKey: geminiApiKey, model });
+    const draftUseCase = workJournalModule.createDraftEntryUseCase({
+      apiKey: parsed.value.geminiApiKey,
+      model: parsed.value.model,
+    });
 
-    const finalText = await draftUseCase.execute(user.id, contextId, {
-      dateStart,
-      dateEnd,
-      topic,
-      notes,
+    const finalText = await draftUseCase.execute(user.id, parsed.value.contextId, {
+      dateStart: parsed.value.dateStart,
+      dateEnd: parsed.value.dateEnd,
+      topic: parsed.value.topic,
+      notes: parsed.value.notes,
     });
 
     return NextResponse.json({ final_text: finalText });

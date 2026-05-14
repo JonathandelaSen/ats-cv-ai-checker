@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import type { AIContext } from "@/lib/analysis-types";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -13,6 +12,7 @@ import {
   presentCVAnalysis,
   presentCVAnalysisSummary,
 } from "@/modules/cv-analysis";
+import { parseCreateCVAnalysisRequest } from "./validation";
 
 const ROUTE_SOURCE = "api_cv_analyses";
 
@@ -46,26 +46,13 @@ export async function POST(req: NextRequest) {
     const { supabase, user } = authContext;
     userId = user.id;
 
-    const {
-      cvId,
-      title,
-      context,
-      model = "gemini-3.1-pro-preview",
-    } = (await req.json()) as {
-      cvId?: string;
-      title?: string;
-      context?: AIContext;
-      model?: string;
-    };
-
-    const trimmedTitle = title?.trim();
-    if (!cvId) {
-      return NextResponse.json({ error: "cvId is required" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateCVAnalysisRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
+    const { cvId, title, context, model } = parsed.value;
     cvIdForEvents = cvId;
-    if (!trimmedTitle) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
 
     const prepared = await cvLibraryModule
       .bindRequest(supabase)
@@ -121,7 +108,7 @@ export async function POST(req: NextRequest) {
           id: analysisIdForEvents,
           userId: user.id,
           cvDocumentId: prepared.cv.id,
-          title: trimmedTitle,
+          title,
           filename: prepared.filename,
           fileSize: prepared.fileSize,
           pdfStoragePath: prepared.pdfStoragePath,

@@ -12,6 +12,7 @@ import {
   presentJobMatchAnalysis,
   presentJobMatchAnalysisSummary,
 } from "@/modules/job-match-analysis";
+import { parseCreateJobMatchAnalysisRequest } from "./validation";
 
 const ROUTE_SOURCE = "api_job_match_analyses";
 
@@ -45,34 +46,13 @@ export async function POST(req: NextRequest) {
     const { supabase, user } = authContext;
     userId = user.id;
 
-    const {
-      cvId,
-      title,
-      jobDescription,
-      jobUrl,
-      model = "gemini-3.1-pro-preview",
-    } = (await req.json()) as {
-      cvId?: string;
-      title?: string;
-      jobDescription?: string;
-      jobUrl?: string;
-      model?: string;
-    };
-
-    const trimmedTitle = title?.trim();
-    if (!cvId) {
-      return NextResponse.json({ error: "cvId is required" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateJobMatchAnalysisRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
+    const { cvId, title, jobDescription, jobUrl, model } = parsed.value;
     cvIdForEvents = cvId;
-    if (!trimmedTitle) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-    if (!jobDescription?.trim()) {
-      return NextResponse.json(
-        { error: "Job description is required for job match analysis" },
-        { status: 400 },
-      );
-    }
 
     const prepared = await cvLibraryModule
       .bindRequest(supabase)
@@ -128,14 +108,14 @@ export async function POST(req: NextRequest) {
           id: analysisIdForEvents,
           userId: user.id,
           cvDocumentId: prepared.cv.id,
-          title: trimmedTitle,
+          title,
           filename: prepared.filename,
           fileSize: prepared.fileSize,
           pdfStoragePath: prepared.pdfStoragePath,
           extractedText: prepared.extractedText,
           aiModel: model,
-          jobDescription: jobDescription.trim(),
-          jobUrl: jobUrl?.trim() || null,
+          jobDescription,
+          jobUrl,
         }),
     );
 

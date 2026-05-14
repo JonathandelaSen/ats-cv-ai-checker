@@ -12,6 +12,7 @@ import {
   presentCVDocument,
   presentCVStructuredProfile,
 } from "@/modules/cv-library";
+import { parseEditCVProfileRequest } from "../../../validation";
 
 export const maxDuration = 60;
 
@@ -36,32 +37,10 @@ export async function POST(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const {
-      geminiApiKey,
-      model = "gemini-3.1-pro-preview",
-      instruction,
-      templateId,
-      locale,
-    } = (await req.json()) as {
-      geminiApiKey?: string;
-      model?: string;
-      instruction?: string;
-      templateId?: string;
-      locale?: string;
-    };
-
-    if (!geminiApiKey?.trim()) {
-      return NextResponse.json(
-        { error: "Configura tu API key de Gemini antes de editar el CV." },
-        { status: 400 },
-      );
-    }
-
-    if (!instruction?.trim()) {
-      return NextResponse.json(
-        { error: "Escribe una instrucción para editar el CV." },
-        { status: 400 },
-      );
+    const body = await req.json();
+    const parsed = parseEditCVProfileRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const cvDocument = await cvLibraryModule
@@ -85,14 +64,14 @@ export async function POST(
       );
     }
 
-    const template = getCVTemplate(templateId ?? cv.template_id ?? "");
+    const template = getCVTemplate(parsed.value.templateId ?? cv.template_id ?? "");
     if (!template) {
       return NextResponse.json(
         { error: "Selecciona una plantilla antes de editar el CV." },
         { status: 400 },
       );
     }
-    const requestedLocale = locale ?? cv.template_locale ?? "es";
+    const requestedLocale = parsed.value.locale ?? cv.template_locale ?? "es";
     const selectedTemplateId = template.templateId satisfies CVTemplateId;
     const selectedLocale = template.locales.includes(
       requestedLocale as CVTemplateLocale,
@@ -118,10 +97,10 @@ export async function POST(
     const editedProfile = await cvLibraryModule
       .bindRequest(supabase)
       .editCVProfileWithAI.execute({
-        apiKey: geminiApiKey.trim(),
-        model,
+        apiKey: parsed.value.geminiApiKey,
+        model: parsed.value.model,
         profile: structured.profile,
-        instruction: instruction.trim(),
+        instruction: parsed.value.instruction,
         templateId: selectedTemplateId,
         locale: selectedLocale,
         recommendations,
@@ -134,7 +113,7 @@ export async function POST(
         cvDocumentId: id,
         schemaVersion: structured.schema_version,
         sourceTextHash: structured.source_text_hash,
-        aiModel: model,
+        aiModel: parsed.value.model,
         profile: editedProfile,
         requestId: `cv-profile-edit-${id}`,
       });

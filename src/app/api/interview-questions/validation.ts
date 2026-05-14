@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Analysis } from "@/lib/analysis-types";
 import {
   cvAnalysisModule,
@@ -10,21 +10,165 @@ import { presentCVAnalysis } from "@/modules/cv-analysis";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { presentCVDocument, type CVDocumentResponse } from "@/modules/cv-library";
 
-export function normalizeOptionalText(value: unknown) {
+type Result<TValue, TError> =
+  | { ok: true; value: TValue }
+  | { ok: false; error: TError };
+
+export interface HttpValidationError {
+  message: string;
+  status: 400;
+}
+
+export interface ListInterviewQuestionsHttpInput {
+  search: string | null;
+  cvId: string | null;
+  analysisId: string | null;
+  answered: boolean | null;
+}
+
+export interface CreateInterviewQuestionHttpInput {
+  question: string;
+  context: string | null;
+  answer: string | null;
+  cv_id: string | null;
+  analysis_id: string | null;
+}
+
+export interface UpdateInterviewQuestionHttpInput {
+  question?: string;
+  context?: string | null;
+  answer?: string | null;
+  legacyCvId?: string | null;
+  sourceJobMatchAnalysisId?: string | null;
+}
+
+export interface GenerateInterviewQuestionHttpInput {
+  geminiApiKey: string;
+  model: string;
+  context: string;
+  cv_id: string | null;
+  analysis_id: string | null;
+}
+
+export interface EditInterviewQuestionHttpInput {
+  geminiApiKey: string;
+  model: string;
+  context: string;
+  instruction: string;
+}
+
+function validationError(message: string): Result<never, HttpValidationError> {
+  return { ok: false, error: { message, status: 400 } };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeOptionalText(value: unknown) {
   if (value === null) return null;
   if (value === undefined) return undefined;
   if (typeof value !== "string") return undefined;
   return value.trim() || null;
 }
 
-export function normalizeOptionalLink(value: unknown) {
+function normalizeOptionalLink(value: unknown) {
   if (value === undefined || value === null) return null;
   if (typeof value !== "string") return undefined;
   return value.trim() || null;
 }
 
-export function normalizeRequiredText(value: unknown) {
+function normalizeRequiredText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function parseAnswered(value: string | null) {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return null;
+}
+
+export function parseListInterviewQuestionsRequest(
+  params: URLSearchParams
+): Result<ListInterviewQuestionsHttpInput, HttpValidationError> {
+  return {
+    ok: true,
+    value: {
+      search: params.get("q"),
+      cvId: params.get("cvId"),
+      analysisId: params.get("analysisId"),
+      answered: parseAnswered(params.get("answered")),
+    },
+  };
+}
+
+export function parseCreateInterviewQuestionRequest(
+  body: unknown
+): Result<CreateInterviewQuestionHttpInput, HttpValidationError> {
+  if (!isRecord(body)) return validationError("Request body must be a JSON object");
+  const question = normalizeRequiredText(body.question);
+  if (!question) return validationError("Question is required");
+  const context = body.context === undefined ? null : normalizeOptionalText(body.context);
+  const answer = body.answer === undefined ? null : normalizeOptionalText(body.answer);
+  const cv_id = normalizeOptionalLink(body.cv_id);
+  const analysis_id = normalizeOptionalLink(body.analysis_id);
+  if (context === undefined || answer === undefined || cv_id === undefined || analysis_id === undefined) {
+    return validationError("Invalid payload");
+  }
+  return { ok: true, value: { question, context, answer, cv_id, analysis_id } };
+}
+
+export function parseUpdateInterviewQuestionRequest(
+  body: unknown
+): Result<UpdateInterviewQuestionHttpInput, HttpValidationError> {
+  if (!isRecord(body)) return validationError("Request body must be a JSON object");
+  const updates: UpdateInterviewQuestionHttpInput = {};
+  if (body.question !== undefined) {
+    const question = normalizeRequiredText(body.question);
+    if (!question) return validationError("Question is required");
+    updates.question = question;
+  }
+  for (const key of ["context", "answer", "cv_id", "analysis_id"] as const) {
+    if (body[key] === undefined) continue;
+    const normalized = normalizeOptionalText(body[key]);
+    if (normalized === undefined) return validationError(`Invalid ${key}`);
+    if (key === "cv_id") updates.legacyCvId = normalized;
+    else if (key === "analysis_id") updates.sourceJobMatchAnalysisId = normalized;
+    else updates[key] = normalized;
+  }
+  if (Object.keys(updates).length === 0) return validationError("No valid fields to update");
+  return { ok: true, value: updates };
+}
+
+export function parseGenerateInterviewQuestionRequest(
+  body: unknown,
+  existing: { context: string | null; cv_id: string | null; analysis_id: string | null }
+): Result<GenerateInterviewQuestionHttpInput, HttpValidationError> {
+  if (!isRecord(body)) return validationError("Request body must be a JSON object");
+  const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
+  const model = normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
+  const context = normalizeOptionalText(body.context) ?? existing.context;
+  const cv_id = body.cv_id === undefined ? existing.cv_id : normalizeOptionalText(body.cv_id);
+  const analysis_id = body.analysis_id === undefined ? existing.analysis_id : normalizeOptionalText(body.analysis_id);
+  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de generar respuestas.");
+  if (!context?.trim()) return validationError("Context is required for AI generation");
+  if (cv_id === undefined || analysis_id === undefined) return validationError("Invalid links");
+  return { ok: true, value: { geminiApiKey, model, context, cv_id, analysis_id } };
+}
+
+export function parseEditInterviewQuestionRequest(
+  body: unknown,
+  existingContext: string | null
+): Result<EditInterviewQuestionHttpInput, HttpValidationError> {
+  if (!isRecord(body)) return validationError("Request body must be a JSON object");
+  const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
+  const model = normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
+  const instruction = normalizeRequiredText(body.instruction);
+  const context = normalizeOptionalText(body.context) ?? existingContext;
+  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de editar respuestas.");
+  if (!instruction) return validationError("Instruction is required");
+  if (!context?.trim()) return validationError("Context is required for AI editing");
+  return { ok: true, value: { geminiApiKey, model, context, instruction } };
 }
 
 async function getAnalysisById(

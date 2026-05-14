@@ -3,14 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentItem } from "@/modules/commitments";
 import { handleDomainError } from "@/modules/shared";
-import {
-  optionalDate,
-  optionalStringEnum,
-  optionalText,
-  requiredText,
-} from "../../validation";
-
-const statuses = ["todo", "in_progress", "done", "cancelled"] as const;
+import { parseUpdateCommitmentItemRequest } from "../../validation";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -18,34 +11,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-    const title = body.title === undefined ? undefined : requiredText(body.title);
-    const notes = optionalText(body.notes);
-    const evidenceNotes = optionalText(body.evidenceNotes);
-    const status = optionalStringEnum(body.status, statuses);
-    const dueDate = optionalDate(body.dueDate);
-    const completedAt = body.completedAt === undefined ? undefined : typeof body.completedAt === "string" || body.completedAt === null ? body.completedAt : undefined;
-    const orderIndex = typeof body.orderIndex === "number" ? body.orderIndex : undefined;
-    if (
-      title === null ||
-      (body.notes !== undefined && notes === undefined) ||
-      (body.evidenceNotes !== undefined && evidenceNotes === undefined) ||
-      (body.dueDate !== undefined && dueDate === undefined) ||
-      (body.completedAt !== undefined && completedAt === undefined)
-    ) {
-      return NextResponse.json({ error: "Invalid commitment item payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseUpdateCommitmentItemRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     commitmentsModule.bindRequest(supabase);
     const item = await commitmentsModule.updateItem.execute({
       userId: user.id,
       id,
-      title,
-      notes,
-      evidenceNotes,
-      status,
-      dueDate,
-      completedAt,
-      orderIndex,
+      ...parsed.value,
     });
     return NextResponse.json(presentCommitmentItem(item));
   } catch (error: unknown) {

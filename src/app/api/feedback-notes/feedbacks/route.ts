@@ -4,9 +4,8 @@ import { feedbackNotesModule } from "@/lib/container";
 import { presentFeedback } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
 import {
-  normalizeOptionalText,
-  normalizeRequiredText,
-  normalizeStatus,
+  parseCreateFeedbackRequest,
+  parseListFeedbacksRequest,
 } from "../validation";
 
 export async function GET(req: NextRequest) {
@@ -14,10 +13,12 @@ export async function GET(req: NextRequest) {
     const authContext = await getAuthenticatedRequestContext();
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
-    const status = normalizeStatus(req.nextUrl.searchParams.get("status"));
-    if (!status) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    const parsed = parseListFeedbacksRequest(req.nextUrl.searchParams);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
     feedbackNotesModule.bindRequest(supabase);
-    const feedbacks = await feedbackNotesModule.listFeedbacks.execute(user.id, status);
+    const feedbacks = await feedbackNotesModule.listFeedbacks.execute(user.id, parsed.value.status);
     const withCounts = await Promise.all(
       feedbacks.map(async (feedback) => {
         const entries = await feedbackNotesModule.listEntries.execute(user.id, feedback.id);
@@ -35,20 +36,15 @@ export async function POST(req: NextRequest) {
     const authContext = await getAuthenticatedRequestContext();
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
-    const body = (await req.json()) as Record<string, unknown>;
-    const personName = normalizeRequiredText(body.person_name);
-    const finalFeedback =
-      body.final_feedback === undefined
-        ? null
-        : normalizeOptionalText(body.final_feedback);
-    if (!personName || finalFeedback === undefined) {
-      return NextResponse.json({ error: "Invalid feedback payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateFeedbackRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     feedbackNotesModule.bindRequest(supabase);
     const feedback = await feedbackNotesModule.createFeedback.execute({
       user_id: user.id,
-      person_name: personName,
-      final_feedback: finalFeedback,
+      ...parsed.value,
     });
     return NextResponse.json(presentFeedback(feedback, 0), { status: 201 });
   } catch (error: unknown) {

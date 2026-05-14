@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/modules/**/*.test.ts"],
+    include: ["src/modules/**/*.test.ts", "src/app/api/**/*.test.ts"],
     setupFiles: ["src/modules/test-helpers/setup.ts"],
   },
 });

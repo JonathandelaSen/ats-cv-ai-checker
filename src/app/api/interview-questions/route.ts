@@ -8,19 +8,12 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import {
-  normalizeOptionalLink,
-  normalizeOptionalText,
-  normalizeRequiredText,
+  parseCreateInterviewQuestionRequest,
+  parseListInterviewQuestionsRequest,
   validateQuestionLinks,
 } from "./validation";
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion, presentProcessQuestions } from "@/modules/selection-process";
-
-function parseAnswered(value: string | null) {
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return null;
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,15 +21,15 @@ export async function GET(req: NextRequest) {
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
 
-    const params = req.nextUrl.searchParams;
+    const parsed = parseListInterviewQuestionsRequest(req.nextUrl.searchParams);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
     const questions = await selectionProcessModule
       .bindRequest(supabase)
       .listProcessQuestions.execute({
       userId: user.id,
-      search: params.get("q"),
-      cvId: params.get("cvId"),
-      analysisId: params.get("analysisId"),
-      answered: parseAnswered(params.get("answered")),
+      ...parsed.value,
     });
 
     return NextResponse.json(presentProcessQuestions(questions));
@@ -57,12 +50,15 @@ export async function POST(req: NextRequest) {
     const { supabase, user } = authContext;
     userId = user.id;
 
-    const data = (await req.json()) as Record<string, unknown>;
+    const data = await req.json();
+    const dataRecord = typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {};
     cvIdForEvents =
-      typeof data.cv_id === "string" && data.cv_id.trim() ? data.cv_id.trim() : null;
+      typeof dataRecord.cv_id === "string" && dataRecord.cv_id.trim() ? dataRecord.cv_id.trim() : null;
     analysisIdForEvents =
-      typeof data.analysis_id === "string" && data.analysis_id.trim()
-        ? data.analysis_id.trim()
+      typeof dataRecord.analysis_id === "string" && dataRecord.analysis_id.trim()
+        ? dataRecord.analysis_id.trim()
         : null;
     await recordProcessingEvent({
       userId,
@@ -73,14 +69,14 @@ export async function POST(req: NextRequest) {
       status: "started",
       source: "api_interview_questions",
       metadata: {
-        hasQuestion: typeof data.question === "string" && Boolean(data.question.trim()),
-        hasContext: typeof data.context === "string" && Boolean(data.context.trim()),
-        hasAnswer: typeof data.answer === "string" && Boolean(data.answer.trim()),
+        hasQuestion: typeof dataRecord.question === "string" && Boolean(dataRecord.question.trim()),
+        hasContext: typeof dataRecord.context === "string" && Boolean(dataRecord.context.trim()),
+        hasAnswer: typeof dataRecord.answer === "string" && Boolean(dataRecord.answer.trim()),
       },
     });
 
-    const question = normalizeRequiredText(data.question);
-    if (!question) {
+    const parsed = parseCreateInterviewQuestionRequest(data);
+    if (!parsed.ok) {
       await recordProcessingEvent({
         userId,
         cvId: cvIdForEvents,
@@ -90,42 +86,12 @@ export async function POST(req: NextRequest) {
         status: "warning",
         source: "api_interview_questions",
         durationMs: performance.now() - startedAt,
-        errorCode: "question_required",
-        errorMessage: "Question is required",
+        errorCode: parsed.error.message === "Question is required" ? "question_required" : "invalid_payload",
+        errorMessage: parsed.error.message,
       });
-      return NextResponse.json(
-        { error: "Question is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
-
-    const context =
-      data.context === undefined ? null : normalizeOptionalText(data.context);
-    const answer =
-      data.answer === undefined ? null : normalizeOptionalText(data.answer);
-    const cv_id = normalizeOptionalLink(data.cv_id);
-    const analysis_id = normalizeOptionalLink(data.analysis_id);
-
-    if (
-      context === undefined ||
-      answer === undefined ||
-      cv_id === undefined ||
-      analysis_id === undefined
-    ) {
-      await recordProcessingEvent({
-        userId,
-        cvId: cvIdForEvents,
-        analysisId: analysisIdForEvents,
-        requestId,
-        stage: "interview_question_create",
-        status: "warning",
-        source: "api_interview_questions",
-        durationMs: performance.now() - startedAt,
-        errorCode: "invalid_payload",
-        errorMessage: "Invalid payload",
-      });
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
+    const { question, context, answer, cv_id, analysis_id } = parsed.value;
 
     const links = await validateQuestionLinks(supabase, user.id, {
       cv_id,

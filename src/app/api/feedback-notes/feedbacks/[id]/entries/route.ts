@@ -5,7 +5,7 @@ import {
   presentFeedbackEntry,
 } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
-import { normalizeRequiredText } from "../../../validation";
+import { parseFeedbackEntryContentRequest } from "../../../validation";
 
 export async function GET(
   _req: NextRequest,
@@ -33,16 +33,16 @@ export async function POST(
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-    const content = normalizeRequiredText(body.content);
-    if (!content) {
-      return NextResponse.json({ error: "Entry content is required" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseFeedbackEntryContentRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
     feedbackNotesModule.bindRequest(supabase);
     const entry = await feedbackNotesModule.createEntry.execute({
       user_id: user.id,
       feedback_id: id,
-      content,
+      content: parsed.value.content,
     });
     return NextResponse.json(presentFeedbackEntry(entry), { status: 201 });
   } catch (error: unknown) {

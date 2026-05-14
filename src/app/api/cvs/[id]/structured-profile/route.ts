@@ -4,6 +4,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
+import { parseStructureCVProfileRequest } from "../../validation";
 
 export async function GET(
   _req: NextRequest,
@@ -43,24 +44,10 @@ export async function POST(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const {
-      geminiApiKey,
-      model = "gemini-3.1-pro-preview",
-      force = false,
-    } = (await req.json()) as {
-      geminiApiKey?: string;
-      model?: string;
-      force?: boolean;
-    };
-
-    if (!geminiApiKey?.trim()) {
-      return NextResponse.json(
-        {
-          error:
-            "Configura tu API key de Gemini en Configuración antes de estructurar el CV.",
-        },
-        { status: 400 }
-      );
+    const body = await req.json();
+    const parsed = parseStructureCVProfileRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const cvDocument = await cvLibraryModule
@@ -84,15 +71,15 @@ export async function POST(
       .bindRequest(supabase)
       .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
     const existingResponse = existing ? presentCVStructuredProfile(existing) : null;
-    if (existingResponse && existingResponse.source_text_hash === sourceTextHash && !force) {
+    if (existingResponse && existingResponse.source_text_hash === sourceTextHash && !parsed.value.force) {
       return NextResponse.json({ profile: existingResponse, cached: true });
     }
 
     const structured = await cvLibraryModule
       .bindRequest(supabase)
       .structureCVProfileWithAI.execute({
-        apiKey: geminiApiKey.trim(),
-        model,
+        apiKey: parsed.value.geminiApiKey,
+        model: parsed.value.model,
         text,
       });
 
@@ -103,7 +90,7 @@ export async function POST(
       cvDocumentId: id,
       schemaVersion: structured.schemaVersion,
       sourceTextHash,
-      aiModel: model,
+      aiModel: parsed.value.model,
       profile: structured.profile,
       requestId: `cv-profile-${id}`,
     });

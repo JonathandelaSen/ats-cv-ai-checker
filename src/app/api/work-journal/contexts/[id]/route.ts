@@ -3,10 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalContext } from "@/modules/work-journal";
 import { handleDomainError } from "@/modules/shared";
-import {
-  normalizeOptionalText,
-  normalizeRequiredText,
-} from "../../validation";
+import { parseUpdateWorkJournalContextRequest } from "../../validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -17,29 +14,13 @@ export async function PATCH(
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-
-    const updates: Record<string, unknown> = {};
-
-    if (body.name !== undefined) {
-      const name = normalizeRequiredText(body.name);
-      if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
-      updates.name = name;
+    const body = await req.json();
+    const parsed = parseUpdateWorkJournalContextRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
-    if (body.role_or_label !== undefined) {
-      const role = normalizeOptionalText(body.role_or_label);
-      if (role === undefined) return NextResponse.json({ error: "Invalid label" }, { status: 400 });
-      updates.role_or_label = role;
-    }
-    if (body.status !== undefined) {
-      if (body.status !== "active" && body.status !== "archived") {
-        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-      }
-      updates.status = body.status;
-    }
-    if (body.is_default !== undefined) updates.is_default = Boolean(body.is_default);
     workJournalModule.bindRequest(supabase);
-    const context = await workJournalModule.updateContext.execute(id, user.id, updates);
+    const context = await workJournalModule.updateContext.execute(id, user.id, parsed.value);
     return NextResponse.json(presentWorkJournalContext(context));
   } catch (error: unknown) {
     return handleDomainError(error);

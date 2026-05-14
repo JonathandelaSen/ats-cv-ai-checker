@@ -5,6 +5,7 @@ import {
   listProcessingEvents,
   sanitizeErrorMessage,
 } from "@/lib/observability";
+import { parseListProcessingEventsRequest } from "./validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,16 +18,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const limit = Number(searchParams.get("limit") ?? "100");
-    const events = await listProcessingEvents({
-      status: searchParams.get("status"),
-      stage: searchParams.get("stage"),
-      cvId: searchParams.get("cvId"),
-      analysisId: searchParams.get("analysisId"),
-      requestId: searchParams.get("requestId"),
-      limit: Number.isFinite(limit) ? limit : 100,
-    });
+    const parsed = parseListProcessingEventsRequest(req.nextUrl.searchParams);
+    const events = await listProcessingEvents(parsed.value);
 
     return NextResponse.json({ events });
   } catch (error: unknown) {

@@ -8,6 +8,7 @@ import {
 } from "@/lib/cv-templates";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
+import { parseTemplateCVRequest } from "../../validation";
 
 export async function POST(
   req: NextRequest,
@@ -19,17 +20,12 @@ export async function POST(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const {
-      templateId,
-      locale = "es",
-      geminiApiKey,
-      model = "gemini-3.1-pro-preview",
-    } = (await req.json()) as {
-      templateId?: string;
-      locale?: string;
-      geminiApiKey?: string;
-      model?: string;
-    };
+    const body = await req.json();
+    const parsed = parseTemplateCVRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
+    const { templateId, locale, geminiApiKey, model } = parsed.value;
 
     const template = templateId ? getCVTemplate(templateId) : null;
     if (!template) {

@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { receivedFeedbackModule } from "@/lib/container";
-import {
-  presentReceivedFeedback,
-} from "@/modules/received-feedback";
+import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { handleDomainError } from "@/modules/shared";
-import {
-  normalizeOptionalText,
-  normalizeRequiredDate,
-  normalizeRequiredText,
-} from "../validation";
+import { parseUpdateReceivedFeedbackRequest } from "../validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -21,44 +15,21 @@ export async function PATCH(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const body = (await req.json()) as Record<string, unknown>;
-    const updates: {
-      receivedDate?: string;
-      giverName?: string;
-      feedbackText?: string;
-      userNote?: string | null;
-    } = {};
+    const body = await req.json();
+    const parsed = parseUpdateReceivedFeedbackRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: parsed.error.message },
+        { status: parsed.error.status }
+      );
+    }
 
-    if (body.receivedDate !== undefined) {
-      const receivedDate = normalizeRequiredDate(body.receivedDate);
-      if (!receivedDate || receivedDate > new Date().toISOString().slice(0, 10)) {
-        return NextResponse.json({ error: "Invalid received date" }, { status: 400 });
-      }
-      updates.receivedDate = receivedDate;
-    }
-    if (body.giverName !== undefined) {
-      const giverName = normalizeRequiredText(body.giverName);
-      if (!giverName || giverName.length > 120) {
-        return NextResponse.json({ error: "Giver name is required" }, { status: 400 });
-      }
-      updates.giverName = giverName;
-    }
-    if (body.feedbackText !== undefined) {
-      const feedbackText = normalizeRequiredText(body.feedbackText);
-      if (!feedbackText || feedbackText.length > 10000) {
-        return NextResponse.json({ error: "Feedback text is required" }, { status: 400 });
-      }
-      updates.feedbackText = feedbackText;
-    }
-    if (body.userNote !== undefined) {
-      const userNote = normalizeOptionalText(body.userNote);
-      if (userNote === undefined || (userNote?.length ?? 0) > 10000) {
-        return NextResponse.json({ error: "Invalid private note" }, { status: 400 });
-      }
-      updates.userNote = userNote;
-    }
     receivedFeedbackModule.bindRequest(supabase);
-    const feedback = await receivedFeedbackModule.updateReceivedFeedback.execute(user.id, id, updates);
+    const feedback = await receivedFeedbackModule.updateReceivedFeedback.execute(
+      user.id,
+      id,
+      parsed.value
+    );
 
     return NextResponse.json(presentReceivedFeedback(feedback));
   } catch (error: unknown) {

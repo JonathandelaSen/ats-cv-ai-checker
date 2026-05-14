@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  normalizeOptionalText,
-  normalizeRequiredText,
+  parseUpdateInterviewQuestionRequest,
   validateQuestionLinks,
 } from "../validation";
 import { selectionProcessModule } from "@/lib/container";
@@ -42,39 +41,12 @@ export async function PATCH(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const data = (await req.json()) as Record<string, unknown>;
-    const updates: {
-      question?: string;
-      context?: string | null;
-      answer?: string | null;
-      legacyCvId?: string | null;
-      sourceJobMatchAnalysisId?: string | null;
-    } = {};
-
-    if (data.question !== undefined) {
-      const question = normalizeRequiredText(data.question);
-      if (!question) {
-        return NextResponse.json(
-          { error: "Question is required" },
-          { status: 400 }
-        );
-      }
-      updates.question = question;
+    const body = await req.json();
+    const parsed = parseUpdateInterviewQuestionRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
-
-    for (const key of ["context", "answer", "cv_id", "analysis_id"] as const) {
-      if (data[key] === undefined) continue;
-      const normalized = normalizeOptionalText(data[key]);
-      if (normalized === undefined) {
-        return NextResponse.json(
-          { error: `Invalid ${key}` },
-          { status: 400 }
-        );
-      }
-      if (key === "cv_id") updates.legacyCvId = normalized;
-      else if (key === "analysis_id") updates.sourceJobMatchAnalysisId = normalized;
-      else updates[key] = normalized;
-    }
+    const updates = parsed.value;
 
     if (
       updates.legacyCvId !== undefined ||
@@ -95,13 +67,6 @@ export async function PATCH(
             : updates.sourceJobMatchAnalysisId,
       });
       if (!links.ok) return links.response;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: "No valid fields to update" },
-        { status: 400 }
-      );
     }
 
     const updated = await selectionProcessModule

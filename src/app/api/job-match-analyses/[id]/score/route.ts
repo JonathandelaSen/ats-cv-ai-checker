@@ -9,6 +9,7 @@ import {
 } from "@/lib/observability";
 import { jobMatchAnalysisModule } from "@/lib/container";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
+import { parseScoreJobMatchAnalysisRequest } from "../../validation";
 
 export const maxDuration = 60;
 
@@ -26,34 +27,10 @@ export async function POST(
     const { supabase, user } = authContext;
     userId = user.id;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const geminiApiKey =
-      typeof body.geminiApiKey === "string" ? body.geminiApiKey.trim() : "";
-    const model =
-      typeof body.model === "string" && body.model.trim()
-        ? body.model.trim()
-        : "gemini-3.1-pro-preview";
-    const jobDescription =
-      typeof body.jobDescription === "string"
-        ? body.jobDescription.trim()
-        : "";
-    const jobUrl =
-      typeof body.jobUrl === "string" ? body.jobUrl.trim() || null : null;
-
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Configura tu API key de Gemini en Configuración antes de lanzar el análisis.",
-        },
-        { status: 400 },
-      );
-    }
-    if (!jobDescription) {
-      return NextResponse.json(
-        { error: "Job description is required for job match analysis" },
-        { status: 400 },
-      );
+    const body = await req.json();
+    const parsed = parseScoreJobMatchAnalysisRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const updated = await jobMatchAnalysisModule
@@ -61,10 +38,10 @@ export async function POST(
       .scoreJobMatchAnalysis.execute({
         id: analysisId,
         userId: user.id,
-        apiKey: geminiApiKey,
-        model,
-        jobDescription,
-        jobUrl,
+        apiKey: parsed.value.geminiApiKey,
+        model: parsed.value.model,
+        jobDescription: parsed.value.jobDescription,
+        jobUrl: parsed.value.jobUrl,
       });
 
     if (!updated) {

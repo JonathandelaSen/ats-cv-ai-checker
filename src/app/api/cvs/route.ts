@@ -11,6 +11,7 @@ import {
 import { extractPdfText } from "@/lib/pdf-extraction";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument, presentCVDocuments } from "@/modules/cv-library";
+import { parseUploadCVFormData } from "./validation";
 
 export async function GET() {
   try {
@@ -38,19 +39,11 @@ export async function POST(req: NextRequest) {
     userId = user.id;
 
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const requestedName = String(formData.get("name") ?? "").trim();
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const parsed = parseUploadCVFormData(formData);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
-
-    if (file.type !== "application/pdf") {
-      return NextResponse.json(
-        { error: "Solo se permiten archivos PDF." },
-        { status: 400 }
-      );
-    }
+    const { file, requestedName } = parsed.value;
 
     cvId = crypto.randomUUID();
     await recordProcessingEvent({

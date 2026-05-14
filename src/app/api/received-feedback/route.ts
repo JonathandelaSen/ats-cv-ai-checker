@@ -3,11 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { handleDomainError } from "@/modules/shared";
-import {
-  normalizeOptionalText,
-  normalizeRequiredDate,
-  normalizeRequiredText,
-} from "./validation";
+import { parseCreateReceivedFeedbackRequest } from "./validation";
 
 export async function GET() {
   try {
@@ -29,31 +25,19 @@ export async function POST(req: NextRequest) {
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const receivedDate = normalizeRequiredDate(body.receivedDate);
-    const giverName = normalizeRequiredText(body.giverName);
-    const feedbackText = normalizeRequiredText(body.feedbackText);
-    const userNote = normalizeOptionalText(body.userNote);
-
-    if (
-      !receivedDate ||
-      receivedDate > new Date().toISOString().slice(0, 10) ||
-      !giverName ||
-      giverName.length > 120 ||
-      !feedbackText ||
-      feedbackText.length > 10000 ||
-      userNote === undefined ||
-      (userNote?.length ?? 0) > 10000
-    ) {
-      return NextResponse.json({ error: "Invalid received feedback payload" }, { status: 400 });
+    const body = await req.json();
+    const parsed = parseCreateReceivedFeedbackRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: parsed.error.message },
+        { status: parsed.error.status }
+      );
     }
+
     receivedFeedbackModule.bindRequest(supabase);
     const feedback = await receivedFeedbackModule.createReceivedFeedback.execute({
       userId: user.id,
-      receivedDate,
-      giverName,
-      feedbackText,
-      userNote,
+      ...parsed.value,
     });
 
     return NextResponse.json(presentReceivedFeedback(feedback), { status: 201 });

@@ -9,6 +9,7 @@ import {
 } from "@/lib/observability";
 import { cvAnalysisModule } from "@/lib/container";
 import { presentCVAnalysis } from "@/modules/cv-analysis";
+import { parseScoreCVAnalysisRequest } from "../../validation";
 
 export const maxDuration = 60;
 
@@ -26,26 +27,10 @@ export async function POST(
     const { supabase, user } = authContext;
     userId = user.id;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const geminiApiKey =
-      typeof body.geminiApiKey === "string" ? body.geminiApiKey.trim() : "";
-    const model =
-      typeof body.model === "string" && body.model.trim()
-        ? body.model.trim()
-        : "gemini-3.1-pro-preview";
-    const additionalContext =
-      typeof body.additionalContext === "string"
-        ? body.additionalContext.trim() || null
-        : null;
-
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "Configura tu API key de Gemini en Configuración antes de lanzar el análisis.",
-        },
-        { status: 400 },
-      );
+    const body = await req.json();
+    const parsed = parseScoreCVAnalysisRequest(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
     }
 
     const updated = await cvAnalysisModule
@@ -53,9 +38,9 @@ export async function POST(
       .scoreCVAnalysis.execute({
         id: analysisId,
         userId: user.id,
-        apiKey: geminiApiKey,
-        model,
-        additionalContext,
+        apiKey: parsed.value.geminiApiKey,
+        model: parsed.value.model,
+        additionalContext: parsed.value.additionalContext,
       });
 
     if (!updated) {

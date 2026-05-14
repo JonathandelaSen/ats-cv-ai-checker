@@ -4,10 +4,10 @@ import { getErrorMessage } from "@/lib/errors";
 import {
   generatePublicCVId,
   normalizePublicCVSlug,
-  type PublicCVSettingsRequest,
 } from "@/modules/cv-library";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
+import { parseUpdateCVDocumentRequest } from "../validation";
 
 export async function GET(
   _req: NextRequest,
@@ -42,11 +42,12 @@ export async function PATCH(
     const { supabase, user } = authContext;
 
     const { id } = await params;
-    const body = (await req.json()) as {
-      name?: string;
-      profile?: Record<string, unknown>;
-      template_locale?: string;
-    } & PublicCVSettingsRequest;
+    const rawBody = await req.json();
+    const parsed = parseUpdateCVDocumentRequest(rawBody);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+    }
+    const body = parsed.value;
 
     if (
       body.public_enabled !== undefined ||
