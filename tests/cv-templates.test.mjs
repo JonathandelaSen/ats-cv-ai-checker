@@ -42,16 +42,22 @@ test("structured profile helpers define the reusable standard profile contract",
 });
 
 test("AI structuring helper is faithful JSON-only extraction", () => {
-  assert.ok(exists("src/lib/ai-cv-structuring.ts"));
-  const source = read("src/lib/ai-cv-structuring.ts");
-  assert.match(source, /structureCVProfileWithAI/);
+  assert.ok(exists("src/modules/cv-library/infrastructure/services/gemini-cv-profile-structuring-ai.service.ts"));
+  assert.ok(exists("src/modules/cv-library/infrastructure/services/cv-profile-structuring-prompts.ts"));
+  const source = read("src/modules/cv-library/infrastructure/services/gemini-cv-profile-structuring-ai.service.ts");
+  const promptSource = read("src/modules/cv-library/infrastructure/services/cv-profile-structuring-prompts.ts");
+  assert.match(source, /GeminiCVProfileStructuringAIServiceFactory/);
+  assert.match(promptSource, /SYSTEM_PROMPT/);
 });
 
 test("AI editing helper keeps edits JSON-only and rejects unusable profiles", () => {
-  assert.ok(exists("src/lib/ai-cv-editing.ts"));
-  const source = read("src/lib/ai-cv-editing.ts");
-  assert.match(source, /editCVProfileWithAI/);
+  assert.ok(exists("src/modules/cv-library/infrastructure/services/gemini-cv-profile-editing-ai.service.ts"));
+  assert.ok(exists("src/modules/cv-library/infrastructure/services/cv-profile-editing-prompts.ts"));
+  const source = read("src/modules/cv-library/infrastructure/services/gemini-cv-profile-editing-ai.service.ts");
+  const promptSource = read("src/modules/cv-library/infrastructure/services/cv-profile-editing-prompts.ts");
+  assert.match(source, /GeminiCVProfileEditingAIServiceFactory/);
   assert.match(source, /parseEditedCVProfile/);
+  assert.match(promptSource, /SYSTEM_PROMPT/);
 });
 
 test("unified template CV endpoints handle CRUD and AI edits", () => {

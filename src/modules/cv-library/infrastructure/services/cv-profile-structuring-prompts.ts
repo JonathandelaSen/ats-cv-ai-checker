@@ -1,16 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import {
-  CV_PROFILE_SCHEMA_VERSION,
-  normalizeStandardCVProfile,
-  type StandardCVProfile,
-} from "@/lib/cv-profile";
-
-export interface AIStructuredProfileResult {
-  schemaVersion: typeof CV_PROFILE_SCHEMA_VERSION;
-  profile: StandardCVProfile;
-}
-
-const SYSTEM_PROMPT = `You are a precise CV data extraction engine.
+export const SYSTEM_PROMPT = `You are a precise CV data extraction engine.
 
 Extract the user's CV into the standard JSON schema below.
 
@@ -61,27 +49,3 @@ JSON format:
   "publications": [{ "name": "string", "organization": "string", "date": "string", "url": "string", "description": "string", "bullets": ["string"] }],
   "volunteering": [{ "name": "string", "organization": "string", "date": "string", "description": "string", "bullets": ["string"] }]
 }`;
-
-export async function structureCVProfileWithAI(input: {
-  apiKey: string;
-  model: string;
-  text: string;
-}): Promise<AIStructuredProfileResult> {
-  const googleAI = new GoogleGenAI({ apiKey: input.apiKey });
-  const response = await googleAI.models.generateContent({
-    model: input.model,
-    contents: [{ role: "user", parts: [{ text: input.text }] }],
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: "application/json",
-    },
-  });
-
-  const rawText = response.text || "{}";
-  const parsed = JSON.parse(rawText) as unknown;
-
-  return {
-    schemaVersion: CV_PROFILE_SCHEMA_VERSION,
-    profile: normalizeStandardCVProfile(parsed),
-  };
-}

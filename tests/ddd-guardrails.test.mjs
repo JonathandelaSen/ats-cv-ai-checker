@@ -16,6 +16,10 @@ import {
   findQueryBusViolations,
   formatQueryBusViolations,
 } from "../scripts/verify-query-bus.mjs";
+import {
+  findSupabaseRepositoryTableViolations,
+  formatSupabaseRepositoryTableViolations,
+} from "../scripts/verify-ddd-supabase-repository-tables.mjs";
 
 async function withFixture(files, fn) {
   const root = await mkdtemp(path.join(tmpdir(), "ddd-guardrails-"));
@@ -186,6 +190,45 @@ test("query bus check enforces query and handler conventions", async () => {
       );
       assert.match(formatQueryBusViolations(violations), /Query bus violations:/);
       assert.match(formatQueryBusViolations(violations), /query-handler-no-use-case/);
+    }
+  );
+});
+
+test("Supabase repository table check rejects tables outside the owning module", async () => {
+  await withFixture(
+    {
+      "src/modules/sales/infrastructure/repositories/supabase-sales.repository.ts": [
+        "export class SupabaseSalesRepository {",
+        "  async save() {",
+        '    await this.client.from("sales").select("*");',
+        '    await this.client.from("billing_invoices").select("*");',
+        "  }",
+        "}",
+      ].join("\n"),
+      "src/modules/billing/infrastructure/repositories/supabase-billing.repository.ts": [
+        "export class SupabaseBillingRepository {",
+        "  async save() {",
+        '    await this.client.from("billing_invoices").select("*");',
+        "  }",
+        "}",
+      ].join("\n"),
+    },
+    async (root) => {
+      const violations = await findSupabaseRepositoryTableViolations({ rootDir: root });
+
+      assert.deepEqual(violations, [
+        {
+          file: "src/modules/sales/infrastructure/repositories/supabase-sales.repository.ts",
+          moduleName: "sales",
+          table: "billing_invoices",
+          reason:
+            'Supabase repositories may only query tables owned by their module. Move cross-module reads behind a query bus read model owned by "billing".',
+        },
+      ]);
+      assert.match(
+        formatSupabaseRepositoryTableViolations(violations),
+        /billing_invoices/,
+      );
     }
   );
 });

@@ -1,14 +1,17 @@
-import { UserId, type EventTracker } from "@/modules/shared";
+import type { AnalysisSummary } from "@/lib/analysis-types";
+import {
+  ListCVAnalysisUsageByDocumentQuery,
+  type ListCVAnalysisUsageByDocumentResult,
+} from "@/modules/cv-analysis";
+import { ListJobMatchAnalysisUsageByDocumentQuery } from "@/modules/job-match-analysis";
+import { UserId, type EventTracker, type QueryBus } from "@/modules/shared";
 import { createRequestId } from "@/lib/observability";
-import type {
-  CVAnalysisUsageSummary,
-  CVDocumentRepository,
-} from "../../domain/repositories/cv-document.repository";
+import type { CVDocumentRepository } from "../../domain/repositories/cv-document.repository";
 import { CVDocumentId } from "../../domain/value-objects/cv-document-id.value-object";
 
 export type DeleteCVDocumentResult =
   | { status: "deleted" }
-  | { status: "in_use"; analyses: CVAnalysisUsageSummary[] }
+  | { status: "in_use"; analyses: AnalysisSummary[] }
   | { status: "not_found" };
 
 export interface DeleteCVDocumentInput {
@@ -21,6 +24,7 @@ export class DeleteCVDocumentUseCase {
   constructor(
     private readonly deps: {
       documentRepo: CVDocumentRepository;
+      queryBus: QueryBus;
       tracker: EventTracker;
     }
   ) {}
@@ -32,7 +36,23 @@ export class DeleteCVDocumentUseCase {
     if (!document) return { status: "not_found" };
 
     if (document.type === "uploaded") {
-      const analyses = await this.deps.documentRepo.listAnalysisUsage(id, userId);
+      const [cvAnalyses, jobMatchAnalyses] = await Promise.all([
+        this.deps.queryBus.execute<ListCVAnalysisUsageByDocumentResult[]>(
+          new ListCVAnalysisUsageByDocumentQuery({
+            cvDocumentId: input.id,
+            userId: input.userId,
+          }),
+        ),
+        this.deps.queryBus.execute<ListCVAnalysisUsageByDocumentResult[]>(
+          new ListJobMatchAnalysisUsageByDocumentQuery({
+            cvDocumentId: input.id,
+            userId: input.userId,
+          }),
+        ),
+      ]);
+      const analyses = [...cvAnalyses, ...jobMatchAnalyses].sort((a, b) =>
+        b.created_at.localeCompare(a.created_at),
+      );
       if (analyses.length > 0) return { status: "in_use", analyses };
     }
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
-import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
 import { createClient } from "@/lib/supabase/server";
@@ -89,15 +88,17 @@ export async function POST(
         ]
       : [];
 
-    const editedProfile = await editCVProfileWithAI({
-      apiKey: geminiApiKey.trim(),
-      model,
-      profile: cv.profile,
-      instruction: instruction.trim(),
-      templateId: (cv.template_id ?? "compact") as CVTemplateId,
-      locale: (cv.template_locale ?? "es") as CVTemplateLocale,
-      recommendations,
-    });
+    const editedProfile = await cvLibraryModule
+      .bindRequest(supabase)
+      .editCVProfileWithAI.execute({
+        apiKey: geminiApiKey.trim(),
+        model,
+        profile: cv.profile,
+        instruction: instruction.trim(),
+        templateId: (cv.template_id ?? "compact") as CVTemplateId,
+        locale: (cv.template_locale ?? "es") as CVTemplateLocale,
+        recommendations,
+      });
 
     const updated = await cvLibraryModule
       .bindRequest(supabase)

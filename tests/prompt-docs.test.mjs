@@ -22,14 +22,14 @@ const promptDocs = [
   {
     name: "CV information extraction",
     doc: "docs/prompts/extraccion-info-cv/prompt.md",
-    source: "src/lib/ai-cv-structuring.ts",
-    required: ["SYSTEM_PROMPT", "structureCVProfileWithAI", "CV_PROFILE_SCHEMA_VERSION"],
+    source: "src/modules/cv-library/infrastructure/services/cv-profile-structuring-prompts.ts",
+    required: ["SYSTEM_PROMPT", "StructureCVProfileWithAIUseCase", "CV_PROFILE_SCHEMA_VERSION"],
   },
   {
     name: "CV editing",
     doc: "docs/prompts/editado-cv/prompt.md",
-    source: "src/lib/ai-cv-editing.ts",
-    required: ["SYSTEM_PROMPT", "editCVProfileWithAI", "recommendations"],
+    source: "src/modules/cv-library/infrastructure/services/cv-profile-editing-prompts.ts",
+    required: ["SYSTEM_PROMPT", "EditCVProfileWithAIUseCase", "recommendations"],
   },
   {
     name: "offer chat",

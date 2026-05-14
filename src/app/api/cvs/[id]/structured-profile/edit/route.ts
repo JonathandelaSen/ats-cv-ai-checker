@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
-import { editCVProfileWithAI } from "@/lib/ai-cv-editing";
 import { getErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -120,15 +119,17 @@ export async function POST(
         ]
       : [];
 
-    const editedProfile = await editCVProfileWithAI({
-      apiKey: geminiApiKey.trim(),
-      model,
-      profile: structured.profile,
-      instruction: instruction.trim(),
-      templateId: selectedTemplateId,
-      locale: selectedLocale,
-      recommendations,
-    });
+    const editedProfile = await cvLibraryModule
+      .bindRequest(supabase)
+      .editCVProfileWithAI.execute({
+        apiKey: geminiApiKey.trim(),
+        model,
+        profile: structured.profile,
+        instruction: instruction.trim(),
+        templateId: selectedTemplateId,
+        locale: selectedLocale,
+        recommendations,
+      });
 
     const profile = await cvLibraryModule
       .bindRequest(supabase)

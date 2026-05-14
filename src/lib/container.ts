@@ -9,6 +9,8 @@ import {
   GetCVAnalysisByIdQueryHandler,
   ListCVAnalysesQuery,
   ListCVAnalysesQueryHandler,
+  ListCVAnalysisUsageByDocumentQuery,
+  ListCVAnalysisUsageByDocumentQueryHandler,
 } from "@/modules/cv-analysis";
 import { createCVLibraryModule } from "@/modules/cv-library";
 import { createCommitmentsModule } from "@/modules/commitments";
@@ -19,6 +21,8 @@ import {
   GetJobMatchAnalysisByIdQueryHandler,
   ListJobMatchAnalysesQuery,
   ListJobMatchAnalysesQueryHandler,
+  ListJobMatchAnalysisUsageByDocumentQuery,
+  ListJobMatchAnalysisUsageByDocumentQueryHandler,
 } from "@/modules/job-match-analysis";
 import { createReceivedFeedbackModule } from "@/modules/received-feedback";
 import { createSelectionProcessModule } from "@/modules/selection-process";
@@ -27,7 +31,7 @@ import { createWorkJournalModule } from "@/modules/work-journal";
 const queryBus = new InMemoryQueryBus();
 
 export const cvAnalysisModule = createCVAnalysisModule();
-export const cvLibraryModule = createCVLibraryModule();
+export const cvLibraryModule = createCVLibraryModule(queryBus);
 export const commitmentsModule = createCommitmentsModule();
 export const feedbackNotesModule = createFeedbackNotesModule();
 export const jobMatchAnalysisModule = createJobMatchAnalysisModule();
@@ -44,12 +48,24 @@ queryBus.register(
   new ListCVAnalysesQueryHandler(cvAnalysisModule.listCVAnalyses),
 );
 queryBus.register(
+  ListCVAnalysisUsageByDocumentQuery.queryName,
+  new ListCVAnalysisUsageByDocumentQueryHandler(
+    cvAnalysisModule.listCVAnalysisUsageByDocument,
+  ),
+);
+queryBus.register(
   GetJobMatchAnalysisByIdQuery.queryName,
   new GetJobMatchAnalysisByIdQueryHandler(jobMatchAnalysisModule.getJobMatchAnalysisById),
 );
 queryBus.register(
   ListJobMatchAnalysesQuery.queryName,
   new ListJobMatchAnalysesQueryHandler(jobMatchAnalysisModule.listJobMatchAnalyses),
+);
+queryBus.register(
+  ListJobMatchAnalysisUsageByDocumentQuery.queryName,
+  new ListJobMatchAnalysisUsageByDocumentQueryHandler(
+    jobMatchAnalysisModule.listJobMatchAnalysisUsageByDocument,
+  ),
 );
 
 export const analysisChatModule = createAnalysisChatModule(queryBus);

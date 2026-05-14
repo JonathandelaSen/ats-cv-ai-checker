@@ -1,9 +1,10 @@
 # Extraccion de Info del CV
 
 ## Source
-- Prompt source file: `src/lib/ai-cv-structuring.ts`
+- Prompt source file: `src/modules/cv-library/infrastructure/services/cv-profile-structuring-prompts.ts`
 - System prompt constant: `SYSTEM_PROMPT`
-- Model controller: `structureCVProfileWithAI`
+- Use case: `StructureCVProfileWithAIUseCase` in `src/modules/cv-library/application/use-cases/structure-cv-profile-with-ai.use-case.ts`
+- Model controller: `GeminiCVProfileStructuringAIServiceFactory` in `src/modules/cv-library/infrastructure/services/gemini-cv-profile-structuring-ai.service.ts`
 - Schema version: `CV_PROFILE_SCHEMA_VERSION`
 
 ## Current Prompt
@@ -44,8 +45,9 @@ JSON format:
 
 ## Runtime Flow
 1. CV text is extracted before structuring.
-2. `structureCVProfileWithAI` sends the raw CV text as the user message.
-3. The JSON response is normalized and returned with `CV_PROFILE_SCHEMA_VERSION`.
+2. `StructureCVProfileWithAIUseCase` creates the configured Gemini structuring service for the request.
+3. The service sends the raw CV text as the user message.
+4. The JSON response is normalized and returned with `CV_PROFILE_SCHEMA_VERSION`.
 
 ## Maintenance
 When `SYSTEM_PROMPT`, the standard CV profile schema, or `CV_PROFILE_SCHEMA_VERSION` changes, update this document in the same change.

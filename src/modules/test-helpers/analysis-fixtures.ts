@@ -19,10 +19,10 @@ export async function createTestCVAnalysis(
     text?: string | null;
   },
 ) {
-  const module = createCVAnalysisModule();
-  module.bindRequest(supabase);
+  const cvAnalysisModule = createCVAnalysisModule();
+  cvAnalysisModule.bindRequest(supabase);
 
-  const entity = await module.createCVAnalysis.execute({
+  const entity = await cvAnalysisModule.createCVAnalysis.execute({
     id: input.id,
     userId: input.userId,
     cvDocumentId: input.cvId,
@@ -57,10 +57,10 @@ export async function createTestJobMatchAnalysis(
     score?: number | null;
   },
 ) {
-  const module = createJobMatchAnalysisModule();
-  module.bindRequest(supabase);
+  const jobMatchAnalysisModule = createJobMatchAnalysisModule();
+  jobMatchAnalysisModule.bindRequest(supabase);
 
-  const entity = await module.createJobMatchAnalysis.execute({
+  const entity = await jobMatchAnalysisModule.createJobMatchAnalysis.execute({
     id: input.id,
     userId: input.userId,
     cvDocumentId: input.cvId,
@@ -82,7 +82,7 @@ export async function createTestJobMatchAnalysis(
   });
 
   if (typeof input.score === "number") {
-    const scored = await module.updateJobMatchAnalysisAIResult.execute({
+    const scored = await jobMatchAnalysisModule.updateJobMatchAnalysisAIResult.execute({
       id: entity.toPrimitives().id,
       userId: input.userId,
       aiModel: "model",

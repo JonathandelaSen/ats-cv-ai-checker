@@ -70,7 +70,6 @@ export function documentRepo(overrides: Partial<CVDocumentRepository> = {}) {
     save: vi.fn(async (cv: CVDocument) => cv),
     delete: vi.fn(async () => undefined),
     deleteStoredPdf: vi.fn(async () => undefined),
-    listAnalysisUsage: vi.fn(async () => []),
     ...overrides,
   } satisfies CVDocumentRepository;
 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { structureCVProfileWithAI } from "@/lib/ai-cv-structuring";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -95,11 +94,13 @@ export async function POST(
         );
       }
 
-      const structured = await structureCVProfileWithAI({
-        apiKey: geminiApiKey.trim(),
-        model,
-        text,
-      });
+      const structured = await cvLibraryModule
+        .bindRequest(supabase)
+        .structureCVProfileWithAI.execute({
+          apiKey: geminiApiKey.trim(),
+          model,
+          text,
+        });
       const savedProfile = await cvLibraryModule
         .bindRequest(supabase)
         .upsertCVStructuredProfile.execute({

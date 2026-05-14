@@ -3,6 +3,7 @@ import { CreateCVAnalysisUseCase } from "./application/use-cases/create-cv-analy
 import { DeleteCVAnalysisUseCase } from "./application/use-cases/delete-cv-analysis.use-case";
 import { GetCVAnalysisByIdUseCase } from "./application/use-cases/get-cv-analysis-by-id.use-case";
 import { ListCVAnalysesUseCase } from "./application/use-cases/list-cv-analyses.use-case";
+import { ListCVAnalysisUsageByDocumentUseCase } from "./application/use-cases/list-cv-analysis-usage-by-document.use-case";
 import { ScoreCVAnalysisUseCase } from "./application/use-cases/score-cv-analysis.use-case";
 import { UpdateCVAnalysisAIResultUseCase } from "./application/use-cases/update-cv-analysis-ai-result.use-case";
 import { GeminiCVScoringAIServiceFactory } from "./infrastructure/services/gemini-cv-scoring-ai.service";
@@ -15,6 +16,9 @@ function createUseCases() {
   return {
     createCVAnalysis: new CreateCVAnalysisUseCase({ repo }),
     listCVAnalyses: new ListCVAnalysesUseCase({ repo }),
+    listCVAnalysisUsageByDocument: new ListCVAnalysisUsageByDocumentUseCase({
+      repo,
+    }),
     getCVAnalysisById: new GetCVAnalysisByIdUseCase({ repo }),
     scoreCVAnalysis: new ScoreCVAnalysisUseCase({ repo, aiServiceFactory }),
     updateCVAnalysisAIResult: new UpdateCVAnalysisAIResultUseCase({ repo }),

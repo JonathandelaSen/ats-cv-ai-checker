@@ -2,7 +2,6 @@ import { BoundSupabaseRepository } from "@/modules/shared";
 import { normalizeStandardCVProfile } from "../../domain/cv-profile";
 import { CVDocument } from "../../domain/entities/cv-document.entity";
 import type {
-  CVAnalysisUsageSummary,
   CVDocumentRepository,
   CVDocumentSearchCriteria,
 } from "../../domain/repositories/cv-document.repository";
@@ -175,65 +174,4 @@ export class SupabaseCVDocumentRepository
     if (error) throw error;
   }
 
-  async listAnalysisUsage(
-    id: CVDocumentId,
-    userId: UserId,
-  ): Promise<CVAnalysisUsageSummary[]> {
-    const [cvResult, jobMatchResult] = await Promise.all([
-      this.client
-        .from("cv_analyses")
-        .select(
-          "id, cv_document_id, title, filename, created_at, score, analyzed_at",
-        )
-        .eq("cv_document_id", id.toPrimitives())
-        .eq("user_id", userId.toPrimitives()),
-      this.client
-        .from("job_match_analyses")
-        .select(
-          "id, cv_document_id, title, filename, created_at, score, analyzed_at, job_snapshot",
-        )
-        .eq("cv_document_id", id.toPrimitives())
-        .eq("user_id", userId.toPrimitives()),
-    ]);
-
-    if (cvResult.error) throw cvResult.error;
-    if (jobMatchResult.error) throw jobMatchResult.error;
-
-    const cvAnalyses = (cvResult.data ?? []).map((row) => ({
-      id: row.id as string,
-      cv_id: row.cv_document_id as string | null,
-      title: row.title as string,
-      filename: row.filename as string,
-      created_at: row.created_at as string,
-      analysis_mode: "general" as const,
-      ai_score: row.score as number | null,
-      ai_analyzed_at: row.analyzed_at as string | null,
-      job_url: null,
-      offer_status: null,
-      offer_next_action_at: null,
-    }));
-    const jobMatchAnalyses = (jobMatchResult.data ?? []).map((row) => {
-      const snapshot =
-        row.job_snapshot && typeof row.job_snapshot === "object"
-          ? (row.job_snapshot as Record<string, unknown>)
-          : {};
-      return {
-        id: row.id as string,
-        cv_id: row.cv_document_id as string | null,
-        title: row.title as string,
-        filename: row.filename as string,
-        created_at: row.created_at as string,
-        analysis_mode: "job_match" as const,
-        ai_score: row.score as number | null,
-        ai_analyzed_at: row.analyzed_at as string | null,
-        job_url: typeof snapshot.url === "string" ? snapshot.url : null,
-        offer_status: null,
-        offer_next_action_at: null,
-      };
-    });
-
-    return [...cvAnalyses, ...jobMatchAnalyses].sort((a, b) =>
-      b.created_at.localeCompare(a.created_at),
-    );
-  }
 }

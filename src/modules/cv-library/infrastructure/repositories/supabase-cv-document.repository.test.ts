@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { createTestCVAnalysis } from "@/modules/test-helpers/analysis-fixtures";
 import { createTestCV } from "@/modules/test-helpers/cv-fixtures";
 import {
   createTestUser,
@@ -79,7 +78,7 @@ describe("SupabaseCVDocumentRepository", () => {
     ).resolves.toBeNull();
   });
 
-  it("finds published template documents and legacy analysis usage", async () => {
+  it("finds published template documents", async () => {
     const user = await createTestUser("cv-library-public");
     const cv = await createTestCV(supabase, {
       id: crypto.randomUUID(),
@@ -100,21 +99,7 @@ describe("SupabaseCVDocumentRepository", () => {
         public_slug: "ada-cv",
       })
       .eq("id", cv.id);
-    await createTestCVAnalysis(supabase, {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      cvId: cv.id,
-      title: "Analysis",
-      filename: "cv.pdf",
-    });
-
     const published = await repo.findPublishedByPublicId(publicId);
     expect(published?.id).toBe(cv.id);
-
-    const usage = await repo.listAnalysisUsage(
-      CVDocumentId.fromPrimitives(cv.id),
-      UserId.fromPrimitives(user.id),
-    );
-    expect(usage).toHaveLength(1);
   });
 });

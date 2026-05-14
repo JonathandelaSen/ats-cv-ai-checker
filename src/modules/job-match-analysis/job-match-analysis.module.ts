@@ -3,6 +3,7 @@ import { CreateJobMatchAnalysisUseCase } from "./application/use-cases/create-jo
 import { DeleteJobMatchAnalysisUseCase } from "./application/use-cases/delete-job-match-analysis.use-case";
 import { GetJobMatchAnalysisByIdUseCase } from "./application/use-cases/get-job-match-analysis-by-id.use-case";
 import { ListJobMatchAnalysesUseCase } from "./application/use-cases/list-job-match-analyses.use-case";
+import { ListJobMatchAnalysisUsageByDocumentUseCase } from "./application/use-cases/list-job-match-analysis-usage-by-document.use-case";
 import { ScoreJobMatchAnalysisUseCase } from "./application/use-cases/score-job-match-analysis.use-case";
 import { UpdateJobMatchAnalysisAIResultUseCase } from "./application/use-cases/update-job-match-analysis-ai-result.use-case";
 import { UpdateJobMatchAnalysisJobUrlUseCase } from "./application/use-cases/update-job-match-analysis-job-url.use-case";
@@ -16,6 +17,8 @@ function createUseCases() {
   return {
     createJobMatchAnalysis: new CreateJobMatchAnalysisUseCase({ repo }),
     listJobMatchAnalyses: new ListJobMatchAnalysesUseCase({ repo }),
+    listJobMatchAnalysisUsageByDocument:
+      new ListJobMatchAnalysisUsageByDocumentUseCase({ repo }),
     getJobMatchAnalysisById: new GetJobMatchAnalysisByIdUseCase({ repo }),
     scoreJobMatchAnalysis: new ScoreJobMatchAnalysisUseCase({
       repo,
