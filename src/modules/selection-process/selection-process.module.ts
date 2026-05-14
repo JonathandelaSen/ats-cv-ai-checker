@@ -2,16 +2,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { SupabaseEventTracker, type EventTracker } from "@/modules/shared";
 import { CreateProcessQuestionUseCase } from "./application/use-cases/create-process-question.use-case";
 import { DeleteProcessQuestionUseCase } from "./application/use-cases/delete-process-question.use-case";
+import { EditQuestionAnswerUseCase } from "./application/use-cases/edit-question-answer.use-case";
+import { GenerateQuestionAnswerUseCase } from "./application/use-cases/generate-question-answer.use-case";
 import { GetProcessQuestionUseCase } from "./application/use-cases/get-process-question.use-case";
 import { ListProcessQuestionsUseCase } from "./application/use-cases/list-process-questions.use-case";
 import { UpdateFollowUpByAnalysisUseCase } from "./application/use-cases/update-follow-up-by-analysis.use-case";
 import { UpdateProcessQuestionUseCase } from "./application/use-cases/update-process-question.use-case";
 import { SupabaseFollowUpRepository } from "./infrastructure/repositories/supabase-follow-up.repository";
 import { SupabaseProcessQuestionRepository } from "./infrastructure/repositories/supabase-process-question.repository";
+import { GeminiInterviewQuestionAIService } from "./infrastructure/services/gemini-interview-question-ai.service";
 
 const questionRepo = new SupabaseProcessQuestionRepository();
 const followUpRepo = new SupabaseFollowUpRepository();
 const tracker: EventTracker = new SupabaseEventTracker();
+const aiService = new GeminiInterviewQuestionAIService();
 
 function createUseCases() {
   return {
@@ -23,6 +27,16 @@ function createUseCases() {
     }),
     updateProcessQuestion: new UpdateProcessQuestionUseCase({
       questionRepo,
+      tracker,
+    }),
+    generateQuestionAnswer: new GenerateQuestionAnswerUseCase({
+      questionRepo,
+      aiService,
+      tracker,
+    }),
+    editQuestionAnswer: new EditQuestionAnswerUseCase({
+      questionRepo,
+      aiService,
       tracker,
     }),
     updateFollowUpByAnalysis: new UpdateFollowUpByAnalysisUseCase({

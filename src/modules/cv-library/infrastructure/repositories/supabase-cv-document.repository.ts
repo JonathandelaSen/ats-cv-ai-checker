@@ -9,7 +9,7 @@ import type {
 import type { CVDocumentId } from "../../domain/value-objects/cv-document-id.value-object";
 import type { UserId } from "@/modules/shared";
 
-export const CV_PDFS_BUCKET = "cv-pdfs";
+import { CV_PDFS_BUCKET } from "../../domain/services/cv-storage";
 
 interface CVDocumentRow {
   id: string;

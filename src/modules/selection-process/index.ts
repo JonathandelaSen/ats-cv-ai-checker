@@ -7,8 +7,5 @@ export {
   presentProcessQuestions,
   type ProcessQuestionResponse,
 } from "./application/presenters/process-question-presenters";
-export {
-  generateInterviewQuestionAnswer,
-  editInterviewQuestionAnswer,
-  type InterviewQuestionAIInput,
-} from "./infrastructure/services/gemini-interview-question-ai.service";
+export type { GenerateQuestionAnswerInput } from "./application/use-cases/generate-question-answer.use-case";
+export type { EditQuestionAnswerInput } from "./application/use-cases/edit-question-answer.use-case";

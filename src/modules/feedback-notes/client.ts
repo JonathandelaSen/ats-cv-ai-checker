@@ -10,4 +10,4 @@ export type { FeedbackEntryPrimitives } from "./domain/entities/feedback-entry.e
 export {
   buildFeedbackNotesFinalPrompt,
   type FeedbackNotesFinalPromptEntry,
-} from "./infrastructure/services/feedback-notes-prompts";
+} from "./domain/services/feedback-notes-prompts";

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateInterviewQuestionAnswer } from "@/modules/selection-process";
 import { getBestCVText } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -142,29 +141,22 @@ export async function POST(
     }
 
     const cvText = links.cv ? getBestCVText(links.cv) : null;
-    const answer = await generateInterviewQuestionAnswer({
-      apiKey: geminiApiKey,
-      model,
-      question: existing.question,
-      context,
-      cv: links.cv,
-      cvText,
-      analysis: links.analysis,
-    });
     cvIdForEvents = cv_id ?? links.analysis?.cv_id ?? null;
     analysisIdForEvents = analysis_id;
 
     const updated = await selectionProcessModule
       .bindRequest(supabase)
-      .updateProcessQuestion.execute({
+      .generateQuestionAnswer.execute({
       id,
       userId: user.id,
+      apiKey: geminiApiKey,
+      model,
       context,
       legacyCvId: cv_id,
       sourceJobMatchAnalysisId: analysis_id,
-      answer,
-      aiModel: model,
-      aiGeneratedAt: new Date().toISOString(),
+      cv: links.cv,
+      cvText,
+      analysis: links.analysis,
       requestId,
     });
 
@@ -177,7 +169,6 @@ export async function POST(
       status: "success",
       source: "api_interview_questions",
       durationMs: performance.now() - startedAt,
-      textLength: answer.length,
       metadata: {
         questionId: id,
         model,

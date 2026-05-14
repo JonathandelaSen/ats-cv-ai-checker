@@ -1,21 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
-import type { Analysis, CVRecord } from "@/lib/analysis-types";
+import type {
+  InterviewQuestionAIInput,
+  InterviewQuestionAIService,
+} from "../../domain/repositories/interview-question-ai.service";
 import {
   INTERVIEW_QUESTION_SYSTEM_PROMPT,
   buildInterviewQuestionPrompt,
 } from "./interview-question-prompts";
-
-export interface InterviewQuestionAIInput {
-  apiKey: string;
-  model: string;
-  question: string;
-  context: string;
-  currentAnswer?: string | null;
-  instruction?: string | null;
-  cv?: CVRecord | null;
-  cvText?: string | null;
-  analysis?: Analysis | null;
-}
 
 function parseInterviewQuestionAIResponse(rawText: string): string {
   const parsed = JSON.parse(rawText || "{}") as Record<string, unknown>;
@@ -51,14 +42,14 @@ async function runInterviewQuestionModel(
   return parseInterviewQuestionAIResponse(response.text || "{}");
 }
 
-export async function generateInterviewQuestionAnswer(
-  input: InterviewQuestionAIInput,
-): Promise<string> {
-  return runInterviewQuestionModel(input);
-}
+export class GeminiInterviewQuestionAIService
+  implements InterviewQuestionAIService
+{
+  async generateAnswer(input: InterviewQuestionAIInput): Promise<string> {
+    return runInterviewQuestionModel(input);
+  }
 
-export async function editInterviewQuestionAnswer(
-  input: InterviewQuestionAIInput,
-): Promise<string> {
-  return runInterviewQuestionModel(input);
+  async editAnswer(input: InterviewQuestionAIInput): Promise<string> {
+    return runInterviewQuestionModel(input);
+  }
 }

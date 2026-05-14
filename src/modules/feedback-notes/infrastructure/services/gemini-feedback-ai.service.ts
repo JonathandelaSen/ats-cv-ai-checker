@@ -6,7 +6,7 @@ import type {
 import {
   buildFeedbackNotesFinalPrompt,
   FEEDBACK_NOTES_FINAL_SYSTEM_PROMPT,
-} from "./feedback-notes-prompts";
+} from "../../domain/services/feedback-notes-prompts";
 
 export class GeminiFeedbackAIService implements FeedbackAIService {
   constructor(private readonly config: { apiKey: string; model: string }) {}

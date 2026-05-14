@@ -2,7 +2,7 @@ export {
   createCVLibraryModule,
   type CVLibraryModule,
 } from "./cv-library.module";
-export { CV_PDFS_BUCKET } from "./infrastructure/repositories/supabase-cv-document.repository";
+export { CV_PDFS_BUCKET } from "./domain/services/cv-storage";
 export {
   presentCVDocument,
   presentCVDocumentSummary,

@@ -121,6 +121,7 @@ Each step should be a separate commit.
   - `scripts/verify-ddd-imports.mjs`: module internals must respect DDD import direction. Domain cannot import application or infrastructure, application cannot import infrastructure, infrastructure cannot import application, and feature modules cannot import another feature module's internals. Composition roots (`<module>.module.ts`), module barrels, tests, test helpers, external packages, and `src/modules/shared/**` are allowed where appropriate.
   - `scripts/verify-ddd-entities.mjs`: modules listed in `migratedModules` must follow the AggregateRoot/ValueObject/repository rules above.
   - `scripts/verify-ddd-route-imports.mjs`: files under `src/app/`, `src/components/`, and `src/lib/` that import from `@/modules/<name>` must use the barrel (`@/modules/<name>` or `@/modules/<name>/index`), never reach into internal paths like `@/modules/<name>/infrastructure/...`. `@/modules/shared` is exempt.
+  - `scripts/verify-ddd-barrel-exports.mjs`: module barrel files (`index.ts`) must not re-export from `infrastructure/`. Infrastructure details must be accessed through use cases, not leaked through the barrel. `@/modules/shared` is exempt.
 
 ## Agent Workflow Preferences
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.
