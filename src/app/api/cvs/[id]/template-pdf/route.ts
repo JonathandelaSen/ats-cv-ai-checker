@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
 import { parseTemplatePdfRequest } from "../../validation";
+import { notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export async function GET(
   req: NextRequest,
@@ -22,15 +22,15 @@ export async function GET(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = document ? presentCVDocument(document) : null;
     if (!cv || cv.type !== "template") {
-      return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
+      throw notFound("Template CV not found");
     }
     if (!cv.profile || !cv.template_id) {
-      return NextResponse.json({ error: "CV has no profile or template" }, { status: 400 });
+      throw badRequest("CV has no profile or template");
     }
 
     const template = getCVTemplate(cv.template_id);
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      throw notFound("Template not found");
     }
 
     const pdf = await renderTemplatePDF({
@@ -52,10 +52,6 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    console.error("Template PDF error:", error);
-    return NextResponse.json(
-      { error: "Error exporting template PDF", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

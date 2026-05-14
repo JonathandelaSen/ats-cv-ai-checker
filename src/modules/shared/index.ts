@@ -14,5 +14,16 @@ export { UserId } from "./domain/value-objects/user-id.value-object";
 export { ValueObject } from "./domain/value-objects/value-object";
 export { SupabaseEventTracker } from "./infrastructure/repositories/supabase-event-tracker.repository";
 export { BoundSupabaseRepository } from "./infrastructure/repositories/bound-supabase-repository";
-export { handleDomainError } from "./infrastructure/http/domain-error-handler";
+export { DomainError } from "./domain/errors/domain-error";
+export {
+  HttpError,
+  notFound,
+  badRequest,
+  forbidden,
+  conflict,
+  ok,
+  created,
+  errorResponse,
+  handleApiError,
+} from "./infrastructure/http/api-errors";
 export type { SupabaseAware } from "./infrastructure/supabase-aware";

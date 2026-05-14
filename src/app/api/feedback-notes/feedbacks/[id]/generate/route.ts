@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import {
   presentFeedback,
 } from "@/modules/feedback-notes";
-import { handleDomainError } from "@/modules/shared";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseGenerateFeedbackRequest } from "../../../validation";
 
 export const maxDuration = 60;
@@ -21,7 +21,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseGenerateFeedbackRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     feedbackNotesModule.bindRequest(supabase);
     const useCase = feedbackNotesModule.createGenerateFinalFeedbackUseCase({
@@ -30,8 +30,8 @@ export async function POST(
     });
     const feedback = await useCase.execute(user.id, id);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return NextResponse.json(presentFeedback(feedback, entries.length));
+    return ok(presentFeedback(feedback, entries.length));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
-import { handleDomainError } from "@/modules/shared";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateWorkJournalEntryRequest } from "../../validation";
 
 export async function PATCH(
@@ -17,15 +17,15 @@ export async function PATCH(
     const body = await req.json();
     const parsed = parseUpdateWorkJournalEntryRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
     const entry = await workJournalModule.updateEntry.execute(id, user.id, parsed.value);
     const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
-    return NextResponse.json(presentWorkJournalEntry(entry, context));
+    return ok(presentWorkJournalEntry(entry, context));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -40,8 +40,8 @@ export async function DELETE(
     const { id } = await params;
     workJournalModule.bindRequest(supabase);
     await workJournalModule.deleteEntry.execute(id, user.id);
-    return NextResponse.json({ ok: true });
+    return ok({ ok: true });
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

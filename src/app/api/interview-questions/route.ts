@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -14,6 +13,7 @@ import {
 } from "./validation";
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion, presentProcessQuestions } from "@/modules/selection-process";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     const parsed = parseListInterviewQuestionsRequest(req.nextUrl.searchParams);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const questions = await selectionProcessModule
       .bindRequest(supabase)
@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
       ...parsed.value,
     });
 
-    return NextResponse.json(presentProcessQuestions(questions));
+    return ok(presentProcessQuestions(questions));
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         errorCode: parsed.error.message === "Question is required" ? "question_required" : "invalid_payload",
         errorMessage: parsed.error.message,
       });
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { question, context, answer, cv_id, analysis_id } = parsed.value;
 
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     const linkedCvId = cv_id ?? links.analysis?.cv_id ?? null;
     cvIdForEvents = linkedCvId;
 
-    const created = await selectionProcessModule
+    const createdQuestion = await selectionProcessModule
       .bindRequest(supabase)
       .createProcessQuestion.execute({
       userId: user.id,
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       sourceJobMatchAnalysisId: analysis_id,
       requestId,
     });
-    const response = presentProcessQuestion(created);
+    const response = presentProcessQuestion(createdQuestion);
 
     await recordProcessingEvent({
       userId,
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(response, { status: 201 });
+    return created(response);
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,
@@ -160,6 +160,6 @@ export async function POST(req: NextRequest) {
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -12,6 +11,7 @@ import { extractPdfText } from "@/lib/pdf-extraction";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument, presentCVDocuments } from "@/modules/cv-library";
 import { parseUploadCVFormData } from "./validation";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 
 export async function GET() {
   try {
@@ -22,9 +22,9 @@ export async function GET() {
     const cvs = await cvLibraryModule
       .bindRequest(supabase)
       .listCVDocuments.execute({ userId: user.id });
-    return NextResponse.json(presentCVDocuments(cvs));
+    return ok(presentCVDocuments(cvs));
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const parsed = parseUploadCVFormData(formData);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { file, requestedName } = parsed.value;
 
@@ -202,9 +202,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(responseCV);
+    return ok(responseCV);
   } catch (error: unknown) {
-    console.error("Create CV error:", error);
     await recordProcessingEvent({
       userId,
       cvId,
@@ -215,9 +214,6 @@ export async function POST(req: NextRequest) {
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json(
-      { error: "Internal server error", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

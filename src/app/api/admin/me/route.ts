@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { isAdminUser } from "@/lib/observability";
+import { ok } from "@/modules/shared";
 
 export async function GET() {
   const authContext = await getAuthenticatedRequestContext();
@@ -9,5 +10,5 @@ export async function GET() {
   }
   const { user } = authContext;
 
-  return NextResponse.json({ isAdmin: await isAdminUser(user.id) });
+  return ok({ isAdmin: await isAdminUser(user.id) });
 }

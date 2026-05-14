@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalContext } from "@/modules/work-journal";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseWorkJournalSuggestionActionRequest } from "../../validation";
 
 export async function POST(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseWorkJournalSuggestionActionRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
 
@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
     });
 
-    if ("ok" in result) return NextResponse.json(result);
-    return NextResponse.json(presentWorkJournalContext(result), { status: 201 });
+    if ("ok" in result) return ok(result);
+    return created(presentWorkJournalContext(result));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

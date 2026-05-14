@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import {
   presentFeedback,
 } from "@/modules/feedback-notes";
-import { handleDomainError } from "@/modules/shared";
+import { ok, handleApiError } from "@/modules/shared";
 
 export async function POST(
   _req: NextRequest,
@@ -18,8 +18,8 @@ export async function POST(
     feedbackNotesModule.bindRequest(supabase);
     const feedback = await feedbackNotesModule.closeFeedback.execute(user.id, id);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return NextResponse.json(presentFeedback(feedback, entries.length));
+    return ok(presentFeedback(feedback, entries.length));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

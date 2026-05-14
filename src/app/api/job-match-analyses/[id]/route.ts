@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   jobMatchAnalysisModule,
   selectionProcessModule,
 } from "@/lib/container";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { parseUpdateJobMatchAnalysisRequest } from "../validation";
+import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   _req: NextRequest,
@@ -22,21 +22,11 @@ export async function GET(
       .bindRequest(supabase)
       .getJobMatchAnalysisById.execute({ id, userId: user.id });
     if (!analysis) {
-      return NextResponse.json(
-        { error: "Job match analysis not found" },
-        { status: 404 },
-      );
+      throw notFound("Job match analysis not found");
     }
-    return NextResponse.json(presentJobMatchAnalysis(analysis));
+    return ok(presentJobMatchAnalysis(analysis));
   } catch (error: unknown) {
-    console.error("Get job match analysis error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to get job match analysis",
-        details: getErrorMessage(error),
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -54,21 +44,11 @@ export async function DELETE(
       .bindRequest(supabase)
       .deleteJobMatchAnalysis.execute({ id, userId: user.id });
     if (!deleted) {
-      return NextResponse.json(
-        { error: "Job match analysis not found" },
-        { status: 404 },
-      );
+      throw notFound("Job match analysis not found");
     }
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error: unknown) {
-    console.error("Delete job match analysis error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to delete job match analysis",
-        details: getErrorMessage(error),
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -85,7 +65,7 @@ export async function PATCH(
     const body = await req.json();
     const parsed = parseUpdateJobMatchAnalysisRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { allowedUpdates, followUpUpdates, includesOfferTracking } = parsed.value;
 
@@ -99,10 +79,7 @@ export async function PATCH(
           ...followUpUpdates,
         });
       if (!followUp) {
-        return NextResponse.json(
-          { error: "Analysis not found or update failed" },
-          { status: 404 },
-        );
+        throw notFound("Analysis not found or update failed");
       }
     }
 
@@ -127,10 +104,7 @@ export async function PATCH(
 
     existing = updated;
     if (!existing) {
-      return NextResponse.json(
-        { error: "Analysis not found or update failed" },
-        { status: 404 },
-      );
+      throw notFound("Analysis not found or update failed");
     }
 
     return NextResponse.json({
@@ -149,13 +123,6 @@ export async function PATCH(
         : {}),
     });
   } catch (error: unknown) {
-    console.error("Update job match analysis error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to update job match analysis",
-        details: getErrorMessage(error),
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

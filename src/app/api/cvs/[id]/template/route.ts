@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
-import { getErrorMessage } from "@/lib/errors";
 import {
   getCVTemplate,
   type CVTemplateLocale,
@@ -9,6 +8,7 @@ import {
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 import { parseTemplateCVRequest } from "../../validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export async function POST(
   req: NextRequest,
@@ -23,13 +23,13 @@ export async function POST(
     const body = await req.json();
     const parsed = parseTemplateCVRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { templateId, locale, geminiApiKey, model } = parsed.value;
 
     const template = templateId ? getCVTemplate(templateId) : null;
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      throw notFound("Template not found");
     }
 
     const selectedLocale = template.locales.includes(locale as CVTemplateLocale)
@@ -41,7 +41,7 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = document ? presentCVDocument(document) : null;
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     let profile = null;
@@ -69,21 +69,14 @@ export async function POST(
 
     if (!profile) {
       if (!geminiApiKey?.trim()) {
-        return NextResponse.json(
-          {
-            error:
-              "Configura tu API key de Gemini antes de preparar este CV para plantillas.",
-          },
-          { status: 400 }
+        throw badRequest(
+          "Configura tu API key de Gemini antes de preparar este CV para plantillas.",
         );
       }
 
       const text = getBestCVText(cv);
       if (!text) {
-        return NextResponse.json(
-          { error: "No extracted text available for this CV" },
-          { status: 400 }
-        );
+        throw badRequest("No extracted text available for this CV");
       }
 
       const structured = await cvLibraryModule
@@ -122,16 +115,8 @@ export async function POST(
       requestId: `cv-template-${id}`,
     });
 
-    return NextResponse.json({ version: presentCVDocument(templateCV), profile });
+    return ok({ version: presentCVDocument(templateCV), profile });
   } catch (error: unknown) {
-    const message = getErrorMessage(error);
-    console.error("Template selection error:", message, error);
-    return NextResponse.json(
-      {
-        error: message || "Failed to select CV template",
-        details: message,
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

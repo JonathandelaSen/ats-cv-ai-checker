@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   parseUpdateInterviewQuestionRequest,
   validateQuestionLinks,
 } from "../validation";
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion } from "@/modules/selection-process";
+import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   _req: NextRequest,
@@ -22,12 +22,12 @@ export async function GET(
       .bindRequest(supabase)
       .getProcessQuestion.execute({ id, userId: user.id });
     if (!question) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+      throw notFound("Question not found");
     }
 
-    return NextResponse.json(presentProcessQuestion(question));
+    return ok(presentProcessQuestion(question));
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -44,7 +44,7 @@ export async function PATCH(
     const body = await req.json();
     const parsed = parseUpdateInterviewQuestionRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const updates = parsed.value;
 
@@ -57,7 +57,7 @@ export async function PATCH(
         .getProcessQuestion.execute({ id, userId: user.id });
       const existing = existingReadModel ? presentProcessQuestion(existingReadModel) : null;
       if (!existing) {
-        return NextResponse.json({ error: "Question not found" }, { status: 404 });
+        throw notFound("Question not found");
       }
       const links = await validateQuestionLinks(supabase, user.id, {
         cv_id: updates.legacyCvId === undefined ? existing.cv_id : updates.legacyCvId,
@@ -77,12 +77,12 @@ export async function PATCH(
       ...updates,
     });
     if (!updated) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+      throw notFound("Question not found");
     }
 
-    return NextResponse.json(presentProcessQuestion(updated));
+    return ok(presentProcessQuestion(updated));
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -100,11 +100,11 @@ export async function DELETE(
       .bindRequest(supabase)
       .deleteProcessQuestion.execute({ id, userId: user.id });
     if (!deleted) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+      throw notFound("Question not found");
     }
 
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

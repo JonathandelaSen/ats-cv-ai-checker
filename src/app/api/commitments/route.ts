@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { commitmentsModule } from "@/lib/container";
 import { presentCommitment,
   presentCommitmentsWorkspace } from "@/modules/commitments";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateCommitmentRequest } from "./validation";
 
 export async function GET() {
@@ -13,9 +13,9 @@ export async function GET() {
     const { supabase, user } = authContext;
     commitmentsModule.bindRequest(supabase);
     const workspace = await commitmentsModule.listWorkspace.execute(user.id);
-    return NextResponse.json(presentCommitmentsWorkspace(workspace));
+    return ok(presentCommitmentsWorkspace(workspace));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseCreateCommitmentRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     commitmentsModule.bindRequest(supabase);
     const commitment = await commitmentsModule.createCommitment.execute({
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
       startDate: parsed.value.startDate ?? undefined,
     });
-    return NextResponse.json(presentCommitment(commitment), { status: 201 });
+    return created(presentCommitment(commitment));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

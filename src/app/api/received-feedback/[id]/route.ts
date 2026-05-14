@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
-import { handleDomainError } from "@/modules/shared";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateReceivedFeedbackRequest } from "../validation";
 
 export async function PATCH(
@@ -18,10 +18,7 @@ export async function PATCH(
     const body = await req.json();
     const parsed = parseUpdateReceivedFeedbackRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json(
-        { error: parsed.error.message },
-        { status: parsed.error.status }
-      );
+      return errorResponse(parsed.error);
     }
 
     receivedFeedbackModule.bindRequest(supabase);
@@ -31,9 +28,9 @@ export async function PATCH(
       parsed.value
     );
 
-    return NextResponse.json(presentReceivedFeedback(feedback));
+    return ok(presentReceivedFeedback(feedback));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -50,8 +47,8 @@ export async function DELETE(
     receivedFeedbackModule.bindRequest(supabase);
     await receivedFeedbackModule.deleteReceivedFeedback.execute(user.id, id);
 
-    return NextResponse.json({ ok: true });
+    return ok({ ok: true });
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

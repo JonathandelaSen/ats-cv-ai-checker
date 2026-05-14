@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 import { parseStructureCVProfileRequest } from "../../validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export async function GET(
   _req: NextRequest,
@@ -20,17 +20,17 @@ export async function GET(
       .bindRequest(supabase)
       .getCVDocument.execute({ id, userId: user.id });
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     const profile = await cvLibraryModule
       .bindRequest(supabase)
       .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
-    return NextResponse.json({
+    return ok({
       profile: profile ? presentCVStructuredProfile(profile) : null,
     });
   } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -47,7 +47,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseStructureCVProfileRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     const cvDocument = await cvLibraryModule
@@ -55,15 +55,12 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = cvDocument ? presentCVDocument(cvDocument) : null;
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     const text = getBestCVText(cv);
     if (!text) {
-      return NextResponse.json(
-        { error: "No extracted text available for this CV" },
-        { status: 400 }
-      );
+      throw badRequest("No extracted text available for this CV");
     }
 
     const sourceTextHash = getCVSourceTextHash(text);
@@ -72,7 +69,7 @@ export async function POST(
       .getCVStructuredProfile.execute({ cvDocumentId: id, userId: user.id });
     const existingResponse = existing ? presentCVStructuredProfile(existing) : null;
     if (existingResponse && existingResponse.source_text_hash === sourceTextHash && !parsed.value.force) {
-      return NextResponse.json({ profile: existingResponse, cached: true });
+      return ok({ profile: existingResponse, cached: true });
     }
 
     const structured = await cvLibraryModule
@@ -95,15 +92,8 @@ export async function POST(
       requestId: `cv-profile-${id}`,
     });
 
-    return NextResponse.json({ profile: presentCVStructuredProfile(profile), cached: false });
+    return ok({ profile: presentCVStructuredProfile(profile), cached: false });
   } catch (error: unknown) {
-    console.error("Structured profile error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to structure CV profile",
-        details: getErrorMessage(error),
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

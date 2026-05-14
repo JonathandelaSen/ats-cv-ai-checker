@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import {
   presentConversation,
@@ -7,7 +7,6 @@ import {
   presentMessages,
 } from "@/modules/analysis-chat";
 import { analysisChatModule } from "@/lib/container";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -15,6 +14,7 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import { parseListOfferChatRequest, parseOfferChatPostRequest } from "./validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
 
@@ -46,10 +46,8 @@ export async function GET(
     analysisChatModule.bindRequest(supabase);
     const validationError = await validateJobMatch(id, user.id);
     if (validationError) {
-      return NextResponse.json(
-        { error: validationError.error },
-        { status: validationError.status }
-      );
+      if (validationError.status === 404) throw notFound(validationError.error);
+      throw badRequest(validationError.error);
     }
 
     const parsed = parseListOfferChatRequest(req.nextUrl.searchParams);
@@ -60,19 +58,16 @@ export async function GET(
         userId: user.id,
         conversationId,
       });
-      return NextResponse.json({ messages: presentMessages(messages) });
+      return ok({ messages: presentMessages(messages) });
     }
 
     const conversations = await analysisChatModule.listConversations.execute({
       userId: user.id,
       analysisId: id,
     });
-    return NextResponse.json({ conversations: presentConversations(conversations) });
+    return ok({ conversations: presentConversations(conversations) });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -97,16 +92,14 @@ export async function POST(
     const body = await req.json();
     const parsed = parseOfferChatPostRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     analysisChatModule.bindRequest(supabase);
     const validationError = await validateJobMatch(id, user.id);
     if (validationError) {
-      return NextResponse.json(
-        { error: validationError.error },
-        { status: validationError.status }
-      );
+      if (validationError.status === 404) throw notFound(validationError.error);
+      throw badRequest(validationError.error);
     }
 
     if (parsed.value.action === "create_conversation") {
@@ -116,7 +109,7 @@ export async function POST(
         title: parsed.value.title,
         requestId,
       });
-      return NextResponse.json({ conversation: presentConversation(conversation) });
+      return ok({ conversation: presentConversation(conversation) });
     }
 
     if (parsed.value.action === "rename_conversation") {
@@ -127,7 +120,7 @@ export async function POST(
         title: parsed.value.title,
         requestId,
       });
-      return NextResponse.json({ conversation: presentConversation(conversation) });
+      return ok({ conversation: presentConversation(conversation) });
     }
 
     if (parsed.value.action === "delete_conversation") {
@@ -137,7 +130,7 @@ export async function POST(
         conversationId: parsed.value.conversationId,
         requestId,
       });
-      return NextResponse.json({ ok: true });
+      return ok({ ok: true });
     }
 
     const context = await analysisChatModule.getAnalysisChatContext.execute({
@@ -157,7 +150,7 @@ export async function POST(
       startedAt,
     });
 
-    return NextResponse.json({
+    return ok({
       userMessage: presentMessage(result.userMessage),
       assistantMessage: presentMessage(result.assistantMessage),
     });
@@ -174,9 +167,6 @@ export async function POST(
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

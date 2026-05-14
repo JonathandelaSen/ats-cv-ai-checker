@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
-import { getErrorMessage } from "@/lib/errors";
 import { cvLibraryModule } from "@/lib/container";
+import { ok, notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   _req: NextRequest,
@@ -18,7 +18,7 @@ export async function GET(
       .bindRequest(supabase)
       .getCVDocument.execute({ id, userId: user.id });
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     const analysis = await getLatestRecommendationAnalysisForCV(
@@ -26,11 +26,8 @@ export async function GET(
       id,
       user.id,
     );
-    return NextResponse.json({ analysis });
+    return ok({ analysis });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

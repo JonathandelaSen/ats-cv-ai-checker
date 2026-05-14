@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   getCVTemplate,
   type CVTemplateId,
@@ -10,6 +9,7 @@ import { renderTemplatePDF } from "@/lib/cv-template-pdf";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 import { parseTemplatePdfRequest } from "../../../../validation";
+import { notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   req: NextRequest,
@@ -23,7 +23,7 @@ export async function GET(
     const { id, templateId } = await params;
     const template = getCVTemplate(templateId);
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      throw notFound("Template not found");
     }
 
     const document = await cvLibraryModule
@@ -31,7 +31,7 @@ export async function GET(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = document ? presentCVDocument(document) : null;
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     const structuredDocument = await cvLibraryModule
@@ -41,10 +41,7 @@ export async function GET(
       ? presentCVStructuredProfile(structuredDocument)
       : null;
     if (!structured) {
-      return NextResponse.json(
-        { error: "Structured profile not found" },
-        { status: 404 }
-      );
+      throw notFound("Structured profile not found");
     }
 
     const parsed = parseTemplatePdfRequest(req.nextUrl.searchParams);
@@ -68,10 +65,6 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    console.error("Template PDF error:", error);
-    return NextResponse.json(
-      { error: "Error exporting template PDF", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

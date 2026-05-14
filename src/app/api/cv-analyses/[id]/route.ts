@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import { cvAnalysisModule } from "@/lib/container";
 import { presentCVAnalysis } from "@/modules/cv-analysis";
+import { ok, notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   _req: NextRequest,
@@ -18,18 +18,11 @@ export async function GET(
       .bindRequest(supabase)
       .getCVAnalysisById.execute({ id, userId: user.id });
     if (!analysis) {
-      return NextResponse.json(
-        { error: "CV analysis not found" },
-        { status: 404 },
-      );
+      throw notFound("CV analysis not found");
     }
-    return NextResponse.json(presentCVAnalysis(analysis));
+    return ok(presentCVAnalysis(analysis));
   } catch (error: unknown) {
-    console.error("Get CV analysis error:", error);
-    return NextResponse.json(
-      { error: "Failed to get CV analysis", details: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -47,17 +40,10 @@ export async function DELETE(
       .bindRequest(supabase)
       .deleteCVAnalysis.execute({ id, userId: user.id });
     if (!deleted) {
-      return NextResponse.json(
-        { error: "CV analysis not found" },
-        { status: 404 },
-      );
+      throw notFound("CV analysis not found");
     }
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error: unknown) {
-    console.error("Delete CV analysis error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete CV analysis", details: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

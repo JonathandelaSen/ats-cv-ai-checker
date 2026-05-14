@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
-import { handleDomainError } from "@/modules/shared";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseDraftWorkJournalEntryRequest } from "../../validation";
 
 export const maxDuration = 60;
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseDraftWorkJournalEntryRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
     const draftUseCase = workJournalModule.createDraftEntryUseCase({
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       notes: parsed.value.notes,
     });
 
-    return NextResponse.json({ final_text: finalText });
+    return ok({ final_text: finalText });
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentContext } from "@/modules/commitments";
-import { handleDomainError } from "@/modules/shared";
+import { created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateCommitmentContextRequest } from "../validation";
 
 export async function POST(req: NextRequest) {
@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseCreateCommitmentContextRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     commitmentsModule.bindRequest(supabase);
     const context = await commitmentsModule.createContext.execute({ userId: user.id, ...parsed.value });
-    return NextResponse.json(presentCommitmentContext(context), { status: 201 });
+    return created(presentCommitmentContext(context));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

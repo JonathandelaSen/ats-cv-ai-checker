@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateReceivedFeedbackRequest } from "./validation";
 
 export async function GET() {
@@ -13,9 +13,9 @@ export async function GET() {
     receivedFeedbackModule.bindRequest(supabase);
     const feedback = await receivedFeedbackModule.listReceivedFeedback.execute(user.id);
 
-    return NextResponse.json(feedback.map(presentReceivedFeedback));
+    return ok(feedback.map(presentReceivedFeedback));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -28,10 +28,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseCreateReceivedFeedbackRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json(
-        { error: parsed.error.message },
-        { status: parsed.error.status }
-      );
+      return errorResponse(parsed.error);
     }
 
     receivedFeedbackModule.bindRequest(supabase);
@@ -40,8 +37,8 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
     });
 
-    return NextResponse.json(presentReceivedFeedback(feedback), { status: 201 });
+    return created(presentReceivedFeedback(feedback));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

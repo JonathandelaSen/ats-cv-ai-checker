@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import {
   isAdminUser,
   listProcessingEvents,
-  sanitizeErrorMessage,
 } from "@/lib/observability";
 import { parseListProcessingEventsRequest } from "./validation";
+import { ok, forbidden, handleApiError } from "@/modules/shared";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,18 +15,14 @@ export async function GET(req: NextRequest) {
 
     const isAdmin = await isAdminUser(user.id);
     if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      throw forbidden("Forbidden");
     }
 
     const parsed = parseListProcessingEventsRequest(req.nextUrl.searchParams);
     const events = await listProcessingEvents(parsed.value);
 
-    return NextResponse.json({ events });
+    return ok({ events });
   } catch (error: unknown) {
-    console.error("Admin processing events error:", error);
-    return NextResponse.json(
-      { error: "Failed to load processing events", details: sanitizeErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getBestCVText } from "@/lib/cv-profile";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -14,6 +13,7 @@ import {
 } from "../../validation";
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion } from "@/modules/selection-process";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
 
@@ -53,7 +53,7 @@ export async function POST(
         errorMessage: "Question not found",
         metadata: { questionId: id },
       });
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+      throw notFound("Question not found");
     }
     cvIdForEvents = existing.cv_id;
     analysisIdForEvents = existing.analysis_id;
@@ -76,7 +76,7 @@ export async function POST(
         errorMessage: parsed.error.message,
         metadata: { questionId: id },
       });
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { geminiApiKey, model, context, instruction } = parsed.value;
     if (!existing.answer?.trim()) {
@@ -93,10 +93,7 @@ export async function POST(
         errorMessage: "There is no answer to edit",
         metadata: { questionId: id, model },
       });
-      return NextResponse.json(
-        { error: "There is no answer to edit" },
-        { status: 400 }
-      );
+      throw badRequest("There is no answer to edit");
     }
 
     const links = await validateQuestionLinks(supabase, user.id, {
@@ -120,10 +117,7 @@ export async function POST(
       return links.response;
     }
     if (links.analysis && links.analysis.analysis_mode !== "job_match") {
-      return NextResponse.json(
-        { error: "Only job match analyses can be linked as offers" },
-        { status: 400 }
-      );
+      throw badRequest("Only job match analyses can be linked as offers");
     }
 
     const cvText = links.cv ? getBestCVText(links.cv) : null;
@@ -158,7 +152,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updated ? presentProcessQuestion(updated) : null);
+    return ok(updated ? presentProcessQuestion(updated) : null);
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,
@@ -175,6 +169,6 @@ export async function POST(
         questionId: questionIdForEvents,
       },
     });
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import {
   presentFeedbackEntry,
 } from "@/modules/feedback-notes";
-import { handleDomainError } from "@/modules/shared";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseFeedbackEntryContentRequest } from "../../validation";
 
 export async function PATCH(
@@ -19,13 +19,13 @@ export async function PATCH(
     const body = await req.json();
     const parsed = parseFeedbackEntryContentRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     feedbackNotesModule.bindRequest(supabase);
     const entry = await feedbackNotesModule.updateEntry.execute(user.id, id, parsed.value.content);
-    return NextResponse.json(presentFeedbackEntry(entry));
+    return ok(presentFeedbackEntry(entry));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -40,8 +40,8 @@ export async function DELETE(
     const { id } = await params;
     feedbackNotesModule.bindRequest(supabase);
     await feedbackNotesModule.deleteEntry.execute(user.id, id);
-    return NextResponse.json({ ok: true });
+    return ok({ ok: true });
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

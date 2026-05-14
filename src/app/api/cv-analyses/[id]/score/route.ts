@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -10,6 +9,7 @@ import {
 import { cvAnalysisModule } from "@/lib/container";
 import { presentCVAnalysis } from "@/modules/cv-analysis";
 import { parseScoreCVAnalysisRequest } from "../../validation";
+import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
 
@@ -30,7 +30,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseScoreCVAnalysisRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     const updated = await cvAnalysisModule
@@ -44,15 +44,11 @@ export async function POST(
       });
 
     if (!updated) {
-      return NextResponse.json(
-        { error: "Analysis not found" },
-        { status: 404 },
-      );
+      throw notFound("Analysis not found");
     }
 
-    return NextResponse.json(presentCVAnalysis(updated));
+    return ok(presentCVAnalysis(updated));
   } catch (error: unknown) {
-    console.error("CV Analysis Score Error:", error);
     await recordProcessingEvent({
       userId,
       analysisId,
@@ -63,9 +59,6 @@ export async function POST(
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json(
-      { error: "Failed to score CV analysis", details: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

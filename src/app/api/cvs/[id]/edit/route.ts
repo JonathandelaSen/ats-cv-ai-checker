@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
-import { getErrorMessage } from "@/lib/errors";
 import type { CVTemplateId, CVTemplateLocale } from "@/lib/cv-templates";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
 import { parseEditCVProfileRequest } from "../../validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
 
@@ -33,7 +33,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseEditCVProfileRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     const document = await cvLibraryModule
@@ -41,13 +41,10 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = document ? presentCVDocument(document) : null;
     if (!cv || cv.type !== "template") {
-      return NextResponse.json(
-        { error: "Template CV not found" },
-        { status: 404 },
-      );
+      throw notFound("Template CV not found");
     }
     if (!cv.profile) {
-      return NextResponse.json({ error: "CV has no profile" }, { status: 400 });
+      throw badRequest("CV has no profile");
     }
 
     const sourceCvId = cv.source_cv_id;
@@ -89,14 +86,10 @@ export async function POST(
         profile: editedProfile,
       });
 
-    return NextResponse.json({
+    return ok({
       version: updated ? presentCVDocument(updated) : null,
     });
   } catch (error: unknown) {
-    console.error("CV edit error:", error);
-    return NextResponse.json(
-      { error: "Failed to edit CV", details: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument } from "@/modules/cv-library";
 import { parseTemplatePdfRequest } from "../../validation";
+import { notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
   req: NextRequest,
@@ -30,10 +30,7 @@ export async function GET(
     }
 
     if (!cv?.pdf_storage_path) {
-      return NextResponse.json(
-        { error: "PDF no encontrado" },
-        { status: 404 }
-      );
+      throw notFound("PDF no encontrado");
     }
 
     const { data, error } = await supabase.storage
@@ -41,10 +38,7 @@ export async function GET(
       .download(cv.pdf_storage_path);
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: "PDF no encontrado" },
-        { status: 404 }
-      );
+      throw notFound("PDF no encontrado");
     }
 
     const parsedPdfRequest = parseTemplatePdfRequest(req.nextUrl.searchParams);
@@ -59,10 +53,6 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    console.error("CV PDF error:", error);
-    return NextResponse.json(
-      { error: "Error cargando el PDF", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

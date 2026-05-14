@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -12,6 +11,7 @@ import { extractPdfText } from "@/lib/pdf-extraction";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument } from "@/modules/cv-library";
 import { parseUploadCVFormData } from "../cvs/validation";
+import { ok, errorResponse, handleApiError } from "@/modules/shared";
 
 export async function POST(req: NextRequest) {
   const requestId = createRequestId("parse");
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const parsed = parseUploadCVFormData(formData);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { file, requestedName } = parsed.value;
 
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    return ok({
       id: cv.id,
       cvId: cv.id,
       filename: cv.filename,
@@ -204,7 +204,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    console.error("API error:", error);
     await recordProcessingEvent({
       userId,
       cvId,
@@ -215,9 +214,6 @@ export async function POST(req: NextRequest) {
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json(
-      { error: "Internal server error", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

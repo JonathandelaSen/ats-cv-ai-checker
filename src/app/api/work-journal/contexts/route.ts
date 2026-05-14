@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import {
   presentWorkJournalContext,
   presentWorkJournalContextSuggestion,
 } from "@/modules/work-journal";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateWorkJournalContextRequest } from "../validation";
 
 export async function GET() {
@@ -21,12 +21,12 @@ export async function GET() {
       workJournalModule.listContextSuggestions.execute(user.id),
     ]);
 
-    return NextResponse.json({
+    return ok({
       contexts: contexts.map(presentWorkJournalContext),
       suggestions: suggestions.map(presentWorkJournalContextSuggestion),
     });
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseCreateWorkJournalContextRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
 
@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
     });
 
-    return NextResponse.json(presentWorkJournalContext(context), { status: 201 });
+    return created(presentWorkJournalContext(context));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import {
   presentFeedbackEntry,
 } from "@/modules/feedback-notes";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseFeedbackEntryContentRequest } from "../../../validation";
 
 export async function GET(
@@ -18,9 +18,9 @@ export async function GET(
     const { id } = await params;
     feedbackNotesModule.bindRequest(supabase);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return NextResponse.json(entries.map(presentFeedbackEntry));
+    return ok(entries.map(presentFeedbackEntry));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -36,7 +36,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseFeedbackEntryContentRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     feedbackNotesModule.bindRequest(supabase);
     const entry = await feedbackNotesModule.createEntry.execute({
@@ -44,8 +44,8 @@ export async function POST(
       feedback_id: id,
       content: parsed.value.content,
     });
-    return NextResponse.json(presentFeedbackEntry(entry), { status: 201 });
+    return created(presentFeedbackEntry(entry));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

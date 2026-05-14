@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
-import { handleDomainError } from "@/modules/shared";
+import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import {
   parseCreateWorkJournalEntryRequest,
   parseListWorkJournalEntriesRequest,
@@ -16,19 +16,18 @@ export async function GET(req: NextRequest) {
     workJournalModule.bindRequest(supabase);
 
     const parsed = parseListWorkJournalEntriesRequest(req.nextUrl.searchParams);
-    if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
-    }
+    if (!parsed.ok) return errorResponse(parsed.error);
+
     const [entries, contexts] = await Promise.all([
       workJournalModule.listEntries.execute(user.id, parsed.value),
       workJournalModule.listContexts.execute(user.id),
     ]);
     const contextsById = new Map(contexts.map((context) => [context.id, context]));
-    return NextResponse.json(
+    return ok(
       entries.map((entry) => presentWorkJournalEntry(entry, contextsById.get(entry.contextId)))
     );
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }
 
@@ -40,9 +39,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const parsed = parseCreateWorkJournalEntryRequest(body);
-    if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
-    }
+    if (!parsed.ok) return errorResponse(parsed.error);
+
     workJournalModule.bindRequest(supabase);
 
     const entry = await workJournalModule.createEntry.execute({
@@ -52,8 +50,8 @@ export async function POST(req: NextRequest) {
 
     const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
-    return NextResponse.json(presentWorkJournalEntry(entry, context), { status: 201 });
+    return created(presentWorkJournalEntry(entry, context));
   } catch (error: unknown) {
-    return handleDomainError(error);
+    return handleApiError(error);
   }
 }

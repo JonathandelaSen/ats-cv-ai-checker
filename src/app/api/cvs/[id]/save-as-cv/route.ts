@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument } from "@/modules/cv-library";
 import { parseSaveTemplateAsCVRequest } from "../../validation";
+import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export async function POST(
   req: NextRequest,
@@ -18,7 +18,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseSaveTemplateAsCVRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     const templateDocument = await cvLibraryModule
@@ -26,7 +26,7 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const templateCV = templateDocument ? presentCVDocument(templateDocument) : null;
     if (!templateCV || templateCV.type !== "template" || !templateCV.profile) {
-      return NextResponse.json({ error: "Template CV not found" }, { status: 404 });
+      throw notFound("Template CV not found");
     }
 
     const summaryText = templateCV.profile.summary || "";
@@ -61,12 +61,8 @@ export async function POST(
     });
     void structured;
 
-    return NextResponse.json({ cv: presentCVDocument(newCV) });
+    return ok({ cv: presentCVDocument(newCV) });
   } catch (error: unknown) {
-    console.error("Save template as CV error:", error);
-    return NextResponse.json(
-      { error: "Failed to save as CV", details: getErrorMessage(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

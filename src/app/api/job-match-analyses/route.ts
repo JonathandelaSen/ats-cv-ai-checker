@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
   getErrorCode,
@@ -13,6 +12,7 @@ import {
   presentJobMatchAnalysisSummary,
 } from "@/modules/job-match-analysis";
 import { parseCreateJobMatchAnalysisRequest } from "./validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 const ROUTE_SOURCE = "api_job_match_analyses";
 
@@ -25,12 +25,9 @@ export async function GET() {
     const analyses = await jobMatchAnalysisModule
       .bindRequest(supabase)
       .listJobMatchAnalyses.execute({ userId: user.id });
-    return NextResponse.json(analyses.map(presentJobMatchAnalysisSummary));
+    return ok(analyses.map(presentJobMatchAnalysisSummary));
   } catch (error: unknown) {
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -49,7 +46,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = parseCreateJobMatchAnalysisRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
     const { cvId, title, jobDescription, jobUrl, model } = parsed.value;
     cvIdForEvents = cvId;
@@ -63,7 +60,7 @@ export async function POST(req: NextRequest) {
         source: ROUTE_SOURCE,
       });
     if (!prepared) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     if (!prepared.analysisText) {
@@ -79,10 +76,7 @@ export async function POST(req: NextRequest) {
         errorMessage: "No extracted text available for this CV.",
         metadata: prepared.extractionDiagnostics,
       });
-      return NextResponse.json(
-        { error: "No extracted text available for this CV" },
-        { status: 400 },
-      );
+      throw badRequest("No extracted text available for this CV");
     }
 
     analysisIdForEvents = crypto.randomUUID();
@@ -135,9 +129,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(analysis);
+    return ok(analysis);
   } catch (error: unknown) {
-    console.error("Create job match analysis error:", error);
     await recordProcessingEvent({
       userId,
       cvId: cvIdForEvents,
@@ -149,13 +142,7 @@ export async function POST(req: NextRequest) {
       errorCode: getErrorCode(error),
       errorMessage: sanitizeErrorMessage(error),
     });
-    return NextResponse.json(
-      {
-        error: "Failed to create job match analysis",
-        details: getErrorMessage(error),
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -178,11 +165,8 @@ export async function DELETE() {
         }),
       ),
     );
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
-import { getErrorMessage } from "@/lib/errors";
 import {
   getCVTemplate,
   type CVTemplateId,
@@ -13,6 +12,7 @@ import {
   presentCVStructuredProfile,
 } from "@/modules/cv-library";
 import { parseEditCVProfileRequest } from "../../../validation";
+import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
 
@@ -40,7 +40,7 @@ export async function POST(
     const body = await req.json();
     const parsed = parseEditCVProfileRequest(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error.message }, { status: parsed.error.status });
+      return errorResponse(parsed.error);
     }
 
     const cvDocument = await cvLibraryModule
@@ -48,7 +48,7 @@ export async function POST(
       .getCVDocument.execute({ id, userId: user.id });
     const cv = cvDocument ? presentCVDocument(cvDocument) : null;
     if (!cv) {
-      return NextResponse.json({ error: "CV not found" }, { status: 404 });
+      throw notFound("CV not found");
     }
 
     const structuredDocument = await cvLibraryModule
@@ -58,18 +58,12 @@ export async function POST(
       ? presentCVStructuredProfile(structuredDocument)
       : null;
     if (!structured) {
-      return NextResponse.json(
-        { error: "Structured profile not found" },
-        { status: 404 },
-      );
+      throw notFound("Structured profile not found");
     }
 
     const template = getCVTemplate(parsed.value.templateId ?? cv.template_id ?? "");
     if (!template) {
-      return NextResponse.json(
-        { error: "Selecciona una plantilla antes de editar el CV." },
-        { status: 400 },
-      );
+      throw badRequest("Selecciona una plantilla antes de editar el CV.");
     }
     const requestedLocale = parsed.value.locale ?? cv.template_locale ?? "es";
     const selectedTemplateId = template.templateId satisfies CVTemplateId;
@@ -118,15 +112,8 @@ export async function POST(
         requestId: `cv-profile-edit-${id}`,
       });
 
-    return NextResponse.json({ profile: presentCVStructuredProfile(profile) });
+    return ok({ profile: presentCVStructuredProfile(profile) });
   } catch (error: unknown) {
-    console.error("Structured profile edit error:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to edit CV profile",
-        details: getErrorMessage(error),
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

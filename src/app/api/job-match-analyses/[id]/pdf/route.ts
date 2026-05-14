@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { jobMatchAnalysisModule } from "@/lib/container";
 import { downloadAnalysisPdf } from "../../../_services/download-analysis-pdf.service";
+import { notFound } from "@/modules/shared";
 
 export async function GET(
   req: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
     .bindRequest(supabase)
     .getJobMatchAnalysisById.execute({ id, userId: user.id });
   if (!analysis) {
-    return NextResponse.json({ error: "PDF no encontrado" }, { status: 404 });
+    throw notFound("PDF no encontrado");
   }
 
   const primitives = analysis.toPrimitives();
