@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentContext } from "@/modules/commitments";
 import { handleDomainError } from "@/modules/shared";
 import {
-  getAuthedSupabase,
   optionalStringEnum,
   optionalText,
   requiredText,
@@ -14,8 +14,9 @@ const statuses = ["active", "archived"] as const;
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const { id } = await params;
     const body = (await req.json()) as Record<string, unknown>;
     const type = optionalStringEnum(body.type, types);

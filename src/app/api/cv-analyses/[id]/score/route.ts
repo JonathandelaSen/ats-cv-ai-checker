@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -6,7 +7,6 @@ import {
   recordProcessingEvent,
   sanitizeErrorMessage,
 } from "@/lib/observability";
-import { createClient } from "@/lib/supabase/server";
 import { cvAnalysisModule } from "@/lib/container";
 import { presentCVAnalysis } from "@/modules/cv-analysis";
 
@@ -21,13 +21,9 @@ export async function POST(
   const { id: analysisId } = await params;
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     userId = user.id;
 
     const body = (await req.json()) as Record<string, unknown>;

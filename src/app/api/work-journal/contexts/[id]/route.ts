@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalContext } from "@/modules/work-journal";
 import { handleDomainError } from "@/modules/shared";
-import { getAuthedSupabase, normalizeOptionalText, normalizeRequiredText } from "../../validation";
+import {
+  normalizeOptionalText,
+  normalizeRequiredText,
+} from "../../validation";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const { id } = await params;
     const body = (await req.json()) as Record<string, unknown>;
 

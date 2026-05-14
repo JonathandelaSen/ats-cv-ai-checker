@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
 import { handleDomainError } from "@/modules/shared";
 import {
-  getAuthedSupabase,
   normalizeInputMode,
   normalizeOptionalDate,
   normalizeOptionalText,
@@ -13,8 +13,9 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     workJournalModule.bindRequest(supabase);
 
     const params = req.nextUrl.searchParams;
@@ -39,8 +40,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const body = (await req.json()) as Record<string, unknown>;
     const context_id = normalizeRequiredText(body.context_id);

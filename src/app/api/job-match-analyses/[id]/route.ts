@@ -1,31 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { OFFER_STATUSES, type OfferStatus } from "@/lib/analysis-types";
 import { getErrorMessage } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
 import {
   jobMatchAnalysisModule,
   selectionProcessModule,
 } from "@/lib/container";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 
-async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const analysis = await jobMatchAnalysisModule
@@ -55,10 +45,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const deleted = await jobMatchAnalysisModule
@@ -88,10 +77,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const data = (await req.json()) as Record<string, unknown>;

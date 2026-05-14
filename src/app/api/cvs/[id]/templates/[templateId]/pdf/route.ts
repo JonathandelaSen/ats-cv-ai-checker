@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import {
   getCVTemplate,
@@ -6,7 +7,6 @@ import {
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
 import { renderTemplatePDF } from "@/lib/cv-template-pdf";
-import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
 
@@ -15,13 +15,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string; templateId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id, templateId } = await params;
     const template = getCVTemplate(templateId);

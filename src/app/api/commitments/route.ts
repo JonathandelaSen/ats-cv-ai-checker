@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { commitmentsModule } from "@/lib/container";
-import { presentCommitment, presentCommitmentsWorkspace } from "@/modules/commitments";
+import { presentCommitment,
+  presentCommitmentsWorkspace } from "@/modules/commitments";
 import { handleDomainError } from "@/modules/shared";
 import {
-  getAuthedSupabase,
   optionalDate,
   optionalStringEnum,
   optionalText,
@@ -16,8 +17,9 @@ const priorities = ["low", "medium", "high"] as const;
 
 export async function GET() {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     commitmentsModule.bindRequest(supabase);
     const workspace = await commitmentsModule.listWorkspace.execute(user.id);
     return NextResponse.json(presentCommitmentsWorkspace(workspace));
@@ -28,8 +30,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const body = (await req.json()) as Record<string, unknown>;
     const contextId = requiredText(body.contextId);
     const title = requiredText(body.title);

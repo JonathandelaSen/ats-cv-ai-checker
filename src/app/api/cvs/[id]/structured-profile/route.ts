@@ -1,28 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import { getBestCVText, getCVSourceTextHash } from "@/lib/cv-profile";
-import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
 import { presentCVDocument, presentCVStructuredProfile } from "@/modules/cv-library";
-
-async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const cv = await cvLibraryModule
@@ -48,10 +38,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const {

@@ -1,17 +1,3 @@
-import type { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
-
-export async function getAuthedSupabase(): Promise<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  user: User | null;
-}> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return { supabase, user };
-}
-
 export function optionalText(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null) return null;

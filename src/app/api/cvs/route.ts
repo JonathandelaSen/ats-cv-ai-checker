@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -8,25 +9,14 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import { extractPdfText } from "@/lib/pdf-extraction";
-import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule } from "@/lib/container";
 import { CV_PDFS_BUCKET, presentCVDocument, presentCVDocuments } from "@/modules/cv-library";
 
-async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
-
 export async function GET() {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const cvs = await cvLibraryModule
       .bindRequest(supabase)
@@ -42,10 +32,9 @@ export async function POST(req: NextRequest) {
   let userId: string | null = null;
   let cvId: string | null = null;
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     userId = user.id;
 
     const formData = await req.formData();

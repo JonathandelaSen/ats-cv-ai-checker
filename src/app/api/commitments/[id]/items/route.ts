@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentItem } from "@/modules/commitments";
 import { handleDomainError } from "@/modules/shared";
 import {
-  getAuthedSupabase,
   optionalDate,
   optionalStringEnum,
   optionalText,
@@ -14,8 +14,9 @@ const statuses = ["todo", "in_progress", "done", "cancelled"] as const;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const { id } = await params;
     const body = (await req.json()) as Record<string, unknown>;
     const title = requiredText(body.title);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getBestCVText } from "@/lib/cv-profile";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -8,7 +9,6 @@ import {
   sanitizeErrorMessage,
 } from "@/lib/observability";
 import {
-  getAuthedSupabase,
   normalizeOptionalText,
   validateQuestionLinks,
 } from "../../validation";
@@ -28,10 +28,9 @@ export async function POST(
   let analysisIdForEvents: string | null = null;
   let questionIdForEvents: string | null = null;
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     userId = user.id;
 
     const { id } = await params;

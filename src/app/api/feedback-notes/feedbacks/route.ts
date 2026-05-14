@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import { presentFeedback } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
 import {
-  getAuthedSupabase,
   normalizeOptionalText,
   normalizeRequiredText,
   normalizeStatus,
@@ -11,8 +11,9 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const status = normalizeStatus(req.nextUrl.searchParams.get("status"));
     if (!status) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     feedbackNotesModule.bindRequest(supabase);
@@ -31,8 +32,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const body = (await req.json()) as Record<string, unknown>;
     const personName = normalizeRequiredText(body.person_name);
     const finalFeedback =

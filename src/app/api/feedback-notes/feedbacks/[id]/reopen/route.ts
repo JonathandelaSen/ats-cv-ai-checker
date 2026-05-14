@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { feedbackNotesModule } from "@/lib/container";
 import {
   presentFeedback,
 } from "@/modules/feedback-notes";
 import { handleDomainError } from "@/modules/shared";
-import { getAuthedSupabase } from "../../../validation";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     const { id } = await params;
     feedbackNotesModule.bindRequest(supabase);
     const feedback = await feedbackNotesModule.reopenFeedback.execute(user.id, id);

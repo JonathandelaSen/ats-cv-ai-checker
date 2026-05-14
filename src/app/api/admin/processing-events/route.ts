@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import {
   isAdminUser,
   listProcessingEvents,
   sanitizeErrorMessage,
 } from "@/lib/observability";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { user } = authContext;
 
     const isAdmin = await isAdminUser(user.id);
     if (!isAdmin) {

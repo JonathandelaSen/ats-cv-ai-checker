@@ -6,22 +6,9 @@ import {
   cvLibraryModule,
   jobMatchAnalysisModule,
 } from "@/lib/container";
-import { createClient } from "@/lib/supabase/server";
 import { presentCVAnalysis } from "@/modules/cv-analysis";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { presentCVDocument, type CVDocumentResponse } from "@/modules/cv-library";
-
-export async function getAuthedSupabase(): Promise<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  user: User | null;
-}> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
 
 export function normalizeOptionalText(value: unknown) {
   if (value === null) return null;

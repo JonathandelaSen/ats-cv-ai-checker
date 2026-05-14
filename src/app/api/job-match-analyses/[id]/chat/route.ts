@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import {
   presentConversation,
   presentConversations,
@@ -13,18 +14,8 @@ import {
   recordProcessingEvent,
   sanitizeErrorMessage,
 } from "@/lib/observability";
-import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
-
-async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
 
 function normalizeRequiredText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -50,10 +41,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     analysisChatModule.bindRequest(supabase);
@@ -99,10 +89,9 @@ export async function POST(
   let cvIdForEvents: string | null = null;
 
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     userId = user.id;
 
     const { id } = await params;

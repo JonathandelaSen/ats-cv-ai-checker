@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getErrorMessage } from "@/lib/errors";
 import {
   createRequestId,
@@ -6,7 +7,6 @@ import {
   recordProcessingEvent,
   sanitizeErrorMessage,
 } from "@/lib/observability";
-import { createClient } from "@/lib/supabase/server";
 import { cvLibraryModule, jobMatchAnalysisModule } from "@/lib/container";
 import {
   presentJobMatchAnalysis,
@@ -15,21 +15,11 @@ import {
 
 const ROUTE_SOURCE = "api_job_match_analyses";
 
-async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
-
 export async function GET() {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const analyses = await jobMatchAnalysisModule
       .bindRequest(supabase)
@@ -50,10 +40,9 @@ export async function POST(req: NextRequest) {
   let analysisIdForEvents: string | null = null;
 
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
     userId = user.id;
 
     const {
@@ -192,10 +181,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   try {
-    const { supabase, user } = await getAuthedSupabase();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const boundJobMatchAnalysisModule =
       jobMatchAnalysisModule.bindRequest(supabase);

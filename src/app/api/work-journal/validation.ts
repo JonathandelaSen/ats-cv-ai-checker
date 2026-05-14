@@ -1,21 +1,7 @@
-import type { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
 import type {
   ContextType as WorkJournalContextType,
   EntryInputMode as WorkJournalEntryInputMode,
 } from "@/modules/work-journal";
-
-export async function getAuthedSupabase(): Promise<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  user: User | null;
-}> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { supabase, user };
-}
 
 export function normalizeOptionalText(value: unknown) {
   if (value === null) return null;

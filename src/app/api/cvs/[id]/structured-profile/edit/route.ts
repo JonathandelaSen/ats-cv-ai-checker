@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { getLatestRecommendationAnalysisForCV } from "@/lib/analysis-queries";
 import { getErrorMessage } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
 import {
   getCVTemplate,
   type CVTemplateId,
@@ -31,13 +31,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authContext = await getAuthenticatedRequestContext();
+    if (!authContext.ok) return authContext.response;
+    const { supabase, user } = authContext;
 
     const { id } = await params;
     const {
