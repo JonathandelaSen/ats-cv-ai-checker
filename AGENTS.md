@@ -78,7 +78,6 @@ src/modules/
 - **Domain errors** are caught by `handleDomainError()` which maps them to HTTP status codes.
 - **AI prompts and controllers live inside their module** under `infrastructure/services/`. Prompt builders go in a `*-prompts.ts` file, and the SDK client call goes in a separate `gemini-*-ai.service.ts` file. Both files are colocated in the same directory. **Reference:** `feedback-notes` module.
 - **Cross-module data access uses the query bus**. A use case that needs data from another module must dispatch a query through the `QueryBus` (injected via constructor), never import another module's repository or use case directly. Query classes and handlers live under `application/queries/` in the owning module and are registered in `container.ts`.
-- **One command per route handler**. A route may call one use case with side effects (the command) and any number of read-only queries. It must never call two use cases that both produce side effects. If the response needs data from multiple modules, the route handler (controller) composes the read models after the command completes.
 - **Cross-module port interfaces** provide minimal contracts (e.g., `CVDataRepository` exposes only what the consuming module needs) when shared infrastructure is unavoidable.
 - **`getAuthedSupabase()`** and `validation.ts` helpers stay in the route handler layer, not in the module.
 
