@@ -13,6 +13,8 @@ import FeedbackNotesView from "@/components/feedback-notes-view";
 import ReceivedFeedbackView from "@/components/received-feedback-view";
 import ExtractionView from "@/components/extraction-view";
 import AIAnalysisView from "@/components/analysis/analysis-view";
+import CVAnalysesListView from "@/components/cv-analyses-list-view";
+import JobAnalysesListView from "@/components/job-analyses-list-view";
 import SettingsView from "@/components/settings-view";
 import AdminObservabilityDashboard from "@/components/admin-observability-dashboard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +33,8 @@ type ViewTab = "extraction" | "analysis";
 type AppView =
   | "new"
   | "analysis"
+  | "cv-analyses"
+  | "job-analyses"
   | "cvs"
   | "templates"
   | "editor"
@@ -282,6 +286,18 @@ export default function AppShell({
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
       });
+    } else if (view === "cv-analyses") {
+      queueMicrotask(() => {
+        setActiveView("cv-analyses");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
+    } else if (view === "job-analyses") {
+      queueMicrotask(() => {
+        setActiveView("job-analyses");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
     } else if (view === "received-feedback") {
       queueMicrotask(() => {
         setActiveView("received-feedback");
@@ -396,6 +412,20 @@ export default function AppShell({
     window.history.replaceState(null, "", "/?view=received-feedback");
   };
 
+  const handleOpenCVAnalyses = () => {
+    setActiveView("cv-analyses");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    window.history.replaceState(null, "", "/?view=cv-analyses");
+  };
+
+  const handleOpenJobAnalyses = () => {
+    setActiveView("job-analyses");
+    setActiveAnalysisId(null);
+    setActiveAnalysis(null);
+    window.history.replaceState(null, "", "/?view=job-analyses");
+  };
+
   const handleOpenSettings = () => {
     setActiveView("settings");
     setActiveAnalysisId(null);
@@ -478,6 +508,8 @@ export default function AppShell({
         activeView={activeView}
         onSelect={handleSelect}
         onNewAnalysis={handleNewAnalysis}
+        onOpenCVAnalyses={handleOpenCVAnalyses}
+        onOpenJobAnalyses={handleOpenJobAnalyses}
         onOpenCVs={handleOpenCVs}
         onOpenTemplates={handleOpenTemplates}
         onOpenEditor={() => handleOpenEditor()}
@@ -509,6 +541,36 @@ export default function AppShell({
                 cvs={cvs}
                 onCVCreated={fetchCVs}
                 onAnalysisCreated={handleAnalysisCreated}
+              />
+            </motion.div>
+          ) : activeView === "cv-analyses" ? (
+            <motion.div
+              key="cv-analyses-list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <CVAnalysesListView
+                analyses={analyses.filter((a) => a.analysis_mode === "general")}
+                onSelect={handleSelect}
+                onNewAnalysis={handleNewAnalysis}
+                onDelete={handleDelete}
+              />
+            </motion.div>
+          ) : activeView === "job-analyses" ? (
+            <motion.div
+              key="job-analyses-list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <JobAnalysesListView
+                analyses={analyses.filter((a) => a.analysis_mode === "job_match")}
+                onSelect={handleSelect}
+                onNewAnalysis={handleNewAnalysis}
+                onDelete={handleDelete}
               />
             </motion.div>
           ) : activeView === "cvs" ? (
