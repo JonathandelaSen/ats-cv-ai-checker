@@ -36,6 +36,15 @@ async function main() {
           module: entry.name,
           file: `src/modules/${entry.name}/index.ts`,
           reExport: specifier,
+          reason: "infrastructure internals must not be re-exported",
+        });
+      }
+      if (specifier.includes("/domain/repositories/")) {
+        violations.push({
+          module: entry.name,
+          file: `src/modules/${entry.name}/index.ts`,
+          reExport: specifier,
+          reason: "repository port interfaces are module-internal",
         });
       }
     }
@@ -43,10 +52,10 @@ async function main() {
 
   if (violations.length > 0) {
     console.error(
-      "Module barrel files (index.ts) must not re-export from infrastructure/:",
+      "Module barrel files (index.ts) contain forbidden re-exports:",
     );
     for (const v of violations) {
-      console.error(`  - ${v.file} re-exports "${v.reExport}"`);
+      console.error(`  - ${v.file} re-exports "${v.reExport}" (${v.reason})`);
     }
     process.exitCode = 1;
     return;
