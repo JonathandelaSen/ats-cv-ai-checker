@@ -25,7 +25,10 @@ import type {
   WorkJournalEntry,
   EntryInputMode as WorkJournalEntryInputMode,
 } from "@/modules/work-journal";
+import { buildWorkJournalEntryDraftPrompt } from "@/modules/work-journal/client";
 import { getErrorMessage } from "@/lib/errors";
+import { CopyPromptModal } from "@/components/ui/copy-prompt-modal";
+import { Clipboard } from "lucide-react";
 
 interface WorkJournalViewProps {
   geminiApiKey: string;
@@ -68,6 +71,8 @@ export default function WorkJournalView({
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [contextFilter, setContextFilter] = useState<string>("");
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [copiedPromptContent, setCopiedPromptContent] = useState("");
 
   const activeContexts = contexts.filter((context) => context.status === "active");
 
@@ -234,6 +239,28 @@ export default function WorkJournalView({
     }
   };
 
+  const copyPrompt = async () => {
+    if (!draft.context_id || !draft.raw_notes.trim()) return;
+    const selectedContext = contexts.find((c) => c.id === draft.context_id);
+    if (!selectedContext) return;
+
+    const prompt = buildWorkJournalEntryDraftPrompt({
+      context: {
+        type: selectedContext.type,
+        name: selectedContext.name,
+        roleOrLabel: selectedContext.roleOrLabel,
+      },
+      dateStart: draft.date_start,
+      dateEnd: draft.date_end || null,
+      topic: draft.topic || null,
+      notes: draft.raw_notes,
+    }, true);
+
+    await navigator.clipboard.writeText(prompt);
+    setCopiedPromptContent(prompt);
+    setIsCopyModalOpen(true);
+  };
+
   const patchEntry = async (
     entry: WorkJournalEntry,
     updates: Partial<WorkJournalEntry>
@@ -359,15 +386,26 @@ export default function WorkJournalView({
 
                     {draft.input_mode === "ai_assisted" && (
                       <motion.div initial={{opacity:0}} animate={{opacity:1}} className="space-y-4 pt-4 border-t border-white/5">
-                        <button
-                          type="button"
-                          onClick={draftWithAI}
-                          disabled={aiLoading}
-                          className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50"
-                        >
-                          {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                          Generar redacción profesional
-                        </button>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={draftWithAI}
+                            disabled={aiLoading}
+                            className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50"
+                          >
+                            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            Generar redacción profesional
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyPrompt()}
+                            disabled={!draft.raw_notes.trim() || !draft.context_id}
+                            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors disabled:opacity-50"
+                          >
+                            <Clipboard className="h-4 w-4" />
+                            Copiar prompt de IA
+                          </button>
+                        </div>
                         
                         {draft.final_text && (
                           <textarea
@@ -526,6 +564,14 @@ export default function WorkJournalView({
           )}
         </div>
       </div>
+      
+      <CopyPromptModal 
+        isOpen={isCopyModalOpen} 
+        onClose={() => setIsCopyModalOpen(false)} 
+        title="Prompt copiado"
+        message="Puedes copiarlo en ChatGPT, Claude o tu AI favorita para generar el resultado."
+        promptContent={copiedPromptContent}
+      />
     </div>
   );
 }
