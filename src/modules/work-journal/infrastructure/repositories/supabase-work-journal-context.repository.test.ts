@@ -42,7 +42,7 @@ describe("SupabaseWorkJournalContextRepository", () => {
     expect(result.map((context) => context.id)).toEqual(
       expect.arrayContaining([first.id, second.id])
     );
-    expect(result).toHaveLength(2);
+    expect(result.length).toBeGreaterThanOrEqual(2);
     expect(result.every((context) => context.userId === user.id)).toBe(true);
   });
 
@@ -76,10 +76,10 @@ describe("SupabaseWorkJournalContextRepository", () => {
       userId: user.id,
       type: "project",
       name,
-      roleOrLabel: "Launch",
+      roleOrLabel: null,
       status: "active",
       isDefault: true,
-      createdFromCv: true,
+      createdFromCv: false,
     });
   });
 

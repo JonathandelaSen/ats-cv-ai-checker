@@ -1,4 +1,4 @@
-import { AggregateRoot, UserId } from "@/modules/shared";
+import { AggregateRoot, EntityId, UserId } from "@/modules/shared";
 import { ReceivedFeedbackCreatedEvent } from "../events/received-feedback-created.event";
 import { ReceivedFeedbackDeletedEvent } from "../events/received-feedback-deleted.event";
 import { ReceivedFeedbackUpdatedEvent } from "../events/received-feedback-updated.event";
@@ -11,6 +11,7 @@ import { ReceivedFeedbackText } from "../value-objects/received-feedback-text.va
 export interface ReceivedFeedbackPrimitives {
   id: string;
   userId: string;
+  activityContextId: string;
   receivedDate: string;
   giverName: string;
   feedbackText: string;
@@ -22,6 +23,7 @@ export interface ReceivedFeedbackPrimitives {
 export interface ReceivedFeedbackCreateParams {
   id: ReceivedFeedbackId;
   userId: UserId;
+  activityContextId: EntityId;
   receivedDate: ReceivedFeedbackDate;
   giverName: ReceivedFeedbackGiverName;
   feedbackText: ReceivedFeedbackText;
@@ -31,6 +33,7 @@ export interface ReceivedFeedbackCreateParams {
 }
 
 export interface ReceivedFeedbackUpdateParams {
+  activityContextId?: EntityId;
   receivedDate?: ReceivedFeedbackDate;
   giverName?: ReceivedFeedbackGiverName;
   feedbackText?: ReceivedFeedbackText;
@@ -42,6 +45,7 @@ export class ReceivedFeedback extends AggregateRoot {
   private constructor(
     private readonly feedbackId: ReceivedFeedbackId,
     private readonly feedbackUserId: UserId,
+    private feedbackActivityContextId: EntityId,
     private feedbackReceivedDate: ReceivedFeedbackDate,
     private feedbackGiverName: ReceivedFeedbackGiverName,
     private feedbackTextValue: ReceivedFeedbackText,
@@ -56,6 +60,7 @@ export class ReceivedFeedback extends AggregateRoot {
     const feedback = new ReceivedFeedback(
       params.id,
       params.userId,
+      params.activityContextId,
       params.receivedDate,
       params.giverName,
       params.feedbackText,
@@ -71,6 +76,7 @@ export class ReceivedFeedback extends AggregateRoot {
     return new ReceivedFeedback(
       ReceivedFeedbackId.fromPrimitives(primitives.id),
       UserId.fromPrimitives(primitives.userId),
+      EntityId.fromPrimitives(primitives.activityContextId),
       ReceivedFeedbackDate.fromPrimitives(primitives.receivedDate),
       ReceivedFeedbackGiverName.fromPrimitives(primitives.giverName),
       ReceivedFeedbackText.fromPrimitives(primitives.feedbackText),
@@ -92,8 +98,16 @@ export class ReceivedFeedback extends AggregateRoot {
     return this.feedbackUserId;
   }
 
+  get activityContextId(): string {
+    return this.feedbackActivityContextId.toPrimitives();
+  }
+
   update(params: ReceivedFeedbackUpdateParams): void {
     const fields: string[] = [];
+    if (params.activityContextId) {
+      this.feedbackActivityContextId = params.activityContextId;
+      fields.push("activityContextId");
+    }
     if (params.receivedDate) {
       this.feedbackReceivedDate = params.receivedDate;
       fields.push("receivedDate");
@@ -124,6 +138,7 @@ export class ReceivedFeedback extends AggregateRoot {
     return {
       id: this.feedbackId.toPrimitives(),
       userId: this.feedbackUserId.toPrimitives(),
+      activityContextId: this.activityContextId,
       receivedDate: this.feedbackReceivedDate.toPrimitives(),
       giverName: this.feedbackGiverName.toPrimitives(),
       feedbackText: this.feedbackTextValue.toPrimitives(),

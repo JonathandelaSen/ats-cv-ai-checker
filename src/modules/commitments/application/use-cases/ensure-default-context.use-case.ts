@@ -14,7 +14,7 @@ export class EnsureDefaultCommitmentContextUseCase {
       CommitmentContext.create({
         id: EntityId.fromPrimitives(crypto.randomUUID()),
         userId: userIdValue,
-        type: "personal",
+        type: "other",
         name: "General",
         status: "active",
         isDefault: true,

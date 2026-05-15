@@ -248,7 +248,7 @@ export default function WorkJournalView({
       context: {
         type: selectedContext.type,
         name: selectedContext.name,
-        roleOrLabel: selectedContext.roleOrLabel,
+        roleOrLabel: selectedContext.role_or_label,
       },
       dateStart: draft.date_start,
       dateEnd: draft.date_end || null,

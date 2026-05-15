@@ -73,7 +73,7 @@ export class HandleSuggestionActionUseCase {
         name: WorkJournalContextName.fromPrimitives(input.name),
         roleOrLabel: WorkJournalRoleOrLabel.fromPrimitives(input.role_or_label),
         status: WorkJournalContextStatus.fromPrimitives("active"),
-        isDefault: WorkJournalIsDefault.fromPrimitives(input.is_default ?? false),
+        isDefault: WorkJournalIsDefault.fromPrimitives(false),
         createdFromCv: WorkJournalCreatedFromCv.fromPrimitives(true),
         createdAt: Timestamp.fromPrimitives(now),
         updatedAt: Timestamp.fromPrimitives(now),

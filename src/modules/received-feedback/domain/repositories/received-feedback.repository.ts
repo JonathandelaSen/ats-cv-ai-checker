@@ -1,10 +1,11 @@
-import type { UserId } from "@/modules/shared";
+import type { EntityId, UserId } from "@/modules/shared";
 import type { ReceivedFeedback } from "../entities/received-feedback.entity";
 import type { ReceivedFeedbackId } from "../value-objects/received-feedback-id.value-object";
 
 export interface ReceivedFeedbackSearchCriteria {
   userId: UserId;
   limit: number;
+  activityContextId?: EntityId | null;
 }
 
 export interface ReceivedFeedbackRepository {

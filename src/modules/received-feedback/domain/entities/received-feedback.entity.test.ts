@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UserId } from "@/modules/shared";
+import { EntityId, UserId } from "@/modules/shared";
 import { ReceivedFeedback } from "./received-feedback.entity";
 import { ReceivedFeedbackId } from "../value-objects/received-feedback-id.value-object";
 import { ReceivedFeedbackDate } from "../value-objects/received-feedback-date.value-object";
@@ -12,6 +12,7 @@ describe("ReceivedFeedback", () => {
     const feedback = ReceivedFeedback.create({
       id: ReceivedFeedbackId.fromPrimitives("feedback-1"),
       userId: UserId.fromPrimitives("user-1"),
+      activityContextId: EntityId.fromPrimitives("ctx-1"),
       receivedDate: ReceivedFeedbackDate.fromPrimitives("2026-05-01", "2026-05-12"),
       giverName: ReceivedFeedbackGiverName.fromPrimitives(" Manager "),
       feedbackText: ReceivedFeedbackText.fromPrimitives(" Keep driving alignment. "),
@@ -23,6 +24,7 @@ describe("ReceivedFeedback", () => {
     expect(feedback.toPrimitives()).toMatchObject({
       id: "feedback-1",
       userId: "user-1",
+      activityContextId: "ctx-1",
       receivedDate: "2026-05-01",
       giverName: "Manager",
       feedbackText: "Keep driving alignment.",
@@ -35,6 +37,7 @@ describe("ReceivedFeedback", () => {
     const feedback = ReceivedFeedback.fromPrimitives({
       id: "feedback-1",
       userId: "user-1",
+      activityContextId: "ctx-1",
       receivedDate: "2026-05-01",
       giverName: "Manager",
       feedbackText: "Initial feedback.",

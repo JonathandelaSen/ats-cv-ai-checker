@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { EntityId, UserId } from "@/modules/shared";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ReceivedFeedbackNotFoundError } from "../../domain/errors/received-feedback-not-found.error";
 import type { ReceivedFeedbackRepository } from "../../domain/repositories/received-feedback.repository";
@@ -10,6 +10,7 @@ import { ReceivedFeedbackText } from "../../domain/value-objects/received-feedba
 import { recordReceivedFeedbackEvent } from "./tracking";
 
 export interface UpdateReceivedFeedbackInput {
+  activityContextId?: string;
   receivedDate?: string;
   giverName?: string;
   feedbackText?: string;
@@ -36,6 +37,10 @@ export class UpdateReceivedFeedbackUseCase {
     if (!feedback) throw new ReceivedFeedbackNotFoundError();
 
     feedback.update({
+      activityContextId:
+        input.activityContextId === undefined
+          ? undefined
+          : EntityId.fromPrimitives(input.activityContextId),
       receivedDate:
         input.receivedDate === undefined
           ? undefined

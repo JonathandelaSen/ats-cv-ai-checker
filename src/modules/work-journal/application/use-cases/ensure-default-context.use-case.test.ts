@@ -28,15 +28,18 @@ function makeUseCase() {
 }
 
 describe("EnsureDefaultContextUseCase", () => {
-  it("returns null for a user without contexts or CVs", async () => {
+  it("creates General for a user without contexts", async () => {
     const user = await createTestUser("wj-ensure-empty");
     const { contextRepo, useCase } = makeUseCase();
 
-    await expect(useCase.execute(user.id)).resolves.toBeNull();
-    await expect(contextRepo.list(user.id)).resolves.toEqual([]);
+    await expect(useCase.execute(user.id).then((context) => context?.toPrimitives())).resolves.toMatchObject({
+      name: "General",
+      type: "other",
+      isDefault: true,
+    });
   });
 
-  it("marks the context with the latest entry as default", async () => {
+  it("returns the General default instead of changing it to the latest entry context", async () => {
     const user = await createTestUser("wj-ensure-latest");
     const { contextRepo, entryRepo, useCase } = makeUseCase();
     const olderContext = await contextRepo.create({
@@ -78,13 +81,13 @@ describe("EnsureDefaultContextUseCase", () => {
       .update({ updated_at: "2026-01-03T00:00:00.000Z" })
       .eq("id", newerEntry.id);
 
-    const result = await useCase.execute(user.id);
+    const general = await useCase.execute(user.id);
 
-    expect(result?.toPrimitives()).toMatchObject({ id: newerContext.id, isDefault: true });
+    expect(general?.toPrimitives()).toMatchObject({ name: "General", isDefault: true });
     await expect(
       contextRepo.getById(newerContext.id, user.id).then((context) => context?.toPrimitives())
     ).resolves.toMatchObject({
-      isDefault: true,
+      isDefault: false,
     });
   });
 

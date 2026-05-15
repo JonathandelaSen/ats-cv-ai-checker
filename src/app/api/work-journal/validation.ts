@@ -104,7 +104,9 @@ function normalizeRequiredDate(value: unknown) {
 }
 
 function normalizeContextType(value: unknown): WorkJournalContextType | null {
-  return value === "employment" || value === "project" ? value : null;
+  return value === "employment" || value === "project" || value === "personal" || value === "other"
+    ? value
+    : null;
 }
 
 function normalizeInputMode(value: unknown): WorkJournalEntryInputMode | null {

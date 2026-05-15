@@ -26,40 +26,8 @@ export class EnsureDefaultContextUseCase {
     const ownerId = UserId.fromPrimitives(userId);
     const contexts = await this.deps.contextRepo.search({ userId: ownerId });
     const active = contexts.filter((c) => c.isActive());
-    const activeIds = new Set(active.map((c) => c.id));
-
-    const latestContextId = await this.deps.contextRepo.findLatestEntryContextId(ownerId);
-    const latestContextIdValue = latestContextId?.toPrimitives() ?? null;
-
-    if (latestContextIdValue && activeIds.has(latestContextIdValue)) {
-      const latestContext = active.find((c) => c.id === latestContextIdValue);
-      if (latestContext && !latestContext.isDefault) {
-        latestContext.update({ isDefault: WorkJournalIsDefault.fromPrimitives(true) });
-        return this.deps.contextRepo.save(latestContext);
-      }
-      if (latestContext) return latestContext;
-    }
-
     const currentDefault = active.find((c) => c.isDefault);
     if (currentDefault) return currentDefault;
-    if (active[0]) return active[0];
-
-    const [cvs, hidden] = await Promise.all([
-      this.deps.cvDataRepo.listCVs(userId),
-      this.deps.contextRepo.listHiddenSuggestionKeys(ownerId),
-    ]);
-
-    const existing = new Set(contexts.map((c) => contextKey(c.type, c.name)));
-    const suggestions = suggestWorkJournalContextsFromCVs(cvs).filter((s) => {
-      const key = contextKey(s.type, s.name);
-      return (
-        !existing.has(key) &&
-        !Array.from(hidden).some((hiddenKey) => hiddenKey.toPrimitives() === key)
-      );
-    });
-
-    const best = suggestions[0];
-    if (!best) return null;
 
     const requestId = createRequestId("wj-ctx");
     await this.deps.tracker.record({
@@ -74,9 +42,9 @@ export class EnsureDefaultContextUseCase {
       WorkJournalContext.create({
         id: WorkJournalContextId.fromPrimitives(crypto.randomUUID()),
         userId: ownerId,
-        type: WorkJournalContextType.fromPrimitives(best.type),
-        name: WorkJournalContextName.fromPrimitives(best.name),
-        roleOrLabel: WorkJournalRoleOrLabel.fromPrimitives(best.roleOrLabel),
+        type: WorkJournalContextType.fromPrimitives("other"),
+        name: WorkJournalContextName.fromPrimitives("General"),
+        roleOrLabel: WorkJournalRoleOrLabel.fromPrimitives(null),
         status: WorkJournalContextStatus.fromPrimitives("active"),
         isDefault: WorkJournalIsDefault.fromPrimitives(true),
         createdFromCv: WorkJournalCreatedFromCv.fromPrimitives(true),

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import type { ActivityContextPrimitives, ActivityContextType } from "@/modules/activity";
 import type { ReceivedFeedbackPrimitives } from "@/modules/received-feedback";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -12,6 +13,7 @@ const textareaClass =
   "w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-300 focus:ring-0";
 
 interface FormState {
+  activityContextId: string;
   receivedDate: string;
   giverName: string;
   feedbackText: string;
@@ -19,6 +21,7 @@ interface FormState {
 }
 
 const emptyForm = (): FormState => ({
+  activityContextId: "",
   receivedDate: new Date().toISOString().slice(0, 10),
   giverName: "",
   feedbackText: "",
@@ -27,7 +30,12 @@ const emptyForm = (): FormState => ({
 
 export default function ReceivedFeedbackView() {
   const [items, setItems] = useState<ReceivedFeedbackPrimitives[]>([]);
+  const [contexts, setContexts] = useState<ActivityContextPrimitives[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [contextDraft, setContextDraft] = useState({
+    name: "",
+    type: "project" as ActivityContextType,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,10 +49,22 @@ export default function ReceivedFeedbackView() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/received-feedback");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not load received feedback");
-      setItems(data);
+      const [feedbackRes, contextsRes] = await Promise.all([
+        fetch("/api/received-feedback"),
+        fetch("/api/activity-contexts"),
+      ]);
+      const feedbackData = await feedbackRes.json();
+      const contextsData = await contextsRes.json();
+      if (!feedbackRes.ok) throw new Error(feedbackData.error || "Could not load received feedback");
+      if (!contextsRes.ok) throw new Error(contextsData.error || "Could not load contexts");
+      const loadedContexts = (contextsData.contexts ?? []) as ActivityContextPrimitives[];
+      setItems(feedbackData);
+      setContexts(loadedContexts);
+      const defaultContext =
+        loadedContexts.find((context) => context.isDefault) ?? loadedContexts[0];
+      if (defaultContext && !form.activityContextId) {
+        setForm((current) => ({ ...current, activityContextId: defaultContext.id }));
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -57,7 +77,8 @@ export default function ReceivedFeedbackView() {
   }, []);
 
   const openNewForm = () => {
-    setForm(emptyForm());
+    const defaultContext = contexts.find((context) => context.isDefault) ?? contexts[0];
+    setForm({ ...emptyForm(), activityContextId: defaultContext?.id ?? "" });
     setEditingId(null);
     setIsFormOpen(true);
     setError(null);
@@ -65,6 +86,7 @@ export default function ReceivedFeedbackView() {
 
   const openEditForm = (item: ReceivedFeedbackPrimitives) => {
     setForm({
+      activityContextId: item.activityContextId ?? contexts.find((context) => context.isDefault)?.id ?? contexts[0]?.id ?? "",
       receivedDate: item.receivedDate,
       giverName: item.giverName,
       feedbackText: item.feedbackText,
@@ -79,6 +101,28 @@ export default function ReceivedFeedbackView() {
     setIsFormOpen(false);
     setEditingId(null);
     setForm(emptyForm());
+  };
+
+  const createContext = async () => {
+    if (!contextDraft.name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/activity-contexts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contextDraft),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not create context");
+      setContextDraft({ name: "", type: "project" });
+      await fetchItems();
+      setForm((current) => ({ ...current, activityContextId: data.id }));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveFeedback = async () => {
@@ -97,6 +141,7 @@ export default function ReceivedFeedbackView() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             receivedDate: form.receivedDate,
+            activityContextId: form.activityContextId,
             giverName: form.giverName,
             feedbackText: form.feedbackText,
             userNote: form.userNote,
@@ -172,6 +217,20 @@ export default function ReceivedFeedbackView() {
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+              <label className="space-y-1.5 md:col-span-2">
+                <span className="text-xs font-medium text-zinc-500">Activity context</span>
+                <select
+                  className={inputClass}
+                  value={form.activityContextId}
+                  onChange={(event) => setForm({ ...form, activityContextId: event.target.value })}
+                >
+                  {contexts.map((context) => (
+                    <option key={context.id} value={context.id} className="bg-zinc-900">
+                      {context.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="space-y-1.5">
                 <span className="text-xs font-medium text-zinc-500">Received date</span>
                 <input
@@ -214,6 +273,37 @@ export default function ReceivedFeedbackView() {
                   onChange={(event) => setForm({ ...form, userNote: event.target.value })}
                 />
               </label>
+              <div className="flex gap-2 md:col-span-2">
+                <input
+                  className={inputClass}
+                  placeholder="New context"
+                  value={contextDraft.name}
+                  onChange={(event) => setContextDraft({ ...contextDraft, name: event.target.value })}
+                />
+                <select
+                  className={`${inputClass} max-w-36`}
+                  value={contextDraft.type}
+                  onChange={(event) =>
+                    setContextDraft({
+                      ...contextDraft,
+                      type: event.target.value as ActivityContextType,
+                    })
+                  }
+                >
+                  <option value="project" className="bg-zinc-900">Project</option>
+                  <option value="employment" className="bg-zinc-900">Employment</option>
+                  <option value="personal" className="bg-zinc-900">Personal</option>
+                  <option value="other" className="bg-zinc-900">Other</option>
+                </select>
+                <button
+                  onClick={() => void createContext()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 disabled:opacity-60"
+                  disabled={saving || !contextDraft.name.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -247,7 +337,9 @@ export default function ReceivedFeedbackView() {
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map((item) => (
+              {items.map((item) => {
+                const contextName = contexts.find((context) => context.id === item.activityContextId)?.name;
+                return (
                 <article
                   key={item.id}
                   className="rounded-lg border border-white/10 bg-white/[0.025] p-4 transition-colors hover:border-white/15"
@@ -260,6 +352,7 @@ export default function ReceivedFeedbackView() {
                           {item.receivedDate}
                         </span>
                         <span>From {item.giverName}</span>
+                        {contextName && <span>{contextName}</span>}
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
                         {item.feedbackText}
@@ -288,7 +381,8 @@ export default function ReceivedFeedbackView() {
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

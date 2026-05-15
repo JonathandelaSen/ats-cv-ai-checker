@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createTestUser } from "@/modules/test-helpers/setup";
+import { createTestUser, getDefaultActivityContextId } from "@/modules/test-helpers/setup";
 import { makeReceivedFeedbackDeps } from "../../test-helpers";
 import { CreateReceivedFeedbackUseCase } from "./create-received-feedback.use-case";
 
 describe("CreateReceivedFeedbackUseCase", () => {
   it("creates received feedback and records observability", async () => {
     const user = await createTestUser("received-feedback-create");
+    const activityContextId = await getDefaultActivityContextId(user.id);
     const { receivedFeedbackRepo, tracker } = makeReceivedFeedbackDeps();
 
     const feedback = await new CreateReceivedFeedbackUseCase({
@@ -13,6 +14,7 @@ describe("CreateReceivedFeedbackUseCase", () => {
       tracker,
     }).execute({
       userId: user.id,
+      activityContextId,
       receivedDate: "2026-05-01",
       giverName: " Manager ",
       feedbackText: " Keep raising risks early. ",

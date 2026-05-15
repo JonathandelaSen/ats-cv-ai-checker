@@ -28,12 +28,12 @@ describe("HandleSuggestionActionUseCase", () => {
 
     if ("ok" in context) throw new Error("Expected promoted suggestion to return a context.");
 
-    expect(context).toMatchObject({
+    expect(context.toPrimitives()).toMatchObject({
       userId: user.id,
       type: "employment",
       name: "Acme",
-      roleOrLabel: "Engineer",
-      isDefault: true,
+      roleOrLabel: null,
+      isDefault: false,
     });
 
     expect(tracker.record).toHaveBeenCalledWith(

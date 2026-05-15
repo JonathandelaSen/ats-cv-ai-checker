@@ -8,6 +8,7 @@ export interface HttpValidationError {
 }
 
 export interface CreateReceivedFeedbackHttpInput {
+  activityContextId: string;
   receivedDate: string;
   giverName: string;
   feedbackText: string;
@@ -15,6 +16,7 @@ export interface CreateReceivedFeedbackHttpInput {
 }
 
 export interface UpdateReceivedFeedbackHttpInput {
+  activityContextId?: string;
   receivedDate?: string;
   giverName?: string;
   feedbackText?: string;
@@ -114,9 +116,15 @@ export function parseCreateReceivedFeedbackRequest(
     body.userNote === undefined ? ({ ok: true, value: null } as const) : parseUserNote(body.userNote);
   if (!userNote.ok) return userNote;
 
+  const activityContextId = normalizeRequiredText(body.activityContextId);
+  if (!activityContextId) {
+    return validationError("Activity context is required");
+  }
+
   return {
     ok: true,
     value: {
+      activityContextId,
       receivedDate: receivedDate.value,
       giverName: giverName.value,
       feedbackText: feedbackText.value,
@@ -131,6 +139,12 @@ export function parseUpdateReceivedFeedbackRequest(
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
 
   const updates: UpdateReceivedFeedbackHttpInput = {};
+
+  if (body.activityContextId !== undefined) {
+    const activityContextId = normalizeRequiredText(body.activityContextId);
+    if (!activityContextId) return validationError("Activity context is required");
+    updates.activityContextId = activityContextId;
+  }
 
   if (body.receivedDate !== undefined) {
     const receivedDate = parseReceivedDate(body.receivedDate);

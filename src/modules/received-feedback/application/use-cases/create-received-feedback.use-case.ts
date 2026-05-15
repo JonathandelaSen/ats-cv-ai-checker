@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { EntityId, UserId } from "@/modules/shared";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ReceivedFeedback } from "../../domain/entities/received-feedback.entity";
 import type { ReceivedFeedbackRepository } from "../../domain/repositories/received-feedback.repository";
@@ -15,6 +15,7 @@ export interface CreateReceivedFeedbackInput {
   giverName: string;
   feedbackText: string;
   userNote?: string | null;
+  activityContextId: string;
   today?: string;
 }
 
@@ -32,6 +33,7 @@ export class CreateReceivedFeedbackUseCase {
       ReceivedFeedback.create({
         id: ReceivedFeedbackId.fromPrimitives(crypto.randomUUID()),
         userId: UserId.fromPrimitives(input.userId),
+        activityContextId: EntityId.fromPrimitives(input.activityContextId),
         receivedDate: ReceivedFeedbackDate.fromPrimitives(input.receivedDate, input.today),
         giverName: ReceivedFeedbackGiverName.fromPrimitives(input.giverName),
         feedbackText: ReceivedFeedbackText.fromPrimitives(input.feedbackText),

@@ -23,10 +23,10 @@ interface WorkJournalContextRow {
   user_id: string;
   type: ContextType;
   name: string;
-  role_or_label: string | null;
+  role_or_label?: string | null;
   status: ContextStatus;
   is_default: boolean;
-  created_from_cv: boolean;
+  created_from_cv?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -60,10 +60,10 @@ function rowToPrimitives(row: WorkJournalContextRow): WorkJournalContextPrimitiv
     userId: row.user_id,
     type: row.type,
     name: row.name,
-    roleOrLabel: row.role_or_label,
+    roleOrLabel: row.role_or_label ?? null,
     status: row.status,
     isDefault: row.is_default,
-    createdFromCv: row.created_from_cv,
+    createdFromCv: row.created_from_cv ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -76,10 +76,8 @@ function contextToRow(context: WorkJournalContext): WorkJournalContextRow {
     user_id: primitives.userId,
     type: primitives.type,
     name: primitives.name,
-    role_or_label: primitives.roleOrLabel,
     status: primitives.status,
     is_default: primitives.isDefault,
-    created_from_cv: primitives.createdFromCv,
     created_at: primitives.createdAt,
     updated_at: primitives.updatedAt,
   };
@@ -93,7 +91,7 @@ export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepositor
 
   async search(criteria: WorkJournalContextSearchCriteria): Promise<WorkJournalContext[]> {
     const { data, error } = await this.client
-      .from("work_journal_contexts")
+      .from("activity_contexts")
       .select("*")
       .eq("user_id", criteria.userId.toPrimitives())
       .order("is_default", { ascending: false })
@@ -108,7 +106,7 @@ export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepositor
     userId: UserId
   ): Promise<WorkJournalContext | null> {
     const { data, error } = await this.client
-      .from("work_journal_contexts")
+      .from("activity_contexts")
       .select("*")
       .eq("id", id.toPrimitives())
       .eq("user_id", userId.toPrimitives())
@@ -123,14 +121,14 @@ export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepositor
 
     if (row.is_default) {
       await this.client
-        .from("work_journal_contexts")
+        .from("activity_contexts")
         .update({ is_default: false })
         .eq("user_id", row.user_id)
         .neq("id", row.id);
     }
 
     const { data, error } = await this.client
-      .from("work_journal_contexts")
+      .from("activity_contexts")
       .upsert(row, { onConflict: "id" })
       .select("*")
       .single();
@@ -141,7 +139,7 @@ export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepositor
 
   async delete(id: WorkJournalContextId, userId: UserId): Promise<void> {
     const { error } = await this.client
-      .from("work_journal_contexts")
+      .from("activity_contexts")
       .delete()
       .eq("id", id.toPrimitives())
       .eq("user_id", userId.toPrimitives());
@@ -192,14 +190,14 @@ export class SupabaseWorkJournalContextRepository extends BoundSupabaseRepositor
     const ownerId = toUserId(userId);
     const { data } = await this.client
       .from("work_journal_entries")
-      .select("context_id, updated_at")
+      .select("activity_context_id, updated_at")
       .eq("user_id", ownerId.toPrimitives())
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    return data?.context_id
-      ? WorkJournalContextId.fromPrimitives(data.context_id as string)
+    return data?.activity_context_id
+      ? WorkJournalContextId.fromPrimitives(data.activity_context_id as string)
       : null;
   }
 

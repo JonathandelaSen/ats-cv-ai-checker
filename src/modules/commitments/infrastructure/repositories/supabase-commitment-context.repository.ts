@@ -13,7 +13,7 @@ interface CommitmentContextRow {
   user_id: string;
   type: CommitmentContextType;
   name: string;
-  role_or_label: string | null;
+  role_or_label?: string | null;
   status: CommitmentContextStatus;
   is_default: boolean;
   created_at: string;
@@ -26,7 +26,7 @@ function rowToContext(row: CommitmentContextRow): CommitmentContext {
     userId: row.user_id,
     type: row.type,
     name: row.name,
-    roleOrLabel: row.role_or_label,
+    roleOrLabel: row.role_or_label ?? null,
     status: row.status,
     isDefault: row.is_default,
     createdAt: row.created_at,
@@ -41,7 +41,6 @@ function contextToRow(context: CommitmentContext): CommitmentContextRow {
     user_id: primitives.userId,
     type: primitives.type,
     name: primitives.name,
-    role_or_label: primitives.roleOrLabel,
     status: primitives.status,
     is_default: primitives.isDefault,
     created_at: primitives.createdAt,
@@ -53,7 +52,7 @@ export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository
 
   async search(userId: UserId): Promise<CommitmentContext[]> {
     const { data, error } = await this.client
-      .from("commitment_contexts")
+      .from("activity_contexts")
       .select("*")
       .eq("user_id", userId.toPrimitives())
       .order("status", { ascending: true })
@@ -64,7 +63,7 @@ export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository
 
   async findById(id: EntityId, userId: UserId): Promise<CommitmentContext | null> {
     const { data, error } = await this.client
-      .from("commitment_contexts")
+      .from("activity_contexts")
       .select("*")
       .eq("id", id.toPrimitives())
       .eq("user_id", userId.toPrimitives())
@@ -75,7 +74,7 @@ export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository
 
   async findDefault(userId: UserId): Promise<CommitmentContext | null> {
     const { data, error } = await this.client
-      .from("commitment_contexts")
+      .from("activity_contexts")
       .select("*")
       .eq("user_id", userId.toPrimitives())
       .eq("is_default", true)
@@ -87,7 +86,7 @@ export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository
 
   async save(context: CommitmentContext): Promise<CommitmentContext> {
     const { data, error } = await this.client
-      .from("commitment_contexts")
+      .from("activity_contexts")
       .upsert(contextToRow(context), { onConflict: "id" })
       .select("*")
       .single();
@@ -97,7 +96,7 @@ export class SupabaseCommitmentContextRepository extends BoundSupabaseRepository
 
   async delete(id: EntityId, userId: UserId): Promise<void> {
     const { error } = await this.client
-      .from("commitment_contexts")
+      .from("activity_contexts")
       .delete()
       .eq("id", id.toPrimitives())
       .eq("user_id", userId.toPrimitives());

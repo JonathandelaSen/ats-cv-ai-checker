@@ -12,7 +12,7 @@ import type { CommitmentRepository } from "../../domain/repositories/commitment.
 interface CommitmentRow {
   id: string;
   user_id: string;
-  context_id: string;
+  activity_context_id: string;
   title: string;
   description: string | null;
   success_criteria: string | null;
@@ -30,7 +30,7 @@ function rowToCommitment(row: CommitmentRow): Commitment {
   return Commitment.fromPrimitives({
     id: row.id,
     userId: row.user_id,
-    contextId: row.context_id,
+    contextId: row.activity_context_id,
     title: row.title,
     description: row.description,
     successCriteria: row.success_criteria,
@@ -50,7 +50,7 @@ function commitmentToRow(commitment: Commitment): CommitmentRow {
   return {
     id: primitives.id,
     user_id: primitives.userId,
-    context_id: primitives.contextId,
+    activity_context_id: primitives.contextId,
     title: primitives.title,
     description: primitives.description,
     success_criteria: primitives.successCriteria,

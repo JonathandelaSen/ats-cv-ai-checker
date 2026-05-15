@@ -10,6 +10,7 @@ import type { UserId } from "@/modules/shared";
 interface ReceivedFeedbackRow {
   id: string;
   user_id: string;
+  activity_context_id: string;
   received_date: string;
   giver_name: string;
   feedback_text: string;
@@ -22,6 +23,7 @@ function rowToReceivedFeedback(row: ReceivedFeedbackRow): ReceivedFeedback {
   return ReceivedFeedback.fromPrimitives({
     id: row.id,
     userId: row.user_id,
+    activityContextId: row.activity_context_id,
     receivedDate: row.received_date,
     giverName: row.giver_name,
     feedbackText: row.feedback_text,
@@ -36,6 +38,7 @@ function feedbackToRow(feedback: ReceivedFeedback): ReceivedFeedbackRow {
   return {
     id: primitives.id,
     user_id: primitives.userId,
+    activity_context_id: primitives.activityContextId,
     received_date: primitives.receivedDate,
     giver_name: primitives.giverName,
     feedback_text: primitives.feedbackText,
@@ -48,13 +51,17 @@ function feedbackToRow(feedback: ReceivedFeedback): ReceivedFeedbackRow {
 export class SupabaseReceivedFeedbackRepository extends BoundSupabaseRepository implements ReceivedFeedbackRepository {
 
   async search(criteria: ReceivedFeedbackSearchCriteria): Promise<ReceivedFeedback[]> {
-    const { data, error } = await this.client
+    let query = this.client
       .from("received_feedback")
       .select("*")
       .eq("user_id", criteria.userId.toPrimitives())
       .order("received_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(criteria.limit);
+    if (criteria.activityContextId) {
+      query = query.eq("activity_context_id", criteria.activityContextId.toPrimitives());
+    }
+    const { data, error } = await query;
 
     if (error) throw error;
     return ((data ?? []) as ReceivedFeedbackRow[]).map(rowToReceivedFeedback);
@@ -73,9 +80,10 @@ export class SupabaseReceivedFeedbackRepository extends BoundSupabaseRepository 
   }
 
   async save(feedback: ReceivedFeedback): Promise<ReceivedFeedback> {
+    const row = feedbackToRow(feedback);
     const { data, error } = await this.client
       .from("received_feedback")
-      .upsert(feedbackToRow(feedback), { onConflict: "id" })
+      .upsert(row, { onConflict: "id" })
       .select("*")
       .single();
 

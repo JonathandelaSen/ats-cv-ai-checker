@@ -1,5 +1,8 @@
 import { InMemoryQueryBus } from "@/modules/shared";
 import {
+  createActivityContextsModule,
+} from "@/modules/activity";
+import {
   createAnalysisChatModule,
   registerAnalysisChatQueries,
 } from "@/modules/analysis-chat";
@@ -30,6 +33,7 @@ import { createWorkJournalModule } from "@/modules/work-journal";
 
 const queryBus = new InMemoryQueryBus();
 
+export const activityContextsModule = createActivityContextsModule();
 export const cvAnalysisModule = createCVAnalysisModule();
 export const cvLibraryModule = createCVLibraryModule(queryBus);
 export const commitmentsModule = createCommitmentsModule();

@@ -1,6 +1,6 @@
 import { ValueObject } from "@/modules/shared";
 
-export type ContextType = "employment" | "project";
+export type ContextType = "employment" | "project" | "personal" | "other";
 
 export class WorkJournalContextType extends ValueObject<ContextType> {
   private constructor(private readonly value: ContextType) {
@@ -8,7 +8,7 @@ export class WorkJournalContextType extends ValueObject<ContextType> {
   }
 
   static fromPrimitives(value: ContextType): WorkJournalContextType {
-    if (value !== "employment" && value !== "project") {
+    if (!["employment", "project", "personal", "other"].includes(value)) {
       throw new Error(`Invalid work journal context type: ${value}`);
     }
     return new WorkJournalContextType(value);

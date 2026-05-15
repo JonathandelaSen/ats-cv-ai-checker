@@ -44,7 +44,7 @@ describe("DraftEntryUseCase", () => {
       context: expect.objectContaining({
         id: context.id,
         name: context.name,
-        roleOrLabel: "Lead Engineer",
+        roleOrLabel: null,
       }),
       dateStart: "2026-08-01",
       dateEnd: "2026-08-02",

@@ -1,5 +1,5 @@
-import { UserId } from "@/modules/shared";
-import { createMockTracker, getSupabaseClient } from "@/modules/test-helpers/setup";
+import { EntityId, UserId } from "@/modules/shared";
+import { createMockTracker, getDefaultActivityContextId, getSupabaseClient } from "@/modules/test-helpers/setup";
 import { ReceivedFeedback } from "./domain/entities/received-feedback.entity";
 import { ReceivedFeedbackDate } from "./domain/value-objects/received-feedback-date.value-object";
 import { ReceivedFeedbackGiverName } from "./domain/value-objects/received-feedback-giver-name.value-object";
@@ -22,14 +22,17 @@ export async function createReceivedFeedbackFixture(
     giverName?: string;
     feedbackText?: string;
     userNote?: string | null;
+    activityContextId?: string;
   } = {}
 ) {
   const { receivedFeedbackRepo } = makeReceivedFeedbackDeps();
   const now = new Date().toISOString();
+  const activityContextId = overrides.activityContextId ?? await getDefaultActivityContextId(userId);
   return receivedFeedbackRepo.save(
     ReceivedFeedback.create({
       id: ReceivedFeedbackId.fromPrimitives(crypto.randomUUID()),
       userId: UserId.fromPrimitives(userId),
+      activityContextId: EntityId.fromPrimitives(activityContextId),
       receivedDate: ReceivedFeedbackDate.fromPrimitives(overrides.receivedDate ?? "2026-05-01", "2026-05-12"),
       giverName: ReceivedFeedbackGiverName.fromPrimitives(overrides.giverName ?? "Manager"),
       feedbackText: ReceivedFeedbackText.fromPrimitives(overrides.feedbackText ?? "Useful feedback."),

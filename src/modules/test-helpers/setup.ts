@@ -34,6 +34,17 @@ export async function createTestUser(prefix = "backend"): Promise<E2EUser> {
   return createConfirmedUser(prefix);
 }
 
+export async function getDefaultActivityContextId(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("activity_contexts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_default", true)
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
 export function testLabel(prefix: string): string {
   return uniqueLabel(prefix);
 }

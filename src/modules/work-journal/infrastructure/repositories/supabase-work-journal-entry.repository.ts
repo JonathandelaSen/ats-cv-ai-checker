@@ -18,7 +18,7 @@ import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.
 interface WorkJournalEntryRow {
   id: string;
   user_id: string;
-  context_id: string;
+  activity_context_id: string;
   date_start: string;
   date_end: string | null;
   topic: string | null;
@@ -62,7 +62,7 @@ function rowToPrimitives(row: WorkJournalEntryRow): WorkJournalEntryPrimitives {
   return {
     id: row.id,
     userId: row.user_id,
-    contextId: row.context_id,
+    contextId: row.activity_context_id,
     dateStart: row.date_start,
     dateEnd: row.date_end,
     topic: row.topic,
@@ -79,7 +79,7 @@ function entryToRow(entry: WorkJournalEntry): WorkJournalEntryRow {
   return {
     id: primitives.id,
     user_id: primitives.userId,
-    context_id: primitives.contextId,
+    activity_context_id: primitives.contextId,
     date_start: primitives.dateStart,
     date_end: primitives.dateEnd,
     topic: primitives.topic,
@@ -113,7 +113,7 @@ export class SupabaseWorkJournalEntryRepository extends BoundSupabaseRepository 
       .order("date_start", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (criteria.contextId) query = query.eq("context_id", criteria.contextId.toPrimitives());
+    if (criteria.contextId) query = query.eq("activity_context_id", criteria.contextId.toPrimitives());
     const topic = criteria.topic?.toPrimitives();
     if (topic?.trim()) query = query.ilike("topic", `%${topic.trim()}%`);
     if (criteria.dateFrom) query = query.gte("date_start", criteria.dateFrom.toPrimitives());
