@@ -22,29 +22,31 @@ test("public CV migration stores stable public ids and editable slugs", () => {
 });
 
 test("public CV helper normalizes slugs and builds canonical paths", () => {
-  assert.ok(exists("src/lib/public-cv.ts"));
-  const source = read("src/lib/public-cv.ts");
+  assert.ok(exists("src/modules/cv-library/domain/services/public-cv.ts"));
+  const source = read("src/modules/cv-library/domain/services/public-cv.ts");
 
   assert.match(source, /PUBLIC_CV_SLUG_MAX_LENGTH/);
   assert.match(source, /normalize\("NFD"\)/);
   assert.match(source, /replace\(\s*\/\[\\u0300-\\u036f\]\+\/g/);
   assert.match(source, /export function normalizePublicCVSlug/);
   assert.match(source, /export function buildPublicCVPath/);
-  assert.match(source, /confirmPublicExposure/);
 });
 
 test("CV API supports guarded public publishing for template CVs only", () => {
   const route = read("src/app/api/cvs/[id]/route.ts");
-  const db = read("src/lib/db.ts");
+  const repo = read(
+    "src/modules/cv-library/infrastructure/repositories/supabase-cv-document.repository.ts"
+  );
+  const entity = read("src/modules/cv-library/domain/entities/cv-document.entity.ts");
 
   assert.match(route, /public_enabled/);
   assert.match(route, /confirmPublicExposure/);
   assert.match(route, /normalizePublicCVSlug/);
-  assert.match(route, /updateCVPublicSettings/);
-  assert.match(db, /public_enabled: boolean/);
-  assert.match(db, /public_id: string \| null/);
-  assert.match(db, /export async function updateCVPublicSettings/);
-  assert.match(db, /\.eq\("type", "template"\)/);
+  assert.match(route, /updateCVDocumentPublicSettings/);
+  assert.match(repo, /public_enabled: boolean/);
+  assert.match(repo, /public_id: string \| null/);
+  assert.match(entity, /updatePublicSettings/);
+  assert.match(repo, /\.eq\("type", "template"\)/);
 });
 
 test("published CV slugs can be updated without re-running the first publish warning", () => {
@@ -59,12 +61,12 @@ test("public CV page renders a clean responsive platform-owned CV page with PDF 
   const page = read("src/app/cv/[publicId]/[slug]/page.tsx");
   const css = read("src/app/globals.css");
 
-  assert.match(page, /getPublishedCVByPublicId/);
+  assert.match(page, /getPublishedCVDocument/);
   assert.match(page, /CVTemplatePreview/);
   assert.match(page, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false/s);
   assert.match(page, /if \(slug !== cv\.public_slug\) \{\s*notFound\(\);/s);
   assert.doesNotMatch(page, /redirect\(/);
-  assert.match(page, /Download/);
+  assert.match(page, /Descargar PDF/);
   assert.match(page, /\/pdf/);
   assert.doesNotMatch(page, />\s*CV público\s*</);
   assert.doesNotMatch(page, /cv\.profile\.basics\?\.name \?\? cv\.name/);
@@ -78,7 +80,7 @@ test("public CV PDF route exports only published template CVs", () => {
   assert.ok(exists("src/app/cv/[publicId]/[slug]/pdf/route.ts"));
   const route = read("src/app/cv/[publicId]/[slug]/pdf/route.ts");
 
-  assert.match(route, /getPublishedCVByPublicId/);
+  assert.match(route, /getPublishedCVDocument/);
   assert.match(route, /renderTemplatePDF/);
   assert.match(route, /Content-Disposition/);
   assert.match(route, /attachment/);

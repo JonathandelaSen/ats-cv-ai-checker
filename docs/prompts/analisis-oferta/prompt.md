@@ -53,10 +53,10 @@ If `job_url` is empty, the URL block is omitted.
 - Output parser: `parseAIResult`, including `jobKeyData`, `jobKeywords`, `matchingKeywords`, and `missingKeywords`.
 
 ## Runtime Flow
-1. `/api/score` validates that `job_description` exists for `job_match`.
-2. `scoreCVWithAI` builds this prompt with `buildJobMatchPrompt`.
-3. The extracted CV text is sent as the user message.
-4. The result is persisted on the analysis and later powers offer tabs, tracking, interview questions, and offer chat.
+1. `POST /api/job-match-analyses/[id]/score` validates the authenticated request and scoring payload.
+2. `ScoreJobMatchAnalysisUseCase` loads the job-match analysis owned by the current user.
+3. `GeminiJobMatchScoringAIService` builds this prompt with `buildJobMatchScoringPrompt` and sends the extracted CV text as the user message.
+4. The result is persisted on `job_match_analyses` and later powers offer tabs, tracking, interview questions, and offer chat.
 
 ## Maintenance
-When `buildJobMatchPrompt`, its output JSON shape, or the offer fields sent to the model changes, update this document in the same change.
+When `buildJobMatchScoringPrompt`, its output JSON shape, or the offer fields sent to the model changes, update this document in the same change.

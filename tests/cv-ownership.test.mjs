@@ -2,7 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const dbSource = readFileSync(new URL("../src/lib/db.ts", import.meta.url), "utf8");
+function read(path) {
+  return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+}
+
+const cvDocumentRepositorySource = read(
+  "src/modules/cv-library/infrastructure/repositories/supabase-cv-document.repository.ts"
+);
+const cvAnalysisRepositorySource = read(
+  "src/modules/cv-analysis/infrastructure/repositories/supabase-cv-analysis.repository.ts"
+);
+const jobMatchAnalysisRepositorySource = read(
+  "src/modules/job-match-analysis/infrastructure/repositories/supabase-job-match-analysis.repository.ts"
+);
 const migrations = [
   new URL(
     "../supabase/migrations/20260428161445_create_analyses_and_storage.sql",
@@ -21,17 +33,14 @@ const migrations = [
   .join("\n");
 
 test("CV and analysis helper reads are explicitly scoped to the current user", () => {
-  for (const table of ["cvs", "analyses"]) {
-    const tableIndex = dbSource.indexOf(`.from("${table}")`);
-    assert.notEqual(tableIndex, -1, `${table} helper should query ${table}`);
+  assert.match(cvDocumentRepositorySource, /\.from\("cvs"\)/);
+  assert.match(cvDocumentRepositorySource, /\.eq\("user_id", userId\.toPrimitives\(\)\)/);
 
-    const userFilterIndex = dbSource.indexOf('.eq("user_id", userId)', tableIndex);
-    assert.notEqual(
-      userFilterIndex,
-      -1,
-      `${table} helper should include an explicit user_id filter`
-    );
-  }
+  assert.match(cvAnalysisRepositorySource, /\.from\("cv_analyses"\)/);
+  assert.match(cvAnalysisRepositorySource, /\.eq\("user_id", userId\.toPrimitives\(\)\)/);
+
+  assert.match(jobMatchAnalysisRepositorySource, /\.from\("job_match_analyses"\)/);
+  assert.match(jobMatchAnalysisRepositorySource, /\.eq\("user_id", userId\.toPrimitives\(\)\)/);
 });
 
 test("RLS policies isolate CV and analysis rows by authenticated user", () => {

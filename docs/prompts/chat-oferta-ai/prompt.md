@@ -5,7 +5,7 @@
 - System prompt constant: `OFFER_CHAT_SYSTEM_PROMPT`
 - Prompt builder: `buildOfferChatPrompt`
 - AI service (controller): `src/modules/analysis-chat/infrastructure/services/gemini-analysis-chat-ai.service.ts`
-- API route: `src/app/api/analyses/[id]/chat/route.ts`
+- API route: `src/app/api/job-match-analyses/[id]/chat/route.ts`
 
 ## Current Prompt
 ```text

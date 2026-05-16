@@ -6,7 +6,7 @@ const root = new URL("..", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 
 test("CV templates expose shared presentation helpers for section customization", () => {
-  const source = read("src/lib/cv-templates.ts");
+  const source = read("src/modules/cv-library/domain/cv-templates.ts");
 
   assert.match(source, /export const CV_RENDERABLE_SECTIONS/);
   assert.match(source, /export const DEFAULT_SECTION_ORDER/);
@@ -17,7 +17,7 @@ test("CV templates expose shared presentation helpers for section customization"
 });
 
 test("presentation helpers support custom titles, clean order, and color fallback", () => {
-  const source = read("src/lib/cv-templates.ts");
+  const source = read("src/modules/cv-library/domain/cv-templates.ts");
 
   assert.match(source, /presentation\?:\s*\{\s*sectionTitles\?/s);
   assert.match(source, /customTitle/);
@@ -27,7 +27,7 @@ test("presentation helpers support custom titles, clean order, and color fallbac
 });
 
 test("standard profile normalization preserves sanitized presentation metadata", () => {
-  const source = read("src/lib/cv-profile.ts");
+  const source = read("src/modules/cv-library/domain/cv-profile.ts");
 
   assert.match(source, /export interface StandardCVPresentation/);
   assert.match(source, /presentation\?: StandardCVPresentation/);

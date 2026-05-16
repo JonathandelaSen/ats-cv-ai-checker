@@ -33,18 +33,34 @@ const pdfExtractionSource = readFileSync(
   "utf8"
 );
 
-const analysesRouteSource = readFileSync(
-  new URL("../src/app/api/analyses/route.ts", import.meta.url),
+const cvAnalysesRouteSource = readFileSync(
+  new URL("../src/app/api/cv-analyses/route.ts", import.meta.url),
+  "utf8"
+);
+
+const jobMatchAnalysesRouteSource = readFileSync(
+  new URL("../src/app/api/job-match-analyses/route.ts", import.meta.url),
   "utf8"
 );
 
 const scoreRouteSource = readFileSync(
-  new URL("../src/app/api/score/route.ts", import.meta.url),
+  new URL("../src/app/api/cv-analyses/[id]/score/route.ts", import.meta.url),
   "utf8"
 );
 
-const aiScoringSource = readFileSync(
-  new URL("../src/lib/ai-scoring.ts", import.meta.url),
+const cvScoringSource = readFileSync(
+  new URL(
+    "../src/modules/cv-analysis/infrastructure/services/gemini-cv-scoring-ai.service.ts",
+    import.meta.url
+  ),
+  "utf8"
+);
+
+const cvScoringPromptsSource = readFileSync(
+  new URL(
+    "../src/modules/cv-analysis/infrastructure/services/cv-scoring-prompts.ts",
+    import.meta.url
+  ),
   "utf8"
 );
 
@@ -121,7 +137,7 @@ test("Node PDF parsers run in-process instead of child Node scripts", () => {
 });
 
 test("analysis routes record no-text preflight events before returning 400", () => {
-  for (const source of [analysesRouteSource, scoreRouteSource]) {
+  for (const source of [cvAnalysesRouteSource, jobMatchAnalysesRouteSource]) {
     const errorIndex = source.indexOf("No extracted text available");
     const eventIndex = source.indexOf("no_extracted_text_available");
 
@@ -135,26 +151,35 @@ test("analysis routes record no-text preflight events before returning 400", () 
 });
 
 test("new analysis retries extraction for existing CVs before no-text preflight failure", () => {
-  const retryIndex = analysesRouteSource.indexOf("retryCVExtraction");
-  const errorIndex = analysesRouteSource.indexOf("No extracted text available");
+  const prepareIndex = cvAnalysesRouteSource.indexOf("prepareCVAnalysisInput");
+  const errorIndex = cvAnalysesRouteSource.indexOf("No extracted text available");
 
-  assert.notEqual(retryIndex, -1);
+  assert.notEqual(prepareIndex, -1);
   assert.notEqual(errorIndex, -1);
   assert.ok(
-    retryIndex < errorIndex,
-    "existing CVs without stored text should be re-extracted before returning 400"
+    prepareIndex < errorIndex,
+    "existing CVs without stored text should be prepared before returning 400"
   );
-  assert.match(analysesRouteSource, /extractPdfText/);
-  assert.match(analysesRouteSource, /updateCVExtraction/);
+  const preparationUseCase = readFileSync(
+    new URL(
+      "../src/modules/cv-library/application/use-cases/prepare-cv-analysis-input.use-case.ts",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  assert.match(preparationUseCase, /ensureUploadedCVExtraction/);
+  assert.match(preparationUseCase, /updateExtractedText/);
 });
 
 test("new analysis creation is extraction-only and never spends AI tokens", () => {
-  assert.doesNotMatch(analysesRouteSource, /scoreCVWithAI/);
-  assert.doesNotMatch(analysesRouteSource, /stage: "ai_analysis"/);
-  assert.doesNotMatch(analysesRouteSource, /google_gemini/);
-  assert.match(scoreRouteSource, /scoreCVWithAI/);
-  assert.match(aiScoringSource, /stage: "ai_analysis"/);
-  assert.match(aiScoringSource, /google_gemini/);
+  for (const source of [cvAnalysesRouteSource, jobMatchAnalysesRouteSource]) {
+    assert.doesNotMatch(source, /GoogleGenAI/);
+    assert.doesNotMatch(source, /stage: "ai_analysis"/);
+    assert.doesNotMatch(source, /google_gemini/);
+  }
+  assert.match(scoreRouteSource, /scoreCVAnalysis/);
+  assert.match(cvScoringSource, /GoogleGenAI/);
+  assert.match(cvScoringPromptsSource, /buildGeneralScoringPrompt/);
 });
 
 test("new analysis flow can create an extraction without a Gemini API key", () => {
@@ -181,19 +206,30 @@ test("new analysis flow receives every saved CV including template versions", ()
 });
 
 test("template CVs create analyses by parsing their rendered PDF", () => {
-  assert.match(analysesRouteSource, /cv\.type === "template"/);
-  assert.match(analysesRouteSource, /renderTemplatePDF/);
-  assert.match(analysesRouteSource, /extractPdfText\(templatePdfBuffer/);
-  assert.match(
-    analysesRouteSource,
-    /text_node:\s*analysisExtraction\.text_node/
+  const preparationUseCase = readFileSync(
+    new URL(
+      "../src/modules/cv-library/application/use-cases/prepare-cv-analysis-input.use-case.ts",
+      import.meta.url
+    ),
+    "utf8"
   );
-  assert.doesNotMatch(analysesRouteSource, /source:\s*"template_profile"/);
+  assert.match(preparationUseCase, /cvPrimitives\.type === "template"/);
+  assert.match(preparationUseCase, /templateRenderer\.render/);
+  assert.match(preparationUseCase, /textExtractor\.extract\(\s*templatePdfBuffer/s);
+  assert.match(preparationUseCase, /extractedText:\s*analysisExtraction/);
+  assert.doesNotMatch(preparationUseCase, /source:\s*"template_profile"/);
 });
 
 test("analysis creation records the chosen CV text extraction source", () => {
-  const sourceEventIndex = analysesRouteSource.indexOf('stage: "cv_text_extraction"');
-  const noTextIndex = analysesRouteSource.indexOf("No extracted text available");
+  const preparationUseCase = readFileSync(
+    new URL(
+      "../src/modules/cv-library/application/use-cases/prepare-cv-analysis-input.use-case.ts",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  const sourceEventIndex = preparationUseCase.indexOf('stage: "cv_text_extraction"');
+  const noTextIndex = preparationUseCase.indexOf("no_extracted_text_available");
 
   assert.notEqual(sourceEventIndex, -1);
   assert.notEqual(noTextIndex, -1);
@@ -201,8 +237,8 @@ test("analysis creation records the chosen CV text extraction source", () => {
     sourceEventIndex < noTextIndex,
     "CV text extraction source should be recorded before returning no-text errors"
   );
-  assert.match(analysesRouteSource, /source:\s*cvTextSource/);
-  assert.match(analysesRouteSource, /"template_pdf_parse"/);
-  assert.match(analysesRouteSource, /"stored_pdf_text"/);
+  assert.match(preparationUseCase, /source:\s*templatePdfExtraction/);
+  assert.match(preparationUseCase, /"template_pdf_parse"/);
+  assert.match(preparationUseCase, /"stored_pdf_text"/);
   assert.match(adminObservabilitySource, /cv_text_extraction/);
 });

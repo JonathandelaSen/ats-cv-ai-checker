@@ -43,7 +43,7 @@ test("work journal module exposes domain entities, repositories, and use cases",
   assert.match(barrel, /EntryNotFoundError/);
 
   const contextRepo = read("src/modules/work-journal/infrastructure/repositories/supabase-work-journal-context.repository.ts");
-  assert.match(contextRepo, /\.from\("work_journal_contexts"\)/);
+  assert.match(contextRepo, /\.from\("activity_contexts"\)/);
   assert.match(contextRepo, /findLatestEntryContextId/);
 
   const entryRepo = read("src/modules/work-journal/infrastructure/repositories/supabase-work-journal-entry.repository.ts");
@@ -59,18 +59,18 @@ test("work journal module exposes domain entities, repositories, and use cases",
 });
 
 test("work journal AI prompts and controllers are separated and documented", () => {
-  const prompts = read("src/lib/ai-work-journal-prompts.ts");
-  const controller = read("src/lib/ai-work-journal.ts");
+  const prompts = read("src/modules/work-journal/infrastructure/services/work-journal-prompts.ts");
+  const controller = read("src/modules/work-journal/infrastructure/services/gemini-journal-ai.service.ts");
   const docs = read("docs/prompts/diario-trabajo/prompt.md");
 
   assert.match(prompts, /buildWorkJournalEntryDraftPrompt/);
   assert.doesNotMatch(prompts, /Highlight/i);
   assert.doesNotMatch(prompts, /GoogleGenAI/);
   assert.match(controller, /GoogleGenAI/);
-  assert.match(controller, /draftWorkJournalEntry/);
+  assert.match(controller, /draftEntry/);
   assert.doesNotMatch(controller, /Highlight/i);
   assert.match(docs, /Runtime flow/);
-  assert.match(docs, /src\/lib\/ai-work-journal-prompts\.ts/);
+  assert.match(docs, /src\/modules\/work-journal\/infrastructure\/services\/work-journal-prompts\.ts/);
 });
 
 test("work journal routes use the hexagonal module and UI is wired into the app", () => {
@@ -83,13 +83,13 @@ test("work journal routes use the hexagonal module and UI is wired into the app"
 
   assert.match(appShell, /WorkJournalView/);
   assert.match(appShell, /view=journal/);
-  assert.match(sidebar, /Diario/);
+  assert.match(sidebar, /workJournal/);
   assert.match(view, /Escritura libre/);
   assert.match(view, /Redacción con IA/);
   assert.doesNotMatch(view, /highlight/i);
   assert.match(view, /Sugeridos desde tus CVs/);
   assert.match(view, /is_default: true/);
-  assert.match(contextsRoute, /createWorkJournalModule/);
+  assert.match(contextsRoute, /workJournalModule/);
   assert.match(contextsRoute, /ensureDefaultContext/);
   assert.match(entriesRoute, /createEntry/);
   assert.match(draftRoute, /createDraftEntryUseCase/);
@@ -103,11 +103,12 @@ test("work journal highlight routes are removed", () => {
 });
 
 test("db.ts no longer contains work journal code", () => {
-  const db = read("src/lib/db.ts");
-  assert.doesNotMatch(db, /WorkJournalContext\b/);
-  assert.doesNotMatch(db, /WorkJournalEntry\b/);
-  assert.doesNotMatch(db, /suggestWorkJournalContextsFromCVs/);
-  assert.doesNotMatch(db, /ensureDefaultWorkJournalContext/);
-  assert.doesNotMatch(db, /listWorkJournalEntries/);
-  assert.doesNotMatch(db, /createWorkJournalEntry/);
+  const routes = [
+    read("src/app/api/work-journal/contexts/route.ts"),
+    read("src/app/api/work-journal/entries/route.ts"),
+    read("src/app/api/work-journal/entries/draft/route.ts"),
+  ].join("\n");
+
+  assert.doesNotMatch(routes, /@\/lib\/db/);
+  assert.match(routes, /workJournalModule/);
 });

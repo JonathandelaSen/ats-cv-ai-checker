@@ -10,14 +10,14 @@ const promptDocs = [
   {
     name: "CV analysis",
     doc: "docs/prompts/analisis-cv/prompt.md",
-    source: "src/lib/ai-scoring.ts",
-    required: ["buildGeneralPrompt", "extracted CV text", "ai_context"],
+    source: "src/modules/cv-analysis/infrastructure/services/cv-scoring-prompts.ts",
+    required: ["buildGeneralScoringPrompt", "extracted CV text", "ai_context"],
   },
   {
     name: "offer analysis",
     doc: "docs/prompts/analisis-oferta/prompt.md",
-    source: "src/lib/ai-scoring.ts",
-    required: ["buildJobMatchPrompt", "job_description", "job_url"],
+    source: "src/modules/job-match-analysis/infrastructure/services/job-match-scoring-prompts.ts",
+    required: ["buildJobMatchScoringPrompt", "job_description", "job_url"],
   },
   {
     name: "CV information extraction",
@@ -34,13 +34,13 @@ const promptDocs = [
   {
     name: "offer chat",
     doc: "docs/prompts/chat-oferta-ai/prompt.md",
-    source: "src/lib/ai-offer-chat-prompts.ts",
+    source: "src/modules/analysis-chat/infrastructure/services/analysis-chat-prompts.ts",
     required: ["OFFER_CHAT_SYSTEM_PROMPT", "buildOfferChatPrompt", "Recent conversation"],
   },
   {
     name: "interview questions",
     doc: "docs/prompts/preguntas-entrevista/prompt.md",
-    source: "src/lib/ai-interview-question-prompts.ts",
+    source: "src/modules/selection-process/infrastructure/services/interview-question-prompts.ts",
     required: ["INTERVIEW_QUESTION_SYSTEM_PROMPT", "buildInterviewQuestionPrompt", "Linked job posting"],
   },
 ];

@@ -34,7 +34,7 @@ test("CV template versions migration creates a table for derived CVs", () => {
 
 test("structured profile helpers define the reusable standard profile contract", () => {
   assert.ok(exists("src/lib/cv-profile.ts"));
-  const source = read("src/lib/cv-profile.ts");
+  const source = read("src/modules/cv-library/domain/cv-profile.ts");
 
   assert.match(source, /CV_PROFILE_SCHEMA_VERSION\s*=\s*"cv-profile\.v1"/);
   assert.match(source, /export interface StandardCVProfile/);
@@ -66,9 +66,9 @@ test("unified template CV endpoints handle CRUD and AI edits", () => {
   assert.ok(exists("src/app/api/cvs/[id]/template-pdf/route.ts"));
 
   const editSource = read("src/app/api/cvs/[id]/edit/route.ts");
-  assert.match(editSource, /getCV\(supabase,\s*id,\s*user\.id\)/);
+  assert.match(editSource, /getCVDocument\.execute\(\{ id, userId: user\.id \}\)/);
   assert.match(editSource, /editCVProfileWithAI/);
-  assert.match(editSource, /updateCVProfile/);
+  assert.match(editSource, /updateTemplateCVDocumentProfile/);
   assert.match(editSource, /cv\.type !== "template"/);
 });
 
@@ -76,9 +76,9 @@ test("CV template selection creates a new version from original", () => {
   assert.ok(exists("src/app/api/cvs/[id]/template/route.ts"));
   const source = read("src/app/api/cvs/[id]/template/route.ts");
 
-  assert.match(source, /getCV\(supabase,\s*id,\s*user\.id\)/);
+  assert.match(source, /getCVDocument\.execute\(\{ id, userId: user\.id \}\)/);
   assert.match(source, /getCVStructuredProfile/);
-  assert.match(source, /createTemplateCV/);
+  assert.match(source, /createTemplateCVDocument/);
 });
 
 test("template recommendations API returns the latest analyzed CV recommendations", () => {
@@ -104,7 +104,7 @@ test("templates UI is reachable and follows the new catalog -> editor flow", () 
 });
 
 test("Filo template is registered across catalog, preview, PDF, and AI editing context", () => {
-  const templatesSource = read("src/lib/cv-templates.ts");
+  const templatesSource = read("src/modules/cv-library/domain/cv-templates.ts");
   const previewSource = read("src/components/cv-template-preview.tsx");
   const pdfSource = read("src/lib/cv-template-pdf.tsx");
   const editSource = read("src/app/api/cvs/[id]/edit/route.ts");

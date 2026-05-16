@@ -44,26 +44,31 @@ test("interview questions migration creates owned relational question storage", 
 });
 
 test("DB helpers expose interview question CRUD with user scoping", () => {
-  const db = read("src/lib/db.ts");
+  const repo = read(
+    "src/modules/selection-process/infrastructure/repositories/supabase-process-question.repository.ts"
+  );
+  const moduleSource = read("src/modules/selection-process/selection-process.module.ts");
 
-  assert.match(db, /export interface InterviewQuestion/);
-  assert.match(db, /export (interface|type) InterviewQuestionSummary/);
   for (const helper of [
-    "listInterviewQuestions",
-    "getInterviewQuestion",
-    "createInterviewQuestion",
-    "updateInterviewQuestion",
-    "deleteInterviewQuestion",
+    "listProcessQuestions",
+    "getProcessQuestion",
+    "createProcessQuestion",
+    "updateProcessQuestion",
+    "deleteProcessQuestion",
   ]) {
-    assert.match(db, new RegExp(`export async function ${helper}`));
+    assert.match(moduleSource, new RegExp(helper));
   }
-  assert.match(db, /\.from\("interview_questions"\)/);
-  assert.match(db, /\.eq\("user_id", userId\)/);
+  assert.match(repo, /\.from\("process_questions"\)/);
+  assert.match(repo, /\.eq\("user_id", userId\.toPrimitives\(\)\)/);
 });
 
 test("AI prompts and model-call controller stay separated", () => {
-  const prompts = read("src/lib/ai-interview-question-prompts.ts");
-  const generation = read("src/lib/ai-interview-question-generation.ts");
+  const prompts = read(
+    "src/modules/selection-process/infrastructure/services/interview-question-prompts.ts"
+  );
+  const generation = read(
+    "src/modules/selection-process/infrastructure/services/gemini-interview-question-ai.service.ts"
+  );
 
   assert.match(prompts, /buildInterviewQuestionPrompt/);
   assert.doesNotMatch(prompts, /GoogleGenAI/);
@@ -77,31 +82,32 @@ test("interview question routes validate ownership, offer mode, and AI context",
   const detailRoute = read("src/app/api/interview-questions/[id]/route.ts");
   const generateRoute = read("src/app/api/interview-questions/[id]/generate/route.ts");
   const editRoute = read("src/app/api/interview-questions/[id]/edit/route.ts");
+  const validation = read("src/app/api/interview-questions/validation.ts");
 
-  assert.match(listRoute, /listInterviewQuestions/);
-  assert.match(listRoute, /createInterviewQuestion/);
+  assert.match(listRoute, /listProcessQuestions/);
+  assert.match(listRoute, /createProcessQuestion/);
   assert.match(listRoute, /createRequestId\("interview_question"\)/);
   assert.match(listRoute, /recordProcessingEvent/);
   assert.match(listRoute, /stage: "interview_question_create"/);
   assert.match(listRoute, /question is required/i);
-  assert.match(listRoute, /normalizeOptionalLink/);
-  assert.match(listRoute, /data\.context === undefined \? null/);
-  assert.match(listRoute, /data\.answer === undefined \? null/);
+  assert.match(validation, /normalizeOptionalText/);
+  assert.match(validation, /body\.context === undefined \? null/);
+  assert.match(validation, /body\.answer === undefined \? null/);
   assert.match(listRoute, /validateQuestionLinks/);
   assert.match(listRoute, /links\.analysis\?\.cv_id/);
-  assert.match(detailRoute, /updateInterviewQuestion/);
-  assert.match(detailRoute, /deleteInterviewQuestion/);
+  assert.match(detailRoute, /updateProcessQuestion/);
+  assert.match(detailRoute, /deleteProcessQuestion/);
   assert.match(detailRoute, /validateQuestionLinks/);
-  assert.match(generateRoute, /generateInterviewQuestionAnswer/);
+  assert.match(generateRoute, /generateQuestionAnswer/);
   assert.match(generateRoute, /stage: "interview_question_generate"/);
   assert.match(generateRoute, /recordProcessingEvent/);
-  assert.match(generateRoute, /context is required/i);
-  assert.match(generateRoute, /analysis_mode !== "job_match"/);
-  assert.match(editRoute, /editInterviewQuestionAnswer/);
+  assert.match(validation, /context is required/i);
+  assert.match(validation, /analysis_mode !== "job_match"/);
+  assert.match(editRoute, /editQuestionAnswer/);
   assert.match(editRoute, /stage: "interview_question_edit"/);
   assert.match(editRoute, /recordProcessingEvent/);
-  assert.match(editRoute, /context is required/i);
-  assert.match(editRoute, /instruction is required/i);
+  assert.match(validation, /context is required/i);
+  assert.match(validation, /instruction is required/i);
 });
 
 test("interview question UI is reachable and linked from CVs and offers", () => {
@@ -109,9 +115,11 @@ test("interview question UI is reachable and linked from CVs and offers", () => 
   const appShell = read("src/components/app-shell.tsx");
   const questionsView = read("src/components/interview-questions-view.tsx");
   const cvLibrary = read("src/components/cv-library.tsx");
-  const analysisView = read("src/components/ai-analysis-view.tsx");
+  const analysisView = read("src/components/analysis/analysis-view.tsx");
+  const interviewTab = read("src/components/analysis/tab-entrevista.tsx");
+  const trackingTab = read("src/components/analysis/tab-seguimiento.tsx");
 
-  assert.match(sidebar, /Preguntas/);
+  assert.match(sidebar, /interviewQuestions/);
   assert.match(appShell, /InterviewQuestionsView/);
   assert.match(appShell, /view=questions/);
   assert.match(questionsView, /Buscar preguntas/);
@@ -124,16 +132,14 @@ test("interview question UI is reachable and linked from CVs and offers", () => 
   assert.match(questionsView, /cvFilter/);
   assert.match(questionsView, /analysisFilter/);
   assert.match(cvLibrary, /Preguntas asociadas/);
-  assert.match(analysisView, /Preguntas asociadas/);
-  assert.match(analysisView, /Guardar sin IA/);
-  assert.match(analysisView, /Crear y generar con IA/);
-  assert.match(analysisView, /Modelo para generar con IA/);
-  assert.match(analysisView, /interviewQuestions\.map/);
-  assert.doesNotMatch(analysisView, /interviewQuestions\.slice/);
+  assert.match(interviewTab, /Preguntas asociadas/);
+  assert.match(interviewTab, /Guardar sin IA/);
+  assert.match(interviewTab, /Crear y generar con IA/);
+  assert.match(interviewTab, /Modelo para generar con IA/);
+  assert.match(interviewTab, /interviewQuestions\.map/);
+  assert.doesNotMatch(interviewTab, /interviewQuestions\.slice/);
 
-  const offerDescriptionIndex = analysisView.indexOf("Oferta de Trabajo Analizada");
-  const questionsIndex = analysisView.lastIndexOf("Preguntas asociadas");
-  const trackingIndex = analysisView.lastIndexOf("Seguimiento de oferta");
-  assert.ok(offerDescriptionIndex < questionsIndex);
-  assert.ok(questionsIndex < trackingIndex);
+  assert.match(analysisView, /TabEntrevista/);
+  assert.match(analysisView, /TabSeguimiento/);
+  assert.match(trackingTab, /Seguimiento de oferta/);
 });
