@@ -29,6 +29,7 @@ import type {
 } from "@/modules/feedback-notes/client";
 import { getErrorMessage } from "@/lib/errors";
 import { CopyPromptModal } from "@/components/ui/copy-prompt-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FeedbackNotesViewProps {
   geminiApiKey: string;
@@ -60,7 +61,7 @@ export default function FeedbackNotesView({
   const [entryEditDraft, setEntryEditDraft] = useState("");
   const [finalDraft, setFinalDraft] = useState("");
   const [personNameDraft, setPersonNameDraft] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +75,7 @@ export default function FeedbackNotesView({
     [feedbacks, selectedId]
   );
   const isClosed = selectedFeedback?.status === "closed";
+  const isInitialListLoading = loading && feedbacks.length === 0;
 
   const fetchFeedbacks = async (nextSelectedId = selectedId) => {
     setLoading(true);
@@ -391,11 +393,8 @@ export default function FeedbackNotesView({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-10 text-zinc-500">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {t("loading")}
-            </div>
+          {isInitialListLoading ? (
+            <FeedbackNotesListSkeleton />
           ) : feedbacks.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-zinc-600">
               {t("empty")}
@@ -440,7 +439,9 @@ export default function FeedbackNotesView({
           </div>
         )}
 
-        {!selectedFeedback ? (
+        {isInitialListLoading ? (
+          <FeedbackNotesDetailSkeleton />
+        ) : !selectedFeedback ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-600">
             {t("emptySelection")}
           </div>
@@ -698,6 +699,68 @@ export default function FeedbackNotesView({
         message={t("copyPrompt.message")}
         promptContent={copiedPromptContent}
       />
+    </div>
+  );
+}
+
+function FeedbackNotesListSkeleton() {
+  return (
+    <div className="space-y-1">
+      {Array.from({ length: 7 }).map((_, index) => (
+        <div key={index} className="rounded-lg px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-5 w-14 rounded-md" />
+          </div>
+          <Skeleton className="mt-2 h-3 w-28" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FeedbackNotesDetailSkeleton() {
+  return (
+    <div className="flex w-full flex-col gap-6 p-6">
+      <section className="flex flex-col gap-4 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <Skeleton className="mb-2 h-3 w-24" />
+          <Skeleton className="h-8 w-1/2" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-24 rounded-lg" />
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="mb-4 h-28 w-full rounded-lg" />
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-16 rounded-md" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0">
+          <Skeleton className="mb-3 h-4 w-28" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </div>
+      </section>
     </div>
   );
 }

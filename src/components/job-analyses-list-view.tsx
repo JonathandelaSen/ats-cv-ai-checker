@@ -3,6 +3,7 @@
 import { Briefcase, Clock, Sparkles, Trash2, Plus, FileText } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { AnalysisSummary } from "@/components/sidebar";
 import type { OfferStatus } from "@/lib/analysis-types";
 
@@ -36,6 +37,7 @@ interface JobAnalysesListViewProps {
   onSelect: (id: string) => void;
   onNewAnalysis: () => void;
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export default function JobAnalysesListView({
@@ -43,6 +45,7 @@ export default function JobAnalysesListView({
   onSelect,
   onNewAnalysis,
   onDelete,
+  isLoading = false,
 }: JobAnalysesListViewProps) {
   const t = useTranslations("analysisFlow.lists");
   const common = useTranslations("common");
@@ -78,7 +81,9 @@ export default function JobAnalysesListView({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-        {analyses.length === 0 ? (
+        {isLoading ? (
+          <JobAnalysesListSkeleton />
+        ) : analyses.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
               <FileText className="w-8 h-8 text-zinc-600" />
@@ -154,6 +159,30 @@ export default function JobAnalysesListView({
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function JobAnalysesListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex w-full items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5"
+        >
+          <Skeleton className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10" />
+          <div className="min-w-0 flex-1">
+            <Skeleton className="h-4 w-1/2" />
+            <div className="mt-2 flex items-center gap-3">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 w-16 rounded-md" />
+            </div>
+          </div>
+          <Skeleton className="h-7 w-10 shrink-0 rounded-lg" />
+          <Skeleton className="h-7 w-7 shrink-0 rounded-lg" />
+        </div>
+      ))}
     </div>
   );
 }

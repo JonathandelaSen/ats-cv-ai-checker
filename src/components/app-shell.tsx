@@ -102,6 +102,7 @@ export default function AppShell({
   const common = useTranslations("common");
   const analysisFlow = useTranslations("analysisFlow.appShell");
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
+  const [analysesLoading, setAnalysesLoading] = useState(true);
   const [cvs, setCVs] = useState<CVSummary[]>([]);
   const [interviewQuestions, setInterviewQuestions] = useState<
     InterviewQuestionSummary[]
@@ -126,6 +127,7 @@ export default function AppShell({
 
   // Fetch analyses list
   const fetchAnalyses = useCallback(async () => {
+    setAnalysesLoading(true);
     try {
       const [cvRes, jobMatchRes] = await Promise.all([
         fetch("/api/cv-analyses"),
@@ -144,6 +146,8 @@ export default function AppShell({
       }
     } catch {
       // silent
+    } finally {
+      setAnalysesLoading(false);
     }
   }, []);
 
@@ -556,6 +560,7 @@ export default function AppShell({
             >
               <CVAnalysesListView
                 analyses={analyses.filter((a) => a.analysis_mode === "general")}
+                isLoading={analysesLoading && analyses.length === 0}
                 onSelect={handleSelect}
                 onNewAnalysis={handleNewAnalysis}
                 onDelete={handleDelete}
@@ -571,6 +576,7 @@ export default function AppShell({
             >
               <JobAnalysesListView
                 analyses={analyses.filter((a) => a.analysis_mode === "job_match")}
+                isLoading={analysesLoading && analyses.length === 0}
                 onSelect={handleSelect}
                 onNewAnalysis={handleNewAnalysis}
                 onDelete={handleDelete}
