@@ -3,6 +3,8 @@
 import { CV_PDFS_BUCKET } from "@/modules/cv-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isInterfaceLanguage, type InterfaceLanguage } from "@/i18n/config";
+import { getMessages } from "@/i18n/messages";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -13,35 +15,46 @@ export type AuthFormState = {
   canResendConfirmation?: boolean;
 };
 
+function getActionMessages(formData: FormData) {
+  const localeValue = String(formData.get("interfaceLanguage") || "");
+  const locale: InterfaceLanguage = isInterfaceLanguage(localeValue)
+    ? localeValue
+    : "en";
+
+  return getMessages(locale).auth;
+}
+
 function getCredentials(formData: FormData) {
+  const t = getActionMessages(formData);
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
 
   if (!email || !password) {
-    return { error: "Introduce email y contraseña." };
+    return { error: t.errors.missingCredentials };
   }
 
   if (password.length < 6) {
-    return { error: "La contraseña debe tener al menos 6 caracteres." };
+    return { error: t.errors.passwordTooShort };
   }
 
   return { email, password };
 }
 
 function getPasswordChange(formData: FormData) {
+  const t = getActionMessages(formData);
   const password = String(formData.get("password") || "");
   const confirmPassword = String(formData.get("confirmPassword") || "");
 
   if (!password || !confirmPassword) {
-    return { error: "Introduce y confirma la nueva contraseña." };
+    return { error: t.errors.confirmNewPassword };
   }
 
   if (password.length < 6) {
-    return { error: "La contraseña debe tener al menos 6 caracteres." };
+    return { error: t.errors.passwordTooShort };
   }
 
   if (password !== confirmPassword) {
-    return { error: "Las contraseñas no coinciden." };
+    return { error: t.errors.passwordsDoNotMatch };
   }
 
   return { password };
@@ -68,6 +81,7 @@ export async function signIn(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const credentials = getCredentials(formData);
   if ("error" in credentials) return { error: credentials.error };
 
@@ -77,13 +91,37 @@ export async function signIn(
   if (error) {
     if (isEmailNotConfirmedError(error)) {
       return {
-        error: "Confirma tu email antes de entrar.",
+        error: t.errors.confirmEmailBeforeLogin,
         email: credentials.email,
         canResendConfirmation: true,
       };
     }
 
-    return { error: "No he podido iniciar sesión con esas credenciales." };
+    return { error: t.errors.signInFailed };
+  }
+
+  const localeValue = String(formData.get("interfaceLanguage") || "");
+  if (isInterfaceLanguage(localeValue)) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: existingPreference } = await supabase
+        .from("user_preferences")
+        .select("interface_language")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!isInterfaceLanguage(existingPreference?.interface_language)) {
+        await supabase.from("user_preferences").upsert(
+          {
+            user_id: user.id,
+            interface_language: localeValue,
+          },
+          { onConflict: "user_id" },
+        );
+      }
+    }
   }
 
   redirect("/");
@@ -93,6 +131,7 @@ export async function signUp(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const credentials = getCredentials(formData);
   if ("error" in credentials) return { error: credentials.error };
 
@@ -105,12 +144,11 @@ export async function signUp(
   });
 
   if (error) {
-    return { error: "No he podido crear la cuenta. Prueba con otro email." };
+    return { error: t.errors.signUpFailed };
   }
 
   return {
-    message:
-      "Te hemos enviado un email para confirmar tu cuenta antes de entrar.",
+    message: t.messages.confirmationSent,
     email: credentials.email,
     canResendConfirmation: true,
   };
@@ -120,10 +158,11 @@ export async function resendConfirmationEmail(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const email = String(formData.get("email") || "").trim();
 
   if (!email) {
-    return { error: "Introduce tu email para reenviar la confirmación." };
+    return { error: t.errors.resendMissingEmail };
   }
 
   const supabase = await createClient();
@@ -136,8 +175,7 @@ export async function resendConfirmationEmail(
   });
 
   return {
-    message:
-      "Si hay una cuenta pendiente para ese email, recibirás otro enlace.",
+    message: t.messages.confirmationResent,
     email,
     canResendConfirmation: true,
   };
@@ -147,6 +185,7 @@ export async function updatePasswordFromRecovery(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const passwordResult = getPasswordChange(formData);
   if ("error" in passwordResult) return { error: passwordResult.error };
 
@@ -164,7 +203,7 @@ export async function updatePasswordFromRecovery(
   });
 
   if (error) {
-    return { error: "No he podido cambiar la contraseña." };
+    return { error: t.errors.updatePasswordFailed };
   }
 
   redirect("/");
@@ -174,11 +213,12 @@ export async function changePasswordWithCurrent(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const currentPassword = String(formData.get("currentPassword") || "");
   const passwordResult = getPasswordChange(formData);
 
   if (!currentPassword) {
-    return { error: "Introduce tu contraseña actual." };
+    return { error: t.errors.missingCurrentPassword };
   }
 
   if ("error" in passwordResult) return { error: passwordResult.error };
@@ -189,7 +229,7 @@ export async function changePasswordWithCurrent(
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    return { error: "Tienes que iniciar sesión de nuevo." };
+    return { error: t.errors.signInAgain };
   }
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -198,7 +238,7 @@ export async function changePasswordWithCurrent(
   });
 
   if (signInError) {
-    return { error: "La contraseña actual no es correcta." };
+    return { error: t.errors.wrongCurrentPassword };
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -207,16 +247,17 @@ export async function changePasswordWithCurrent(
   });
 
   if (error) {
-    return { error: "No he podido cambiar la contraseña actual." };
+    return { error: t.errors.updateCurrentPasswordFailed };
   }
 
-  return { message: "Contraseña cambiada correctamente." };
+  return { message: t.messages.passwordChanged };
 }
 
 export async function deleteAccount(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const t = getActionMessages(formData);
   const emailConfirmation = String(
     formData.get("emailConfirmation") || "",
   ).trim();
@@ -224,7 +265,7 @@ export async function deleteAccount(
 
   if (!emailConfirmation || !password) {
     return {
-      error: "Escribe tu email y contraseña para confirmar el borrado.",
+      error: t.errors.deleteMissingCredentials,
     };
   }
 
@@ -234,11 +275,11 @@ export async function deleteAccount(
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    return { error: "Tienes que iniciar sesión de nuevo." };
+    return { error: t.errors.signInAgain };
   }
 
   if (emailConfirmation.toLowerCase() !== user.email.toLowerCase()) {
-    return { error: "El email de confirmación no coincide." };
+    return { error: t.errors.deleteEmailMismatch };
   }
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -247,7 +288,7 @@ export async function deleteAccount(
   });
 
   if (signInError) {
-    return { error: "La contraseña no es correcta." };
+    return { error: t.errors.deleteWrongPassword };
   }
 
   let admin;
@@ -258,7 +299,7 @@ export async function deleteAccount(
       error:
         error instanceof Error
           ? error.message
-          : "Borrado de cuenta no configurado",
+          : t.errors.deleteNotConfigured,
     };
   }
 
@@ -277,7 +318,7 @@ export async function deleteAccount(
       .eq("user_id", user.id);
 
   if (cvsError || cvAnalysesError || jobMatchAnalysesError) {
-    return { error: "No he podido preparar el borrado de tus datos." };
+    return { error: t.errors.deletePrepareFailed };
   }
 
   const storagePaths = Array.from(

@@ -1,4 +1,7 @@
 import { AuthForm } from "@/components/auth-form";
+import { AuthHeroTitle } from "@/components/auth-hero-title";
+import { getMessages } from "@/i18n/messages";
+import { resolveInterfaceLanguage } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { FileText } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -12,6 +15,8 @@ interface LoginPageProps {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
+  const locale = await resolveInterfaceLanguage();
+  const messages = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,20 +41,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
 
           <div className="mb-6 text-center">
-            <h1 className="text-3xl font-black leading-tight tracking-normal text-zinc-50">
-              Analiza y mejora tu CV para ATS
-            </h1>
+            <AuthHeroTitle />
           </div>
 
           <AuthForm
             initialError={
               params.resetError
-                ? "El enlace de recuperación no es válido o ha caducado."
+                ? messages.auth.resetInvalid
                 : undefined
             }
             initialMessage={
               params.accountDeleted
-                ? "Tu cuenta se ha borrado correctamente."
+                ? messages.auth.accountDeleted
                 : undefined
             }
           />

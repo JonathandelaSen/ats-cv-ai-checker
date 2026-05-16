@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertCircle,
   CheckCircle2,
@@ -23,6 +24,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { InterfaceLanguageSelect } from "@/components/interface-language-select";
 
 const INITIAL_STATE: AuthFormState = {};
 
@@ -32,6 +35,9 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
+  const t = useTranslations("auth");
+  const common = useTranslations("common");
+  const { locale } = useInterfaceLanguage();
   const [mode, setMode] = useState<"login" | "signup" | "recover">("login");
   const [loginState, loginAction, loginPending] = useActionState(
     signIn,
@@ -62,15 +68,15 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
   const showResendConfirmation =
     !isRecover && (state.canResendConfirmation || resendState.canResendConfirmation);
   const title = isRecover
-    ? "Recuperar contraseña"
+    ? t("recover.title")
     : isSignup
-      ? "Crea tu cuenta"
-      : "Inicia sesión";
+      ? t("signup.title")
+      : t("login.title");
   const description = isRecover
-    ? "Te enviaremos un enlace para establecer una nueva contraseña."
+    ? t("recover.description")
     : isSignup
-      ? "Regístrate para guardar tus análisis."
-      : "Accede para continuar con tus análisis.";
+      ? t("signup.description")
+      : t("login.description");
 
   async function handleRecoverSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +85,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
     const email = String(formData.get("email") || "").trim();
 
     if (!email) {
-      setRecoverState({ error: "Introduce tu email." });
+      setRecoverState({ error: t("recover.missingEmail") });
       return;
     }
 
@@ -96,20 +102,22 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
 
     if (error) {
       setRecoverState({
-        error: "No he podido enviar el email de recuperación.",
+        error: t("recover.sendError"),
       });
       return;
     }
 
     setRecoverState({
-      message:
-        "Si existe una cuenta con ese email, recibirás un enlace para cambiar la contraseña.",
+      message: t("recover.sent"),
     });
   }
 
   return (
     <div className="rounded-2xl border border-white/[0.07] bg-[#0d0d14]/90 backdrop-blur-xl p-5 shadow-2xl shadow-black/30 sm:p-6">
       <div className="mb-6">
+        <div className="mb-4 flex justify-end">
+          <InterfaceLanguageSelect compact />
+        </div>
         <h2 className="text-2xl font-bold text-zinc-100">{title}</h2>
         <p className="mt-2 text-sm text-zinc-500">{description}</p>
       </div>
@@ -125,7 +133,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            Login
+            {t("login.tab")}
           </button>
           <button
             type="button"
@@ -136,7 +144,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            Registro
+            {t("signup.tab")}
           </button>
         </div>
       )}
@@ -146,9 +154,10 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
         onSubmit={isRecover ? handleRecoverSubmit : undefined}
         className="space-y-4"
       >
+        <input type="hidden" name="interfaceLanguage" value={locale} />
         <div className="space-y-2">
           <Label htmlFor="email" className="text-zinc-300">
-            Email
+            {t("fields.email")}
           </Label>
           <Input
             id="email"
@@ -166,7 +175,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
         {!isRecover && (
           <div className="space-y-2">
             <Label htmlFor="password" className="text-zinc-300">
-              Contraseña
+              {t("fields.password")}
             </Label>
             <div className="relative">
               <Input
@@ -174,7 +183,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
                 name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete={isSignup ? "new-password" : "current-password"}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t("fields.passwordPlaceholder")}
                 minLength={6}
                 required
                 className="h-11 border-white/[0.08] bg-white/[0.04] pr-12"
@@ -184,9 +193,9 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
                 onClick={() => setShowPassword((value) => !value)}
                 className="absolute inset-y-0 right-2 flex w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
                 aria-label={
-                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  showPassword ? common("actions.hidePassword") : common("actions.showPassword")
                 }
-                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPassword ? common("actions.hidePassword") : common("actions.showPassword")}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -230,13 +239,18 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
           ) : (
             <LogIn />
           )}
-          {isRecover ? "Enviar enlace" : isSignup ? "Crear cuenta" : "Entrar"}
+          {isRecover
+            ? t("recover.submit")
+            : isSignup
+              ? t("signup.submit")
+              : t("login.submit")}
         </Button>
       </form>
 
       {showResendConfirmation && (
         <form action={resendAction} className="mt-4">
           <input type="hidden" name="email" value={resendEmail} />
+          <input type="hidden" name="interfaceLanguage" value={locale} />
           <Button
             type="submit"
             variant="outline"
@@ -248,7 +262,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
             ) : (
               <MailCheck />
             )}
-            Reenviar email de confirmación
+            {t("resendConfirmation")}
           </Button>
         </form>
       )}
@@ -261,14 +275,14 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
               onClick={() => setMode("login")}
               className="font-medium text-zinc-400 transition-colors hover:text-zinc-200"
             >
-              Volver a login
+              {t("recover.backToLogin")}
             </button>
             <button
               type="button"
               onClick={() => setMode("signup")}
               className="font-medium text-zinc-400 transition-colors hover:text-zinc-200"
             >
-              Ir a registro
+              {t("recover.goToSignup")}
             </button>
           </>
         ) : (
@@ -277,7 +291,7 @@ export function AuthForm({ initialError, initialMessage }: AuthFormProps) {
             onClick={() => setMode("recover")}
             className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
           >
-            Recuperar contraseña
+            {t("recover.link")}
           </button>
         )}
       </div>

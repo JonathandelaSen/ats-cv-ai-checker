@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -8,6 +9,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  Globe2,
   KeyRound,
   Loader2,
   LockKeyhole,
@@ -27,6 +29,8 @@ import {
   removeStoredGeminiApiKey,
   saveStoredGeminiApiKey,
 } from "@/lib/browser-preferences";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
+import type { InterfaceLanguage } from "@/i18n/config";
 
 const INITIAL_STATE: AuthFormState = {};
 
@@ -41,9 +45,14 @@ export default function SettingsView({
   onGeminiApiKeyChange,
   userEmail,
 }: SettingsViewProps) {
+  const t = useTranslations("settings");
+  const common = useTranslations("common");
+  const { locale, setInterfaceLanguage } = useInterfaceLanguage();
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [languageSaved, setLanguageSaved] = useState(false);
+  const [languageError, setLanguageError] = useState(false);
   const [passwordState, passwordAction, passwordPending] = useActionState(
     changePasswordWithCurrent,
     INITIAL_STATE
@@ -55,10 +64,22 @@ export default function SettingsView({
   const inputValue = draftValue ?? geminiApiKey;
 
   const keySummary = useMemo(() => {
-    if (!geminiApiKey) return "No configurada";
-    if (geminiApiKey.length <= 12) return "Configurada";
+    if (!geminiApiKey) return common("states.notConfigured");
+    if (geminiApiKey.length <= 12) return common("states.configured");
     return `${geminiApiKey.slice(0, 6)}...${geminiApiKey.slice(-4)}`;
-  }, [geminiApiKey]);
+  }, [common, geminiApiKey]);
+
+  const handleLanguageChange = async (nextLocale: InterfaceLanguage) => {
+    setLanguageSaved(false);
+    setLanguageError(false);
+    try {
+      await setInterfaceLanguage(nextLocale);
+      setLanguageSaved(true);
+      window.setTimeout(() => setLanguageSaved(false), 2200);
+    } catch {
+      setLanguageError(true);
+    }
+  };
 
   const handleSave = () => {
     const savedKey = saveStoredGeminiApiKey(inputValue);
@@ -86,12 +107,46 @@ export default function SettingsView({
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300">
               <KeyRound className="h-3.5 w-3.5" />
-              Configuración
+              {t("badge")}
             </div>
             <h1 className="text-2xl font-semibold text-zinc-100">
-              Ajustes
+              {t("title")}
             </h1>
           </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.03 }}
+          className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6"
+        >
+          <div className="mb-5">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
+              <Globe2 className="h-5 w-5 text-sky-300" />
+              {t("language.title")}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              {t("language.description")}
+            </p>
+          </div>
+          <label className="block text-sm font-medium text-zinc-300" htmlFor="interface-language">
+            {t("language.label")}
+          </label>
+          <select
+            id="interface-language"
+            value={locale}
+            onChange={(event) => void handleLanguageChange(event.target.value as InterfaceLanguage)}
+            className="mt-2 h-11 w-full max-w-xs rounded-xl border border-white/[0.08] bg-[#0a0a12] px-4 text-sm text-zinc-200 outline-none transition-all focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
+          >
+            <option value="en">{t("language.options.en")}</option>
+            <option value="es">{t("language.options.es")}</option>
+          </select>
+          {(languageSaved || languageError) && (
+            <p className={`mt-3 text-sm ${languageError ? "text-rose-300" : "text-emerald-300"}`}>
+              {languageError ? t("language.error") : t("language.saved")}
+            </p>
+          )}
         </motion.div>
 
         <motion.div
@@ -103,11 +158,11 @@ export default function SettingsView({
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
               <ShieldCheck className="h-5 w-5 text-emerald-400" />
-              API Key
+              {t("apiKey.title")}
             </h2>
             <div className="w-fit rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2 text-left sm:text-right">
               <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                Estado
+                {t("apiKey.status")}
               </p>
               <p className="mt-1 text-sm font-medium text-zinc-200">
                 {keySummary}
@@ -121,13 +176,10 @@ export default function SettingsView({
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
                 <div>
                   <h3 className="text-sm font-semibold text-amber-100">
-                    Tu clave no se guarda en nuestro servidor.
+                    {t("apiKey.warningTitle")}
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-amber-100/75">
-                    Se guarda solo en las preferencias de este navegador y se
-                    envía únicamente durante el análisis. No se almacena en
-                    Supabase, en la base de datos ni en variables de entorno del
-                    servidor.
+                    {t("apiKey.warningBody")}
                   </p>
                 </div>
               </div>
@@ -136,7 +188,7 @@ export default function SettingsView({
             <div className="rounded-xl border border-white/[0.06] bg-[#0a0a12] p-4">
               <p className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-200">
                 <KeyRound className="h-4 w-4 text-indigo-300" />
-                Clave de Gemini
+                {t("apiKey.fieldLabel")}
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative flex-1">
@@ -147,7 +199,7 @@ export default function SettingsView({
                       setDraftValue(event.target.value);
                       setSaved(false);
                     }}
-                    placeholder="Pega tu API key de Gemini"
+                    placeholder={t("apiKey.placeholder")}
                     className="h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 pr-12 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
                     autoComplete="off"
                     spellCheck={false}
@@ -156,7 +208,7 @@ export default function SettingsView({
                     type="button"
                     onClick={() => setShowKey((value) => !value)}
                     className="absolute inset-y-0 right-2 flex w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
-                    title={showKey ? "Ocultar clave" : "Mostrar clave"}
+                    title={showKey ? common("actions.hideKey") : common("actions.showKey")}
                   >
                     {showKey ? (
                       <EyeOff className="h-4 w-4" />
@@ -174,12 +226,12 @@ export default function SettingsView({
                   {saved ? (
                     <>
                       <Check className="h-4 w-4" />
-                      Guardada
+                      {common("actions.saved")}
                     </>
                   ) : (
                     <>
                       <Save className="h-4 w-4" />
-                      Guardar
+                      {common("actions.save")}
                     </>
                   )}
                 </button>
@@ -190,7 +242,7 @@ export default function SettingsView({
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-5 text-sm font-semibold text-rose-300 transition-all hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Borrar
+                  {common("actions.delete")}
                 </button>
               </div>
             </div>
@@ -206,7 +258,7 @@ export default function SettingsView({
           <div className="mb-5">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-100">
               <UserX className="h-5 w-5 text-zinc-400" />
-              Cuenta
+              {t("account.title")}
             </h2>
           </div>
 
@@ -215,9 +267,10 @@ export default function SettingsView({
               action={signOut}
               className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-[#0a0a12] p-4 sm:flex-row sm:items-center sm:justify-between"
             >
+              <input type="hidden" name="interfaceLanguage" value={locale} />
               <div>
                 <p className="text-sm font-medium text-zinc-200">
-                  Cerrar sesión
+                  {t("account.signOut")}
                 </p>
               </div>
               <button
@@ -225,7 +278,7 @@ export default function SettingsView({
                 className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-zinc-200 transition-all hover:bg-white/[0.07] active:scale-[0.98]"
               >
                 <LogOut className="h-4 w-4" />
-                Cerrar sesión
+                {t("account.signOut")}
               </button>
             </form>
 
@@ -233,10 +286,11 @@ export default function SettingsView({
               action={passwordAction}
               className="rounded-xl border border-white/[0.06] bg-[#0a0a12] p-4"
             >
+              <input type="hidden" name="interfaceLanguage" value={locale} />
               <div className="mb-4">
                 <p className="flex items-center gap-2 text-sm font-medium text-zinc-200">
                   <LockKeyhole className="h-4 w-4 text-indigo-300" />
-                  Cambiar contraseña
+                  {t("account.changePassword")}
                 </p>
               </div>
 
@@ -245,7 +299,7 @@ export default function SettingsView({
                   name="currentPassword"
                   type="password"
                   autoComplete="current-password"
-                  placeholder="Contraseña actual"
+                  placeholder={t("account.currentPassword")}
                   required
                   className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
                 />
@@ -253,7 +307,7 @@ export default function SettingsView({
                   name="password"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Nueva contraseña"
+                  placeholder={t("account.newPassword")}
                   minLength={6}
                   required
                   className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
@@ -262,7 +316,7 @@ export default function SettingsView({
                   name="confirmPassword"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Repite la nueva"
+                  placeholder={t("account.repeatNewPassword")}
                   minLength={6}
                   required
                   className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
@@ -296,7 +350,7 @@ export default function SettingsView({
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-                Cambiar contraseña
+                {t("account.changePassword")}
               </button>
             </form>
 
@@ -304,14 +358,14 @@ export default function SettingsView({
               action={deleteAction}
               className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-4"
             >
+              <input type="hidden" name="interfaceLanguage" value={locale} />
               <div className="mb-4">
                 <p className="flex items-center gap-2 text-sm font-semibold text-rose-100">
                   <Trash2 className="h-4 w-4" />
-                  Borrar cuenta
+                  {t("account.deleteAccount")}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-rose-100/70">
-                  Esta acción es irreversible. Se borrarán tu cuenta, CVs,
-                  análisis y PDFs asociados.
+                  {t("account.deleteWarning")}
                 </p>
               </div>
 
@@ -320,7 +374,7 @@ export default function SettingsView({
                   name="emailConfirmation"
                   type="email"
                   autoComplete="email"
-                  placeholder={userEmail || "Email de la cuenta"}
+                  placeholder={userEmail || t("account.accountEmail")}
                   required
                   className="h-11 rounded-xl border border-rose-500/20 bg-[#0a0a12] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-rose-400/40 focus:ring-2 focus:ring-rose-500/10"
                 />
@@ -328,7 +382,7 @@ export default function SettingsView({
                   name="password"
                   type="password"
                   autoComplete="current-password"
-                  placeholder="Contraseña actual"
+                  placeholder={t("account.currentPassword")}
                   required
                   className="h-11 rounded-xl border border-rose-500/20 bg-[#0a0a12] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-rose-400/40 focus:ring-2 focus:ring-rose-500/10"
                 />
@@ -351,7 +405,7 @@ export default function SettingsView({
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                Borrar cuenta definitivamente
+                {t("account.deleteForever")}
               </button>
             </form>
           </div>

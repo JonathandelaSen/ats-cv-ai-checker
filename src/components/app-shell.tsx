@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import Sidebar, { type AnalysisSummary } from "@/components/sidebar";
 import NewAnalysisFlow from "@/components/new-analysis-flow";
 import CVLibrary from "@/components/cv-library";
@@ -98,6 +99,7 @@ export default function AppShell({
   initialUserEmail = null,
   initialIsAdmin = false,
 }: AppShellProps) {
+  const common = useTranslations("common");
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [cvs, setCVs] = useState<CVSummary[]>([]);
   const [interviewQuestions, setInterviewQuestions] = useState<
@@ -734,7 +736,7 @@ export default function AppShell({
             >
               <div className="flex flex-col items-center gap-3 text-zinc-500">
                 <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin" />
-                <span className="text-sm">Cargando análisis...</span>
+                <span className="text-sm">{common("states.loadingAnalysis")}</span>
               </div>
             </motion.div>
           ) : activeAnalysis ? (

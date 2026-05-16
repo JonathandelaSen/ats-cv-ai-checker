@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
@@ -27,15 +28,7 @@ import {
   Target,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/analysis-types";
-
-const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
-  interesante: "Interesante",
-  aplicado: "Aplicado",
-  entrevista: "Entrevista",
-  oferta: "Oferta",
-  rechazado: "Rechazado",
-  descartado: "Descartado",
-};
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
   interesante: "border-sky-500/20 bg-sky-500/10 text-sky-300",
@@ -123,6 +116,9 @@ export default function Sidebar({
   isAdmin = false,
   isForceCollapsed = false,
 }: SidebarProps) {
+  const t = useTranslations("navigation");
+  const common = useTranslations("common");
+  const { locale } = useInterfaceLanguage();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [cvSectionOpen, setCvSectionOpen] = useState(true);
@@ -158,11 +154,14 @@ export default function Sidebar({
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (mins < 1) return "Ahora";
+    if (mins < 1) return t("now");
     if (mins < 60) return `${mins}m`;
     if (hours < 24) return `${hours}h`;
     if (days < 7) return `${days}d`;
-    return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    return d.toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
+      day: "numeric",
+      month: "short",
+    });
   };
 
   const getScoreColor = (score: number | null) => {
@@ -225,7 +224,7 @@ export default function Sidebar({
                   <FileText className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-semibold text-sm text-zinc-100 truncate">
-                  JulyLog
+                  {common("appName")}
                 </span>
               </motion.div>
             )}
@@ -254,7 +253,7 @@ export default function Sidebar({
           `}
           >
             <Plus className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Nuevo Análisis</span>}
+            {!collapsed && <span>{t("newAnalysis")}</span>}
           </button>
         </div>
 
@@ -267,7 +266,7 @@ export default function Sidebar({
               className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-400 hover:bg-white/[0.03] transition-colors"
             >
               <FolderOpen className="w-3 h-3 shrink-0" />
-              <span className="flex-1 text-left">Tu CV</span>
+              <span className="flex-1 text-left">{t("cvSection")}</span>
               <ChevronDown
                 className={`w-3 h-3 shrink-0 transition-transform duration-200 ${cvSectionOpen ? "" : "-rotate-90"}`}
               />
@@ -294,7 +293,7 @@ export default function Sidebar({
                   >
                     <FileSearch className="w-4 h-4 shrink-0" />
                     {!collapsed && (
-                      <span className="flex-1 text-left">Análisis de CV</span>
+                      <span className="flex-1 text-left">{t("cvAnalyses")}</span>
                     )}
                     {!collapsed && generalAnalyses.length > 0 && (
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-400">
@@ -311,7 +310,7 @@ export default function Sidebar({
                   `}
                   >
                     <FolderOpen className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Mis CVs</span>}
+                    {!collapsed && <span>{t("cvLibrary")}</span>}
                   </button>
                   <button
                     onClick={onOpenTemplates}
@@ -322,7 +321,7 @@ export default function Sidebar({
                   `}
                   >
                     <LayoutTemplate className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Plantillas</span>}
+                    {!collapsed && <span>{t("templates")}</span>}
                   </button>
                   <button
                     onClick={onOpenEditor}
@@ -333,7 +332,7 @@ export default function Sidebar({
                   `}
                   >
                     <Wand2 className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Editor</span>}
+                    {!collapsed && <span>{t("cvEditor")}</span>}
                   </button>
                 </div>
               </motion.div>
@@ -347,7 +346,7 @@ export default function Sidebar({
               className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-400 hover:bg-white/[0.03] transition-colors mt-1"
             >
               <Briefcase className="w-3 h-3 shrink-0" />
-              <span className="flex-1 text-left">Carrera Profesional</span>
+              <span className="flex-1 text-left">{t("careerSection")}</span>
               <ChevronDown
                 className={`w-3 h-3 shrink-0 transition-transform duration-200 ${jobSectionOpen ? "" : "-rotate-90"}`}
               />
@@ -374,7 +373,7 @@ export default function Sidebar({
                   >
                     <Briefcase className="w-4 h-4 shrink-0" />
                     {!collapsed && (
-                      <span className="flex-1 text-left">Análisis de Ofertas</span>
+                      <span className="flex-1 text-left">{t("jobAnalyses")}</span>
                     )}
                     {!collapsed && jobMatchAnalyses.length > 0 && (
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-400">
@@ -391,7 +390,7 @@ export default function Sidebar({
                   `}
                   >
                     <MessageSquareQuote className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Preguntas</span>}
+                    {!collapsed && <span>{t("interviewQuestions")}</span>}
                   </button>
                   <button
                     onClick={onOpenJournal}
@@ -402,7 +401,7 @@ export default function Sidebar({
                   `}
                   >
                     <BookOpenText className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Diario</span>}
+                    {!collapsed && <span>{t("workJournal")}</span>}
                   </button>
                   <button
                     onClick={onOpenObjectives}
@@ -413,7 +412,7 @@ export default function Sidebar({
                   `}
                   >
                     <Target className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Objectives</span>}
+                    {!collapsed && <span>{t("objectives")}</span>}
                   </button>
                   <button
                     onClick={onOpenReceivedFeedback}
@@ -424,7 +423,7 @@ export default function Sidebar({
                   `}
                   >
                     <Inbox className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Received Feedback</span>}
+                    {!collapsed && <span>{t("receivedFeedback")}</span>}
                   </button>
                   <button
                     onClick={onOpenFeedbackNotes}
@@ -435,7 +434,7 @@ export default function Sidebar({
                   `}
                   >
                     <NotebookPen className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span>Feedback Notes</span>}
+                    {!collapsed && <span>{t("feedbackNotes")}</span>}
                   </button>
                 </div>
               </motion.div>
@@ -451,10 +450,10 @@ export default function Sidebar({
             ${activeView === "settings" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"}
             ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
           `}
-            title="Configuración"
+            title={t("settings")}
           >
             <Settings className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Configuración</span>}
+            {!collapsed && <span>{t("settings")}</span>}
           </button>
           {isAdmin && (
             <button
@@ -465,10 +464,10 @@ export default function Sidebar({
               ${activeView === "admin" ? "bg-emerald-500/10 text-emerald-200" : "text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200"}
               ${collapsed ? "justify-center p-2" : "px-3 py-2.5 text-sm"}
             `}
-              title="Observabilidad"
+              title={t("observability")}
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              {!collapsed && <span>Observabilidad</span>}
+              {!collapsed && <span>{t("observability")}</span>}
             </button>
           )}
           {!collapsed && (

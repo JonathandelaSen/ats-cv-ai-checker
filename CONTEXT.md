@@ -40,6 +40,26 @@ _Avoid_: Deleted context
 An **Activity Context** removed by the user after its existing records are moved to the **General Activity Context**.
 _Avoid_: Deleting records with the context
 
+**Interface Language**:
+The language the user chooses for navigating the app UI.
+_Avoid_: App locale, content language, CV language
+
+**Interface Language Preference**:
+The user's saved choice of **Interface Language**.
+_Avoid_: Browser language, URL language
+
+**Browser Language**:
+The language preference reported by the user's browser before they choose an **Interface Language Preference**.
+_Avoid_: Saved language
+
+**Visitor Interface Language Choice**:
+The temporary **Interface Language** choice made before a visitor signs in.
+_Avoid_: User preference
+
+**Professional Content Language**:
+The language used in user-authored or generated professional content such as CVs, PDFs, analyses, and AI outputs.
+_Avoid_: Interface language
+
 ## Relationships
 
 - An **Activity Context** can have zero or more journal entries.
@@ -53,6 +73,12 @@ _Avoid_: Deleting records with the context
 - Users can disambiguate similar **Activity Contexts** through the name itself.
 - Deleting an **Activity Context** moves its existing records to the user's **General Activity Context**.
 - The **General Activity Context** cannot be deleted.
+- A user's **Interface Language** does not determine the **Professional Content Language** of CVs, PDFs, analyses, or AI outputs.
+- A user's **Interface Language Preference** determines the app UI language regardless of URL language.
+- If a user has no **Interface Language Preference**, their **Browser Language** determines the initial **Interface Language** when it is supported.
+- English is the default **Interface Language** when neither a saved preference nor a supported **Browser Language** is available.
+- A signed-in user's **Interface Language Preference** takes priority over any **Visitor Interface Language Choice**.
+- A **Visitor Interface Language Choice** can become the user's **Interface Language Preference** only when the user has not already saved one.
 
 ## Example dialogue
 
@@ -62,3 +88,4 @@ _Avoid_: Deleting records with the context
 ## Flagged ambiguities
 
 - "context" is overloaded between user activity grouping, AI prompt context, and analysis/chat context; resolved: the reusable user grouping is **Activity Context**.
+- "language" is overloaded between UI navigation and professional content; resolved: UI navigation uses **Interface Language**, while CVs, PDFs, analyses, and AI outputs use **Professional Content Language**.

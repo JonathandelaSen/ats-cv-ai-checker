@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { AlertCircle, KeyRound, Loader2 } from "lucide-react";
 import {
   updatePasswordFromRecovery,
@@ -10,10 +11,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { InterfaceLanguageSelect } from "@/components/interface-language-select";
 
 const INITIAL_STATE: AuthFormState = {};
 
 export function UpdatePasswordForm() {
+  const t = useTranslations("auth.updatePassword");
+  const auth = useTranslations("auth");
+  const { locale } = useInterfaceLanguage();
   const [state, action, pending] = useActionState(
     updatePasswordFromRecovery,
     INITIAL_STATE
@@ -22,25 +28,29 @@ export function UpdatePasswordForm() {
   return (
     <div className="rounded-2xl border border-white/[0.07] bg-[#0d0d14]/90 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-6">
       <div className="mb-6">
+        <div className="mb-4 flex justify-end">
+          <InterfaceLanguageSelect compact />
+        </div>
         <h2 className="text-2xl font-bold text-zinc-100">
-          Nueva contraseña
+          {t("title")}
         </h2>
         <p className="mt-2 text-sm leading-6 text-zinc-500">
-          Escribe una nueva contraseña para recuperar el acceso a tu cuenta.
+          {t("description")}
         </p>
       </div>
 
       <form action={action} className="space-y-4">
+        <input type="hidden" name="interfaceLanguage" value={locale} />
         <div className="space-y-2">
           <Label htmlFor="password" className="text-zinc-300">
-            Nueva contraseña
+            {t("passwordLabel")}
           </Label>
           <Input
             id="password"
             name="password"
             type="password"
             autoComplete="new-password"
-            placeholder="Mínimo 6 caracteres"
+            placeholder={auth("fields.passwordPlaceholder")}
             minLength={6}
             required
             className="h-11 border-white/[0.08] bg-white/[0.04]"
@@ -49,14 +59,14 @@ export function UpdatePasswordForm() {
 
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className="text-zinc-300">
-            Repite la contraseña
+            {t("confirmLabel")}
           </Label>
           <Input
             id="confirmPassword"
             name="confirmPassword"
             type="password"
             autoComplete="new-password"
-            placeholder="Repite la nueva contraseña"
+            placeholder={t("confirmPlaceholder")}
             minLength={6}
             required
             className="h-11 border-white/[0.08] bg-white/[0.04]"
@@ -85,7 +95,7 @@ export function UpdatePasswordForm() {
           ) : (
             <KeyRound />
           )}
-          Guardar contraseña
+          {t("submit")}
         </Button>
       </form>
     </div>
