@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FileSearch, Briefcase, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { AnalysisMode } from "@/lib/analysis-types";
 
 interface AnalysisModeSelectorProps {
@@ -12,9 +13,8 @@ const MODES = [
   {
     key: "general" as AnalysisMode,
     icon: FileSearch,
-    title: "Análisis General",
-    description:
-      "Evaluación completa de tu CV: estructura, legibilidad ATS, claridad, keywords y mejoras generales.",
+    titleKey: "generalTitle",
+    descriptionKey: "generalDescription",
     gradient: "from-violet-600/20 to-indigo-600/20",
     borderHover: "hover:border-violet-500/40",
     iconBg: "bg-violet-500/15",
@@ -24,21 +24,23 @@ const MODES = [
   {
     key: "job_match" as AnalysisMode,
     icon: Briefcase,
-    title: "Match con Oferta",
-    description:
-      "Compara tu CV contra una oferta de trabajo específica. Análisis de keywords, gaps y fit score.",
+    titleKey: "jobTitle",
+    descriptionKey: "jobDescription",
     gradient: "from-emerald-600/20 to-teal-600/20",
     borderHover: "hover:border-emerald-500/40",
     iconBg: "bg-emerald-500/15",
     iconColor: "text-emerald-400",
     tagColor: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
-    tag: "Comparar",
+    tagKey: "compareTag",
   },
 ];
 
 export default function AnalysisModeSelector({
   onSelectMode,
 }: AnalysisModeSelectorProps) {
+  const t = useTranslations("analysisFlow.modeSelector");
+  const common = useTranslations("common.actions");
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -48,7 +50,7 @@ export default function AnalysisModeSelector({
     >
       <div className="flex items-center gap-2 mb-5">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300">
-          ✦ Fase 2 — Elige el tipo de análisis
+          {t("step")}
         </div>
       </div>
 
@@ -70,11 +72,11 @@ export default function AnalysisModeSelector({
               `}
             >
               {/* Tag */}
-              {mode.tag && (
+              {mode.tagKey && (
                 <span
                   className={`absolute top-4 right-4 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${mode.tagColor}`}
                 >
-                  {mode.tag}
+                  {t(mode.tagKey)}
                 </span>
               )}
 
@@ -88,16 +90,16 @@ export default function AnalysisModeSelector({
               {/* Text */}
               <div>
                 <h3 className="text-base font-semibold text-zinc-100 mb-1.5">
-                  {mode.title}
+                  {t(mode.titleKey)}
                 </h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">
-                  {mode.description}
+                  {t(mode.descriptionKey)}
                 </p>
               </div>
 
               {/* Arrow */}
               <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors mt-auto">
-                Seleccionar
+                {common("select")}
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </motion.button>

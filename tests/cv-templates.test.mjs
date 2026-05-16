@@ -97,7 +97,8 @@ test("templates UI is reachable and follows the new catalog -> editor flow", () 
   assert.match(appShell, /CVEditorView/);
   assert.match(sidebar, /onOpenTemplates/);
   assert.match(sidebar, /onOpenEditor/);
-  assert.match(templatesView, /Catálogo de Plantillas/);
+  assert.match(templatesView, /analysisFlow\.templates/);
+  assert.match(templatesView, /t\("badge"\)/);
   assert.match(templatesView, /handleCreateVersion/);
   assert.match(editorView, /Editor IA/);
   assert.match(editorView, /Canvas/i);
@@ -136,7 +137,7 @@ test("CV editor exposes session undo and redo controls for profile edits", () =>
   assert.match(editorView, /metaKey/);
   assert.match(editorView, /ctrlKey/);
   assert.match(editorView, /shiftKey/);
-  assert.match(editorView, /Ctrl\+Y/);
+  assert.match(editorView, /t\("redo"\)/);
 });
 
 test("manual CV editor is controlled by the shared profile history", () => {

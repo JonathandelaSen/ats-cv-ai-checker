@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ActivityContextPrimitives, ActivityContextType } from "@/modules/activity";
 import type { ReceivedFeedbackPrimitives } from "@/modules/received-feedback";
 import { getErrorMessage } from "@/lib/errors";
@@ -29,6 +30,7 @@ const emptyForm = (): FormState => ({
 });
 
 export default function ReceivedFeedbackView() {
+  const t = useTranslations("receivedFeedback");
   const [items, setItems] = useState<ReceivedFeedbackPrimitives[]>([]);
   const [contexts, setContexts] = useState<ActivityContextPrimitives[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -55,8 +57,8 @@ export default function ReceivedFeedbackView() {
       ]);
       const feedbackData = await feedbackRes.json();
       const contextsData = await contextsRes.json();
-      if (!feedbackRes.ok) throw new Error(feedbackData.error || "Could not load received feedback");
-      if (!contextsRes.ok) throw new Error(contextsData.error || "Could not load contexts");
+      if (!feedbackRes.ok) throw new Error(feedbackData.error || t("errors.loadFeedback"));
+      if (!contextsRes.ok) throw new Error(contextsData.error || t("errors.loadContexts"));
       const loadedContexts = (contextsData.contexts ?? []) as ActivityContextPrimitives[];
       setItems(feedbackData);
       setContexts(loadedContexts);
@@ -114,7 +116,7 @@ export default function ReceivedFeedbackView() {
         body: JSON.stringify(contextDraft),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not create context");
+      if (!res.ok) throw new Error(data.error || t("errors.createContext"));
       setContextDraft({ name: "", type: "project" });
       await fetchItems();
       setForm((current) => ({ ...current, activityContextId: data.id }));
@@ -127,7 +129,7 @@ export default function ReceivedFeedbackView() {
 
   const saveFeedback = async () => {
     if (!form.receivedDate || !form.giverName.trim() || !form.feedbackText.trim()) {
-      setError("Received date, from, and feedback are required.");
+      setError(t("errors.required"));
       return;
     }
 
@@ -149,7 +151,7 @@ export default function ReceivedFeedbackView() {
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not save received feedback");
+      if (!res.ok) throw new Error(data.error || t("errors.saveFeedback"));
       await fetchItems();
       closeForm();
     } catch (err: unknown) {
@@ -160,14 +162,14 @@ export default function ReceivedFeedbackView() {
   };
 
   const deleteFeedback = async (item: ReceivedFeedbackPrimitives) => {
-    if (!window.confirm("Delete this received feedback?")) return;
+    if (!window.confirm(t("confirmDelete"))) return;
 
     setSaving(true);
     setError(null);
     try {
       const res = await fetch(`/api/received-feedback/${item.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not delete received feedback");
+      if (!res.ok) throw new Error(data.error || t("errors.deleteFeedback"));
       await fetchItems();
       if (editingId === item.id) closeForm();
     } catch (err: unknown) {
@@ -182,7 +184,7 @@ export default function ReceivedFeedbackView() {
       <header className="shrink-0 border-b border-white/[0.06] px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">Received Feedback</h1>
+            <h1 className="text-lg font-semibold">{t("title")}</h1>
           </div>
           <button
             onClick={openNewForm}
@@ -190,7 +192,7 @@ export default function ReceivedFeedbackView() {
             disabled={saving}
           >
             <Plus className="h-4 w-4" />
-            New feedback
+            {t("newFeedback")}
           </button>
         </div>
       </header>
@@ -206,7 +208,7 @@ export default function ReceivedFeedbackView() {
           <section className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">
-                {isEditing ? "Edit feedback" : "New feedback"}
+                {isEditing ? t("editFeedback") : t("newFeedback")}
               </h2>
               <button
                 onClick={closeForm}
@@ -218,7 +220,7 @@ export default function ReceivedFeedbackView() {
             </div>
             <div className="grid gap-4 md:grid-cols-[180px_1fr]">
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">Activity context</span>
+                <span className="text-xs font-medium text-zinc-500">{t("fields.activityContext")}</span>
                 <select
                   className={inputClass}
                   value={form.activityContextId}
@@ -232,7 +234,7 @@ export default function ReceivedFeedbackView() {
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium text-zinc-500">Received date</span>
+                <span className="text-xs font-medium text-zinc-500">{t("fields.receivedDate")}</span>
                 <input
                   type="date"
                   max={today}
@@ -242,33 +244,33 @@ export default function ReceivedFeedbackView() {
                 />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium text-zinc-500">From</span>
+                <span className="text-xs font-medium text-zinc-500">{t("fields.from")}</span>
                 <input
                   className={inputClass}
                   maxLength={120}
-                  placeholder="Manager, lead, peer..."
+                  placeholder={t("placeholders.from")}
                   value={form.giverName}
                   onChange={(event) => setForm({ ...form, giverName: event.target.value })}
                 />
               </label>
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">Feedback</span>
+                <span className="text-xs font-medium text-zinc-500">{t("fields.feedback")}</span>
                 <textarea
                   className={textareaClass}
                   maxLength={10000}
                   rows={5}
-                  placeholder="What did they say?"
+                  placeholder={t("placeholders.feedback")}
                   value={form.feedbackText}
                   onChange={(event) => setForm({ ...form, feedbackText: event.target.value })}
                 />
               </label>
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">Private note</span>
+                <span className="text-xs font-medium text-zinc-500">{t("fields.privateNote")}</span>
                 <textarea
                   className={textareaClass}
                   maxLength={10000}
                   rows={3}
-                  placeholder="Optional note for yourself"
+                  placeholder={t("placeholders.privateNote")}
                   value={form.userNote}
                   onChange={(event) => setForm({ ...form, userNote: event.target.value })}
                 />
@@ -276,7 +278,7 @@ export default function ReceivedFeedbackView() {
               <div className="flex gap-2 md:col-span-2">
                 <input
                   className={inputClass}
-                  placeholder="New context"
+                  placeholder={t("placeholders.newContext")}
                   value={contextDraft.name}
                   onChange={(event) => setContextDraft({ ...contextDraft, name: event.target.value })}
                 />
@@ -290,10 +292,10 @@ export default function ReceivedFeedbackView() {
                     })
                   }
                 >
-                  <option value="project" className="bg-zinc-900">Project</option>
-                  <option value="employment" className="bg-zinc-900">Employment</option>
-                  <option value="personal" className="bg-zinc-900">Personal</option>
-                  <option value="other" className="bg-zinc-900">Other</option>
+                  <option value="project" className="bg-zinc-900">{t("contextTypes.project")}</option>
+                  <option value="employment" className="bg-zinc-900">{t("contextTypes.employment")}</option>
+                  <option value="personal" className="bg-zinc-900">{t("contextTypes.personal")}</option>
+                  <option value="other" className="bg-zinc-900">{t("contextTypes.other")}</option>
                 </select>
                 <button
                   onClick={() => void createContext()}
@@ -301,7 +303,7 @@ export default function ReceivedFeedbackView() {
                   disabled={saving || !contextDraft.name.trim()}
                 >
                   <Plus className="h-4 w-4" />
-                  Add
+                  {t("actions.add")}
                 </button>
               </div>
             </div>
@@ -311,7 +313,7 @@ export default function ReceivedFeedbackView() {
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-200"
                 disabled={saving}
               >
-                Cancel
+                {t("actions.cancel")}
               </button>
               <button
                 onClick={() => void saveFeedback()}
@@ -319,7 +321,7 @@ export default function ReceivedFeedbackView() {
                 className="inline-flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-white disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save
+                {t("actions.save")}
               </button>
             </div>
           </section>
@@ -329,11 +331,11 @@ export default function ReceivedFeedbackView() {
           {loading ? (
             <div className="flex items-center gap-2 py-10 text-sm text-zinc-500">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading feedback
+              {t("loading")}
             </div>
           ) : items.length === 0 ? (
             <div className="rounded-lg border border-dashed border-white/10 py-12 text-center">
-              <p className="text-sm font-medium text-zinc-300">No received feedback yet</p>
+              <p className="text-sm font-medium text-zinc-300">{t("empty")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -351,7 +353,7 @@ export default function ReceivedFeedbackView() {
                           <CalendarDays className="h-3.5 w-3.5" />
                           {item.receivedDate}
                         </span>
-                        <span>From {item.giverName}</span>
+                        <span>{t("fromPerson", { name: item.giverName })}</span>
                         {contextName && <span>{contextName}</span>}
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">

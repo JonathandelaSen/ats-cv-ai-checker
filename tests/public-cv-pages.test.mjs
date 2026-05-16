@@ -66,7 +66,7 @@ test("public CV page renders a clean responsive platform-owned CV page with PDF 
   assert.match(page, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false/s);
   assert.match(page, /if \(slug !== cv\.public_slug\) \{\s*notFound\(\);/s);
   assert.doesNotMatch(page, /redirect\(/);
-  assert.match(page, /Descargar PDF/);
+  assert.match(page, /publicCv\.downloadPdf/);
   assert.match(page, /\/pdf/);
   assert.doesNotMatch(page, />\s*CV público\s*</);
   assert.doesNotMatch(page, /cv\.profile\.basics\?\.name \?\? cv\.name/);
@@ -90,12 +90,13 @@ test("public CV PDF route exports only published template CVs", () => {
 
 test("CV editor exposes a strong public sharing warning and share URL controls", () => {
   const editor = read("src/components/cv-editor-view.tsx");
+  const messages = read("src/i18n/messages.ts");
 
-  assert.match(editor, /Página pública/);
-  assert.match(editor, /Cualquiera con este enlace/);
+  assert.match(editor, /t\("publicPage\.title"\)/);
+  assert.match(messages, /Cualquiera con este enlace/);
   assert.doesNotMatch(editor, /No lo publicaremos como PDF descargable/);
   assert.match(editor, /updatePublicSettings\(true,\s*true\)/);
-  assert.match(editor, /Guardar URL/);
+  assert.match(editor, /t\("publicPage\.saveUrl"\)/);
   assert.match(editor, /hasPublicSlugChanges/);
   assert.match(editor, /public_slug/);
   assert.match(editor, /navigator\.clipboard\.writeText/);

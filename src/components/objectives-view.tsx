@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   Check,
@@ -185,6 +186,7 @@ function formatDate(d: string | null): string {
 }
 
 export default function ObjectivesView() {
+  const t = useTranslations("objectives");
   const [contexts, setContexts] = useState<CommitmentContextPrimitives[]>([]);
   const [commitments, setCommitments] = useState<CommitmentWithRelations[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -225,7 +227,7 @@ export default function ObjectivesView() {
     try {
       const res = await fetch("/api/commitments");
       const data = (await res.json()) as WorkspaceResponse | { error?: string };
-      if (!res.ok) throw new Error("error" in data ? data.error : "Could not load objectives");
+      if (!res.ok) throw new Error("error" in data ? data.error : t("errors.load"));
       const workspace = data as WorkspaceResponse;
       setContexts(workspace.contexts);
       setCommitments(workspace.commitments);
@@ -277,7 +279,7 @@ export default function ObjectivesView() {
 
   const saveCommitment = async () => {
     if (!form || !form.title.trim() || !form.contextId) {
-      setError("Objective title and context are required.");
+      setError(t("errors.required"));
       return;
     }
     setSaving(true);
@@ -294,7 +296,7 @@ export default function ObjectivesView() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not save objective");
+      if (!res.ok) throw new Error(data.error || t("errors.saveObjective"));
       setForm(null);
       setIsCreating(false);
       await fetchWorkspace(true);
@@ -317,7 +319,7 @@ export default function ObjectivesView() {
         body: JSON.stringify(contextDraft),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not create context");
+      if (!res.ok) throw new Error(data.error || t("errors.createContext"));
       setContextDraft({ name: "", type: "project" });
       await fetchWorkspace(true);
       setForm((current) => (current ? { ...current, contextId: data.id } : current));
@@ -451,7 +453,7 @@ export default function ObjectivesView() {
         body: options.body ? JSON.stringify(options.body) : undefined,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not save changes");
+      if (!res.ok) throw new Error(data.error || t("errors.saveChanges"));
       await fetchWorkspace(true);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -464,6 +466,12 @@ export default function ObjectivesView() {
   const doneCount = selected?.items.filter((item) => item.status === "done").length ?? 0;
   const totalItems = selected?.items.length ?? 0;
   const completion = totalItems === 0 ? 0 : Math.round((doneCount / totalItems) * 100);
+  const statusLabel = (status: CommitmentStatus) => t(`status.${status}`);
+  const itemStatusLabel = (status: CommitmentItemStatus) => t(`itemStatus.${status}`);
+  const outcomeLabel = (type: CommitmentOutcomeType) => t(`outcomeTypes.${type}`);
+  const outcomeStatusLabel = (status: CommitmentOutcomeStatus) => t(`outcomeStatus.${status}`);
+  const priorityLabel = (priority: CommitmentPriority) => t(`priority.${priority}`);
+  const sourceLabel = (source: CommitmentSource) => t(`source.${source}`);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden text-zinc-100">
@@ -471,7 +479,7 @@ export default function ObjectivesView() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-zinc-50">
             <Target className="h-6 w-6 text-zinc-400" />
-            Objectives
+            {t("title")}
           </h1>
           <button
             type="button"
@@ -480,7 +488,7 @@ export default function ObjectivesView() {
             className="inline-flex items-center gap-2 rounded-md bg-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-950 shadow-[0_0_30px_rgba(110,231,183,0.18)] transition-colors hover:bg-emerald-200 disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
-            New objective
+            {t("newObjective")}
           </button>
         </div>
       </header>
@@ -493,11 +501,11 @@ export default function ObjectivesView() {
               <button
                 key={item}
                 onClick={() => setFilter(item)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                   filter === item ? "bg-emerald-300/15 text-emerald-200" : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
                 }`}
               >
-                {item}
+                {t(`filters.${item}`)}
               </button>
             ))}
           </div>
@@ -535,8 +543,8 @@ export default function ObjectivesView() {
                             <ChevronRight className={`mt-0.5 h-4 w-4 shrink-0 ${active ? "text-emerald-200" : "text-zinc-600"}`} />
                           </div>
                           <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
-                            <span className={statusClass(commitment.status)}>{statusLabels[commitment.status]}</span>
-                            <span>{done}/{commitment.items.length} done</span>
+                            <span className={statusClass(commitment.status)}>{statusLabel(commitment.status)}</span>
+                            <span>{t("doneCount", { done, total: commitment.items.length })}</span>
                           </div>
                         </button>
                       );
@@ -555,13 +563,13 @@ export default function ObjectivesView() {
           {loading ? (
             <div className="flex items-center gap-2 py-20 text-sm text-zinc-500">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading objectives
+              {t("loading")}
             </div>
           ) : form ? (
             /* ── Commitment create/edit form ── */
             <section className="rounded-xl border border-emerald-200/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/20">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">{isCreating ? "New objective" : "Edit objective"}</h2>
+                <h2 className="text-lg font-semibold">{isCreating ? t("newObjective") : t("editObjective")}</h2>
                 <button onClick={() => setForm(null)} className="rounded-md p-2 text-zinc-500 hover:bg-white/5 hover:text-zinc-200">
                   <X className="h-4 w-4" />
                 </button>
@@ -569,46 +577,46 @@ export default function ObjectivesView() {
 
               <div className="space-y-5">
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-zinc-500">Title</span>
+                  <span className="text-xs font-medium text-zinc-500">{t("fields.title")}</span>
                   <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={160} />
                 </label>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Context</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.context")}</span>
                     <select className={`${selectClass} w-full`} value={form.contextId} onChange={(e) => setForm({ ...form, contextId: e.target.value })}>
                       {contexts.map((ctx) => <option key={ctx.id} value={ctx.id}>{ctx.name}</option>)}
                     </select>
                   </label>
                   <div className="grid grid-cols-[1fr_auto] gap-2">
                     <label className="space-y-1.5">
-                      <span className="text-xs font-medium text-zinc-500">New context</span>
-                      <input className={inputClass} placeholder="Project, company..." value={contextDraft.name} onChange={(e) => setContextDraft({ ...contextDraft, name: e.target.value })} />
+                      <span className="text-xs font-medium text-zinc-500">{t("fields.newContext")}</span>
+                      <input className={inputClass} placeholder={t("placeholders.context")} value={contextDraft.name} onChange={(e) => setContextDraft({ ...contextDraft, name: e.target.value })} />
                     </label>
-                    <button type="button" onClick={createContext} className="mt-6 rounded-md border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5">Add</button>
+                    <button type="button" onClick={createContext} className="mt-6 rounded-md border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5">{t("actions.add")}</button>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Source</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.source")}</span>
                     <select className={`${selectClass} w-full`} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value as CommitmentSource })}>
-                      {["manager", "self", "company", "project", "other"].map((s) => <option key={s} value={s}>{s}</option>)}
+                      {["manager", "self", "company", "project", "other"].map((s) => <option key={s} value={s}>{sourceLabel(s as CommitmentSource)}</option>)}
                     </select>
                   </label>
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Status</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.status")}</span>
                     <select className={`${selectClass} w-full`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CommitmentStatus })}>
-                      {Object.keys(statusLabels).map((s) => <option key={s} value={s}>{statusLabels[s as CommitmentStatus]}</option>)}
+                      {Object.keys(statusLabels).map((s) => <option key={s} value={s}>{statusLabel(s as CommitmentStatus)}</option>)}
                     </select>
                   </label>
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Priority</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.priority")}</span>
                     <select className={`${selectClass} w-full`} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as "" | CommitmentPriority })}>
-                      <option value="">None</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
+                      <option value="">{t("priority.none")}</option>
+                      <option value="low">{t("priority.low")}</option>
+                      <option value="medium">{t("priority.medium")}</option>
+                      <option value="high">{t("priority.high")}</option>
                     </select>
                   </label>
                   <div />
@@ -616,36 +624,36 @@ export default function ObjectivesView() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Start date</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.startDate")}</span>
                     <input type="date" className={inputClass} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
                   </label>
                   <label className="space-y-1.5">
-                    <span className="text-xs font-medium text-zinc-500">Target date</span>
+                    <span className="text-xs font-medium text-zinc-500">{t("fields.targetDate")}</span>
                     <input type="date" className={inputClass} value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })} />
                   </label>
                 </div>
 
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-zinc-500">Description</span>
+                  <span className="text-xs font-medium text-zinc-500">{t("fields.description")}</span>
                   <textarea className={textareaClass} rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </label>
 
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-zinc-500">Success criteria</span>
-                  <textarea className={textareaClass} rows={2} value={form.successCriteria} onChange={(e) => setForm({ ...form, successCriteria: e.target.value })} placeholder="How will you know this is done?" />
+                  <span className="text-xs font-medium text-zinc-500">{t("fields.successCriteria")}</span>
+                  <textarea className={textareaClass} rows={2} value={form.successCriteria} onChange={(e) => setForm({ ...form, successCriteria: e.target.value })} placeholder={t("placeholders.successCriteria")} />
                 </label>
 
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-amber-300/80">Capture the result</span>
-                  <textarea className={textareaClass} rows={2} value={form.resultNotes} onChange={(e) => setForm({ ...form, resultNotes: e.target.value })} placeholder="What actually happened? Reflect when closing." />
+                  <span className="text-xs font-medium text-amber-300/80">{t("fields.resultNotes")}</span>
+                  <textarea className={textareaClass} rows={2} value={form.resultNotes} onChange={(e) => setForm({ ...form, resultNotes: e.target.value })} placeholder={t("placeholders.resultNotes")} />
                 </label>
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
-                <button onClick={() => setForm(null)} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:bg-white/5">Cancel</button>
+                <button onClick={() => setForm(null)} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:bg-white/5">{t("actions.cancel")}</button>
                 <button onClick={saveCommitment} disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-950 hover:bg-emerald-200 disabled:opacity-60">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save
+                  {t("actions.save")}
                 </button>
               </div>
             </section>
@@ -654,7 +662,7 @@ export default function ObjectivesView() {
             <section className="w-full">
               {isEmpty && (
                 <div className="mb-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
-                  A sample objective is shown here so the view has shape. Create your first objective to replace it.
+                  {t("sampleNotice")}
                 </div>
               )}
 
@@ -663,15 +671,15 @@ export default function ObjectivesView() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className={statusClass(selected.status)}>{statusLabels[selected.status]}</span>
-                      {selected.priority && <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-amber-200">{selected.priority} priority</span>}
+                      <span className={statusClass(selected.status)}>{statusLabel(selected.status)}</span>
+                      {selected.priority && <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-amber-200">{t("priorityBadge", { priority: priorityLabel(selected.priority) })}</span>}
                       <span className="text-zinc-500">{selectedContext?.name}</span>
                     </div>
                     <h2 className="mt-3 text-2xl font-semibold tracking-tight text-zinc-50 lg:text-3xl">{selected.title}</h2>
                     {selected.description && <p className="mt-3 text-sm leading-relaxed text-zinc-400">{selected.description}</p>}
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button onClick={() => startEdit(selected)} disabled={isEmpty} className="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 disabled:opacity-40">Edit</button>
+                    <button onClick={() => startEdit(selected)} disabled={isEmpty} className="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 disabled:opacity-40">{t("actions.edit")}</button>
                     <button onClick={deleteCommitment} disabled={isEmpty} className="rounded-md border border-rose-400/20 px-3 py-2 text-sm text-rose-200 hover:bg-rose-500/10 disabled:opacity-40"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 </div>
@@ -681,30 +689,30 @@ export default function ObjectivesView() {
                   {selected.startDate && (
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5" />
-                      Started {formatDate(selected.startDate)}
+                      {t("started", { date: formatDate(selected.startDate) })}
                     </span>
                   )}
                   {selected.targetDate && (
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-amber-400/60" />
-                      Target {formatDate(selected.targetDate)}
+                      {t("target", { date: formatDate(selected.targetDate) })}
                     </span>
                   )}
                   {selected.source && selected.source !== "self" && (
-                    <span>Source: {selected.source}</span>
+                    <span>{t("sourceLabel", { source: sourceLabel(selected.source) })}</span>
                   )}
                 </div>
 
                 {selected.successCriteria && (
                   <div className="mt-4 rounded-lg border border-emerald-300/10 bg-emerald-300/[0.04] px-4 py-3">
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/60">Success criteria</p>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/60">{t("fields.successCriteria")}</p>
                     <p className="text-sm leading-relaxed text-zinc-300">{selected.successCriteria}</p>
                   </div>
                 )}
 
                 {selected.resultNotes && (
                   <div className="mt-3 rounded-lg border border-amber-300/10 bg-amber-300/[0.04] px-4 py-3">
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/60">Result</p>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/60">{t("fields.result")}</p>
                     <p className="text-sm leading-relaxed text-zinc-300">{selected.resultNotes}</p>
                   </div>
                 )}
@@ -713,8 +721,8 @@ export default function ObjectivesView() {
               {/* Action items */}
               <div className="mt-6">
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-200">Action items</h3>
-                  <span className="text-xs text-zinc-500">{doneCount}/{totalItems} done · {completion}%</span>
+                  <h3 className="text-sm font-semibold text-zinc-200">{t("items.title")}</h3>
+                  <span className="text-xs text-zinc-500">{t("items.progress", { done: doneCount, total: totalItems, completion })}</span>
                 </div>
                 <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/8">
                   <div className="h-full rounded-full bg-emerald-300 transition-all" style={{ width: `${completion}%` }} />
@@ -729,35 +737,35 @@ export default function ObjectivesView() {
                           /* Inline item edit */
                           <div className="space-y-3 p-4">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-emerald-300/70">Edit action item</span>
+                              <span className="text-xs font-semibold text-emerald-300/70">{t("items.edit")}</span>
                               <button onClick={() => { setEditingItemId(null); setItemForm(null); }} className="text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>
                             </div>
-                            <input className={inputClass} value={itemForm.title} onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })} placeholder="Title" />
+                            <input className={inputClass} value={itemForm.title} onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })} placeholder={t("fields.title")} />
                             <div className="grid gap-3 sm:grid-cols-2">
                               <label className="space-y-1">
-                                <span className="text-[11px] text-zinc-500">Status</span>
+                                <span className="text-[11px] text-zinc-500">{t("fields.status")}</span>
                                 <select className={`${selectClass} w-full`} value={itemForm.status} onChange={(e) => setItemForm({ ...itemForm, status: e.target.value as CommitmentItemStatus })}>
-                                  {Object.entries(itemStatusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                  {Object.keys(itemStatusLabels).map((k) => <option key={k} value={k}>{itemStatusLabel(k as CommitmentItemStatus)}</option>)}
                                 </select>
                               </label>
                               <label className="space-y-1">
-                                <span className="text-[11px] text-zinc-500">Due date</span>
+                                <span className="text-[11px] text-zinc-500">{t("fields.dueDate")}</span>
                                 <input type="date" className={inputClass} value={itemForm.dueDate} onChange={(e) => setItemForm({ ...itemForm, dueDate: e.target.value })} />
                               </label>
                             </div>
                             <label className="block space-y-1">
-                              <span className="text-[11px] text-zinc-500">Notes</span>
-                              <textarea className={textareaClass} rows={2} value={itemForm.notes} onChange={(e) => setItemForm({ ...itemForm, notes: e.target.value })} placeholder="Context, approach, blockers..." />
+                              <span className="text-[11px] text-zinc-500">{t("fields.notes")}</span>
+                              <textarea className={textareaClass} rows={2} value={itemForm.notes} onChange={(e) => setItemForm({ ...itemForm, notes: e.target.value })} placeholder={t("placeholders.itemNotes")} />
                             </label>
                             <label className="block space-y-1">
-                              <span className="text-[11px] text-zinc-500">Evidence / result</span>
-                              <textarea className={textareaClass} rows={2} value={itemForm.evidenceNotes} onChange={(e) => setItemForm({ ...itemForm, evidenceNotes: e.target.value })} placeholder="What did you do? Link to PR, doc..." />
+                              <span className="text-[11px] text-zinc-500">{t("fields.evidence")}</span>
+                              <textarea className={textareaClass} rows={2} value={itemForm.evidenceNotes} onChange={(e) => setItemForm({ ...itemForm, evidenceNotes: e.target.value })} placeholder={t("placeholders.evidence")} />
                             </label>
                             <div className="flex justify-end gap-2 pt-1">
-                              <button onClick={() => { setEditingItemId(null); setItemForm(null); }} className="rounded-md px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5">Cancel</button>
+                              <button onClick={() => { setEditingItemId(null); setItemForm(null); }} className="rounded-md px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5">{t("actions.cancel")}</button>
                               <button onClick={saveItem} disabled={saving} className="inline-flex items-center gap-1.5 rounded-md bg-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-950 hover:bg-emerald-200 disabled:opacity-60">
                                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                                Save
+                                {t("actions.save")}
                               </button>
                             </div>
                           </div>
@@ -800,13 +808,13 @@ export default function ObjectivesView() {
                 <div className="mt-3 flex gap-2">
                   <input
                     className={inputClass}
-                    placeholder="Add action item..."
+                    placeholder={t("items.addPlaceholder")}
                     value={newItemTitle}
                     onChange={(e) => setNewItemTitle(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") void createItem(); }}
                     disabled={isEmpty}
                   />
-                  <button onClick={createItem} disabled={saving || isEmpty} className="shrink-0 rounded-md bg-emerald-300 px-3 text-sm font-semibold text-emerald-950 disabled:opacity-40">Add</button>
+                  <button onClick={createItem} disabled={saving || isEmpty} className="shrink-0 rounded-md bg-emerald-300 px-3 text-sm font-semibold text-emerald-950 disabled:opacity-40">{t("actions.add")}</button>
                 </div>
               </div>
 
@@ -814,7 +822,7 @@ export default function ObjectivesView() {
               <div className="mt-8">
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-100">
                   <Trophy className="h-4 w-4 text-amber-300/60" />
-                  Expected outcomes
+                  {t("outcomes.title")}
                 </h3>
 
                 <div className="space-y-2">
@@ -826,45 +834,45 @@ export default function ObjectivesView() {
                           /* Inline outcome edit */
                           <div className="space-y-3 p-4">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-amber-300/70">Edit outcome</span>
+                              <span className="text-xs font-semibold text-amber-300/70">{t("outcomes.edit")}</span>
                               <button onClick={() => { setEditingOutcomeId(null); setOutcomeForm(null); }} className="text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>
                             </div>
-                            <input className={inputClass} value={outcomeForm.title} onChange={(e) => setOutcomeForm({ ...outcomeForm, title: e.target.value })} placeholder="Outcome title" />
+                            <input className={inputClass} value={outcomeForm.title} onChange={(e) => setOutcomeForm({ ...outcomeForm, title: e.target.value })} placeholder={t("outcomes.titlePlaceholder")} />
                             <div className="grid gap-3 sm:grid-cols-2">
                               <label className="space-y-1">
-                                <span className="text-[11px] text-zinc-500">Type</span>
+                                <span className="text-[11px] text-zinc-500">{t("fields.type")}</span>
                                 <select className={`${selectClass} w-full`} value={outcomeForm.type} onChange={(e) => setOutcomeForm({ ...outcomeForm, type: e.target.value as CommitmentOutcomeType })}>
-                                  {Object.entries(outcomeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                  {Object.keys(outcomeLabels).map((k) => <option key={k} value={k}>{outcomeLabel(k as CommitmentOutcomeType)}</option>)}
                                 </select>
                               </label>
                               <label className="space-y-1">
-                                <span className="text-[11px] text-zinc-500">Status</span>
+                                <span className="text-[11px] text-zinc-500">{t("fields.status")}</span>
                                 <select className={`${selectClass} w-full`} value={outcomeForm.status} onChange={(e) => setOutcomeForm({ ...outcomeForm, status: e.target.value as CommitmentOutcomeStatus })}>
-                                  {["expected", "achieved", "missed"].map((s) => <option key={s} value={s}>{s}</option>)}
+                                  {["expected", "achieved", "missed"].map((s) => <option key={s} value={s}>{outcomeStatusLabel(s as CommitmentOutcomeStatus)}</option>)}
                                 </select>
                               </label>
                             </div>
                             {(outcomeForm.type === "money" || outcomeForm.amount) && (
                               <div className="grid gap-3 sm:grid-cols-2">
                                 <label className="space-y-1">
-                                  <span className="text-[11px] text-zinc-500">Amount</span>
+                                  <span className="text-[11px] text-zinc-500">{t("fields.amount")}</span>
                                   <input type="number" className={inputClass} value={outcomeForm.amount} onChange={(e) => setOutcomeForm({ ...outcomeForm, amount: e.target.value })} placeholder="0" />
                                 </label>
                                 <label className="space-y-1">
-                                  <span className="text-[11px] text-zinc-500">Currency</span>
+                                  <span className="text-[11px] text-zinc-500">{t("fields.currency")}</span>
                                   <input className={inputClass} value={outcomeForm.currency} onChange={(e) => setOutcomeForm({ ...outcomeForm, currency: e.target.value })} placeholder="EUR" />
                                 </label>
                               </div>
                             )}
                             <label className="block space-y-1">
-                              <span className="text-[11px] text-zinc-500">Description</span>
-                              <textarea className={textareaClass} rows={2} value={outcomeForm.description} onChange={(e) => setOutcomeForm({ ...outcomeForm, description: e.target.value })} placeholder="What does this outcome look like?" />
+                              <span className="text-[11px] text-zinc-500">{t("fields.description")}</span>
+                              <textarea className={textareaClass} rows={2} value={outcomeForm.description} onChange={(e) => setOutcomeForm({ ...outcomeForm, description: e.target.value })} placeholder={t("outcomes.descriptionPlaceholder")} />
                             </label>
                             <div className="flex justify-end gap-2 pt-1">
-                              <button onClick={() => { setEditingOutcomeId(null); setOutcomeForm(null); }} className="rounded-md px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5">Cancel</button>
+                              <button onClick={() => { setEditingOutcomeId(null); setOutcomeForm(null); }} className="rounded-md px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5">{t("actions.cancel")}</button>
                               <button onClick={saveOutcome} disabled={saving} className="inline-flex items-center gap-1.5 rounded-md bg-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-200 disabled:opacity-60">
                                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                                Save
+                                {t("actions.save")}
                               </button>
                             </div>
                           </div>
@@ -875,8 +883,8 @@ export default function ObjectivesView() {
                               <p className="text-sm font-semibold text-amber-50">{outcome.title}</p>
                               {outcome.description && <p className="mt-1 text-xs leading-relaxed text-amber-100/50">{outcome.description}</p>}
                               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-amber-100/40">
-                                <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.06] px-2 py-0.5">{outcomeLabels[outcome.type]}</span>
-                                <span>{outcome.status}</span>
+                                <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.06] px-2 py-0.5">{outcomeLabel(outcome.type)}</span>
+                                <span>{outcomeStatusLabel(outcome.status)}</span>
                                 {outcome.amount != null && <span>{outcome.amount} {outcome.currency}</span>}
                               </div>
                             </div>
@@ -887,7 +895,7 @@ export default function ObjectivesView() {
                                 onChange={(e) => updateOutcomeStatus(outcome, e.target.value as CommitmentOutcomeStatus)}
                                 disabled={isEmpty}
                               >
-                                {["expected", "achieved", "missed"].map((s) => <option key={s} value={s}>{s}</option>)}
+                                {["expected", "achieved", "missed"].map((s) => <option key={s} value={s}>{outcomeStatusLabel(s as CommitmentOutcomeStatus)}</option>)}
                               </select>
                               <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                                 <button onClick={() => startEditOutcome(outcome)} className="rounded p-1 text-amber-200/40 hover:bg-white/5 hover:text-amber-100">
@@ -907,23 +915,23 @@ export default function ObjectivesView() {
 
                 <div className="mt-3 flex gap-2">
                   <select className={`${selectClass} shrink-0 px-2 py-1.5`} value={newOutcomeType} onChange={(e) => setNewOutcomeType(e.target.value as CommitmentOutcomeType)} disabled={isEmpty}>
-                    {Object.entries(outcomeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                    {Object.keys(outcomeLabels).map((key) => <option key={key} value={key}>{outcomeLabel(key as CommitmentOutcomeType)}</option>)}
                   </select>
                   <input
                     className={inputClass}
-                    placeholder="Expected outcome..."
+                    placeholder={t("outcomes.addPlaceholder")}
                     value={newOutcomeTitle}
                     onChange={(e) => setNewOutcomeTitle(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") void createOutcome(); }}
                     disabled={isEmpty}
                   />
-                  <button onClick={createOutcome} disabled={saving || isEmpty} className="shrink-0 rounded-md bg-amber-300 px-3 text-sm font-semibold text-amber-950 disabled:opacity-40">Add</button>
+                  <button onClick={createOutcome} disabled={saving || isEmpty} className="shrink-0 rounded-md bg-amber-300 px-3 text-sm font-semibold text-amber-950 disabled:opacity-40">{t("actions.add")}</button>
                 </div>
               </div>
             </section>
           ) : (
             <div className="py-20 text-center">
-              <p className="text-sm text-zinc-500">No objective selected.</p>
+              <p className="text-sm text-zinc-500">{t("emptySelection")}</p>
             </div>
           )}
         </main>

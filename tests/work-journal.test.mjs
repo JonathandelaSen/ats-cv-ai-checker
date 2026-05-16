@@ -84,10 +84,10 @@ test("work journal routes use the hexagonal module and UI is wired into the app"
   assert.match(appShell, /WorkJournalView/);
   assert.match(appShell, /view=journal/);
   assert.match(sidebar, /workJournal/);
-  assert.match(view, /Escritura libre/);
-  assert.match(view, /Redacción con IA/);
+  assert.match(view, /freeWriting/);
+  assert.match(view, /aiWriting/);
   assert.doesNotMatch(view, /highlight/i);
-  assert.match(view, /Sugeridos desde tus CVs/);
+  assert.match(view, /suggestions/);
   assert.match(view, /is_default: true/);
   assert.match(contextsRoute, /workJournalModule/);
   assert.match(contextsRoute, /ensureDefaultContext/);

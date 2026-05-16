@@ -2,9 +2,9 @@
 
 import type { StandardCVSkillGroup } from "@/lib/cv-profile";
 import { Plus, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const inputClass = "w-full rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/30 focus:outline-none";
-const labelClass = "text-[11px] font-medium text-zinc-500 uppercase tracking-wider";
 
 interface Props {
   items: StandardCVSkillGroup[];
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function SectionSkills({ items, onChange }: Props) {
+  const t = useTranslations("cvEditor.manual.skills");
   const updateGroup = (index: number, group: StandardCVSkillGroup) => {
     const next = [...items];
     next[index] = group;
@@ -47,7 +48,7 @@ export function SectionSkills({ items, onChange }: Props) {
               type="text"
               value={group.name ?? ""}
               onChange={(e) => updateGroup(gi, { ...group, name: e.target.value })}
-              placeholder="Nombre del grupo"
+              placeholder={t("groupNamePlaceholder")}
               className={`${inputClass} flex-1`}
             />
             <button onClick={() => removeGroup(gi)} className="text-zinc-600 hover:text-rose-400">
@@ -61,7 +62,7 @@ export function SectionSkills({ items, onChange }: Props) {
                   type="text"
                   value={skill}
                   onChange={(e) => updateSkill(gi, si, e.target.value)}
-                  placeholder="Skill"
+                  placeholder={t("skillPlaceholder")}
                   className="bg-transparent text-xs text-white w-20 focus:outline-none placeholder:text-zinc-600"
                   style={{ width: `${Math.max(3, skill.length + 1)}ch` }}
                 />
@@ -78,7 +79,7 @@ export function SectionSkills({ items, onChange }: Props) {
       ))}
       <button onClick={addGroup} className="flex items-center gap-1.5 text-[11px] text-teal-400 hover:text-teal-300">
         <Plus className="h-3 w-3" />
-        Añadir grupo
+        {t("addGroup")}
       </button>
     </div>
   );

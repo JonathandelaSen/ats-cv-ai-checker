@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Briefcase,
   Clock,
@@ -22,6 +23,7 @@ import { getErrorMessage } from "@/lib/errors";
 import type { AnalysisSummary } from "@/lib/analysis-types";
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 interface CVLibraryProps {
   cvs: CVSummary[];
@@ -42,6 +44,9 @@ export default function CVLibrary({
   onOpenEditor,
   onOpenQuestions,
 }: CVLibraryProps) {
+  const t = useTranslations("analysisFlow.cvLibrary");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
   const [selectedId, setSelectedId] = useState(cvs[0]?.id ?? "");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -83,7 +88,7 @@ export default function CVLibrary({
   );
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("es-ES", {
+    new Date(dateStr).toLocaleDateString(dateLocale, {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -107,7 +112,7 @@ export default function CVLibrary({
         body: JSON.stringify({ name: draftName.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo renombrar el CV");
+      if (!res.ok) throw new Error(data.error || t("renameFailed"));
       setEditingId(null);
       onRefresh();
     } catch (err: unknown) {
@@ -118,7 +123,7 @@ export default function CVLibrary({
   };
 
   const deleteCv = async (id: string) => {
-    if (!confirm("¿Seguro que quieres borrar este CV?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     setLoadingId(id);
     setError(null);
     setBlockingAnalyses([]);
@@ -129,7 +134,7 @@ export default function CVLibrary({
         if (res.status === 409 && Array.isArray(data.analyses)) {
           setBlockingAnalyses(data.analyses);
         }
-        throw new Error(data.error || "No se pudo borrar el CV");
+        throw new Error(data.error || t("deleteFailed"));
       }
       if (selectedId === id) setSelectedId("");
       onRefresh();
@@ -155,7 +160,7 @@ export default function CVLibrary({
               {blockingAnalyses.length > 0 && (
                 <div className="mt-3 space-y-2 border-t border-rose-500/20 pt-3">
                   <p className="text-xs font-semibold text-rose-200">
-                    Análisis asociados
+                    {t("associatedAnalyses")}
                   </p>
                   {blockingAnalyses.map((analysis) => (
                     <a
@@ -184,7 +189,7 @@ export default function CVLibrary({
             {cvs.length === 0 ? (
               <div className="flex h-full min-h-56 flex-col items-center justify-center text-center text-zinc-600">
                 <FileText className="mb-3 h-8 w-8" />
-                <p className="text-sm">Todavía no hay CVs guardados.</p>
+                <p className="text-sm">{t("noSavedCvs")}</p>
               </div>
             ) : (
               cvs.map((cv) => (
@@ -226,7 +231,7 @@ export default function CVLibrary({
                       {Boolean(analysesByCv.get(cv.id)?.length) && (
                         <p className="mt-2 inline-flex items-center gap-1 rounded-md border border-sky-500/15 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
                           <FileSearch className="h-3 w-3" />
-                          {analysesByCv.get(cv.id)?.length} análisis
+                          {t("analysisCount", { count: analysesByCv.get(cv.id)?.length ?? 0 })}
                         </p>
                       )}
                     </div>
@@ -301,7 +306,7 @@ export default function CVLibrary({
                       className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-teal-500/20 bg-teal-500/10 px-3 text-xs font-semibold text-teal-300 transition-colors hover:bg-teal-500/20"
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                      Editar con IA
+                      {t("editWithAI")}
                     </a>
                   )}
                   <a
@@ -309,7 +314,7 @@ export default function CVLibrary({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-white/5 hover:text-zinc-200"
-                    title="Ver PDF"
+                    title={t("viewPdf")}
                   >
                     <Download className="h-4 w-4" />
                   </a>
@@ -319,7 +324,7 @@ export default function CVLibrary({
                 <div className="mb-4">
                   <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <Pencil className="h-3.5 w-3.5 text-teal-300" />
-                    Versiones con plantilla
+                    {t("templateVersions")}
                   </p>
                   {cvs.filter(
                     (c) =>
@@ -346,14 +351,14 @@ export default function CVLibrary({
                     </div>
                   ) : (
                     <p className="rounded-lg border border-white/[0.04] bg-[#0a0a12]/70 px-3 py-2 text-xs text-zinc-600">
-                      Aún no hay versiones con plantilla para este CV.
+                      {t("noTemplateVersions")}
                     </p>
                   )}
                 </div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <p className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <FileSearch className="h-3.5 w-3.5 text-sky-300" />
-                    Análisis asociados
+                    {t("associatedAnalyses")}
                   </p>
                   <span className="rounded-md bg-zinc-800/70 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
                     {selectedAnalyses.length}
@@ -394,13 +399,13 @@ export default function CVLibrary({
                   </div>
                 ) : (
                   <p className="rounded-lg border border-white/[0.04] bg-[#0a0a12]/70 px-3 py-2 text-xs text-zinc-600">
-                    Este CV todavía no tiene análisis asociados.
+                    {t("noAssociatedAnalyses")}
                   </p>
                 )}
                 <div className="mt-4 mb-2 flex items-center justify-between gap-3">
                   <p className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <MessageSquareQuote className="h-3.5 w-3.5 text-fuchsia-300" />
-                    Preguntas asociadas
+                    {t("associatedQuestions")}
                   </p>
                   <button
                     type="button"
@@ -408,7 +413,7 @@ export default function CVLibrary({
                     className="inline-flex items-center gap-1 rounded-md border border-fuchsia-500/20 bg-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-fuchsia-300 hover:bg-fuchsia-500/20"
                   >
                     <Plus className="h-3 w-3" />
-                    Crear
+                    {t("create")}
                   </button>
                 </div>
                 {selectedQuestions.length > 0 ? (
@@ -428,7 +433,7 @@ export default function CVLibrary({
                             {question.question}
                           </span>
                           <span className="mt-0.5 block text-[10px] text-zinc-600">
-                            {question.answer ? "Con respuesta" : "Pendiente"}
+                            {question.answer ? t("answered") : t("pending")}
                           </span>
                         </span>
                       </button>
@@ -436,19 +441,19 @@ export default function CVLibrary({
                   </div>
                 ) : (
                   <p className="rounded-lg border border-white/[0.04] bg-[#0a0a12]/70 px-3 py-2 text-xs text-zinc-600">
-                    Este CV todavía no tiene preguntas asociadas.
+                    {t("noAssociatedQuestions")}
                   </p>
                 )}
               </div>
               <iframe
                 src={`/api/cvs/${selected.id}/${selected.type === "template" ? "template-pdf" : "pdf"}#toolbar=0`}
                 className="min-h-0 flex-1 bg-zinc-950"
-                title="Vista previa del CV"
+                title={t("previewTitle")}
               />
             </div>
           ) : (
             <div className="flex h-full min-h-[520px] items-center justify-center text-sm text-zinc-600">
-              Selecciona un CV para previsualizarlo.
+              {t("selectToPreview")}
             </div>
           )}
         </section>

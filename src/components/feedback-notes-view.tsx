@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Archive,
   Check,
@@ -48,6 +49,7 @@ export default function FeedbackNotesView({
   hasGeminiApiKey,
   onOpenSettings,
 }: FeedbackNotesViewProps) {
+  const t = useTranslations("feedbackNotes");
   const [filter, setFilter] = useState<FeedbackFilter>("active");
   const [feedbacks, setFeedbacks] = useState<FeedbackPrimitives[]>([]);
   const [entries, setEntries] = useState<FeedbackEntryPrimitives[]>([]);
@@ -79,7 +81,7 @@ export default function FeedbackNotesView({
     try {
       const res = await fetch(`/api/feedback-notes/feedbacks?status=${filter}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not load feedback notes");
+      if (!res.ok) throw new Error(data.error || t("errors.loadFeedbacks"));
       const loaded = data as FeedbackPrimitives[];
       setFeedbacks(loaded);
       const next =
@@ -102,7 +104,7 @@ export default function FeedbackNotesView({
     try {
       const res = await fetch(`/api/feedback-notes/feedbacks/${feedbackId}/entries`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not load entries");
+      if (!res.ok) throw new Error(data.error || t("errors.loadEntries"));
       setEntries(data);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -127,7 +129,7 @@ export default function FeedbackNotesView({
 
   const createFeedback = async () => {
     if (!newPersonName.trim()) {
-      setError("Person name is required.");
+      setError(t("errors.personNameRequired"));
       return;
     }
     setSaving(true);
@@ -139,7 +141,7 @@ export default function FeedbackNotesView({
         body: JSON.stringify({ person_name: newPersonName }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not create feedback");
+      if (!res.ok) throw new Error(data.error || t("errors.createFeedback"));
       setNewPersonName("");
       if (filter !== "active") {
         setSelectedId(data.id);
@@ -165,7 +167,7 @@ export default function FeedbackNotesView({
         body: JSON.stringify(updates),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not update feedback");
+      if (!res.ok) throw new Error(data.error || t("errors.updateFeedback"));
       await fetchFeedbacks(data.id);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -188,7 +190,7 @@ export default function FeedbackNotesView({
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not add entry");
+      if (!res.ok) throw new Error(data.error || t("errors.addEntry"));
       setEntryDraft("");
       await fetchEntries(selectedFeedback.id);
       await fetchFeedbacks(selectedFeedback.id);
@@ -210,7 +212,7 @@ export default function FeedbackNotesView({
         body: JSON.stringify({ content: entryEditDraft }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not update entry");
+      if (!res.ok) throw new Error(data.error || t("errors.updateEntry"));
       setEditingEntryId(null);
       await fetchEntries(selectedFeedback?.id ?? null);
       await fetchFeedbacks(selectedFeedback?.id ?? null);
@@ -222,13 +224,13 @@ export default function FeedbackNotesView({
   };
 
   const deleteEntry = async (entryId: string) => {
-    if (!confirm("Delete this entry?")) return;
+    if (!confirm(t("confirmDeleteEntry"))) return;
     const res = await fetch(`/api/feedback-notes/entries/${entryId}`, {
       method: "DELETE",
     });
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Could not delete entry");
+      setError(data.error || t("errors.deleteEntry"));
       return;
     }
     await fetchEntries(selectedFeedback?.id ?? null);
@@ -237,7 +239,7 @@ export default function FeedbackNotesView({
 
   const deleteFeedback = async () => {
     if (!selectedFeedback) return;
-    if (!confirm("Delete this feedback and all entries? This cannot be undone.")) {
+    if (!confirm(t("confirmDeleteFeedback"))) {
       return;
     }
     const res = await fetch(`/api/feedback-notes/feedbacks/${selectedFeedback.id}`, {
@@ -245,7 +247,7 @@ export default function FeedbackNotesView({
     });
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Could not delete feedback");
+      setError(data.error || t("errors.deleteFeedback"));
       return;
     }
     await fetchFeedbacks(null);
@@ -259,7 +261,7 @@ export default function FeedbackNotesView({
     );
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || `Could not ${action} feedback`);
+      setError(data.error || t("errors.changeStatus"));
       return;
     }
     await fetchFeedbacks(data.id);
@@ -296,7 +298,7 @@ export default function FeedbackNotesView({
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not generate feedback");
+      if (!res.ok) throw new Error(data.error || t("errors.generateFeedback"));
       await fetchFeedbacks(data.id);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -339,14 +341,14 @@ export default function FeedbackNotesView({
         <div className="border-b border-white/[0.06] p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-lg font-semibold">Feedback Notes</h1>
-              <p className="text-xs text-zinc-500">Private feedback drafts</p>
+              <h1 className="text-lg font-semibold">{t("title")}</h1>
+              <p className="text-xs text-zinc-500">{t("subtitle")}</p>
             </div>
             <button
               type="button"
               onClick={() => void fetchFeedbacks(selectedId)}
               className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
-              title="Refresh"
+              title={t("actions.refresh")}
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -357,13 +359,13 @@ export default function FeedbackNotesView({
                 key={item}
                 type="button"
                 onClick={() => setFilter(item)}
-                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   filter === item
                     ? "bg-white/[0.10] text-zinc-100"
                     : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                {item}
+                {t(`filters.${item}`)}
               </button>
             ))}
           </div>
@@ -374,7 +376,7 @@ export default function FeedbackNotesView({
               onKeyDown={(event) => {
                 if (event.key === "Enter") void createFeedback();
               }}
-              placeholder="Person name"
+              placeholder={t("fields.personName")}
               className={inputClass}
             />
             <button
@@ -392,11 +394,11 @@ export default function FeedbackNotesView({
           {loading ? (
             <div className="flex items-center justify-center py-10 text-zinc-500">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading
+              {t("loading")}
             </div>
           ) : feedbacks.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-zinc-600">
-              No feedback notes here yet.
+              {t("empty")}
             </div>
           ) : (
             feedbacks.map((feedback) => (
@@ -413,17 +415,17 @@ export default function FeedbackNotesView({
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium">{feedback.person_name}</p>
                   <span
-                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${
+                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
                       feedback.status === "active"
                         ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
                         : "border-zinc-500/20 bg-zinc-500/10 text-zinc-400"
                     }`}
                   >
-                    {feedback.status}
+                    {t(`status.${feedback.status}`)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-600">
-                  Updated {formatDate(feedback.updated_at)}
+                  {t("updated", { date: formatDate(feedback.updated_at) })}
                 </p>
               </button>
             ))
@@ -440,14 +442,14 @@ export default function FeedbackNotesView({
 
         {!selectedFeedback ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-            Select or create feedback.
+            {t("emptySelection")}
           </div>
         ) : (
           <div className="flex w-full flex-col gap-6 p-6">
             <section className="flex flex-col gap-4 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0 flex-1">
                 <label className="mb-1 block text-xs font-medium text-zinc-500">
-                  Person name
+                  {t("fields.personName")}
                 </label>
                 <input
                   value={personNameDraft}
@@ -464,7 +466,7 @@ export default function FeedbackNotesView({
                     className="inline-flex items-center gap-2 rounded-lg bg-white/[0.08] px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.12]"
                   >
                     <Save className="h-4 w-4" />
-                    Save name
+                    {t("actions.saveName")}
                   </button>
                 )}
                 {isClosed ? (
@@ -474,7 +476,7 @@ export default function FeedbackNotesView({
                     className="inline-flex items-center gap-2 rounded-lg bg-white/[0.08] px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.12]"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Reopen
+                    {t("actions.reopen")}
                   </button>
                 ) : (
                   <button
@@ -483,7 +485,7 @@ export default function FeedbackNotesView({
                     className="inline-flex items-center gap-2 rounded-lg bg-white/[0.08] px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.12]"
                   >
                     <Archive className="h-4 w-4" />
-                    Close
+                    {t("actions.close")}
                   </button>
                 )}
                 <button
@@ -492,7 +494,7 @@ export default function FeedbackNotesView({
                   className="inline-flex items-center gap-2 rounded-lg bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/15"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete
+                  {t("actions.delete")}
                 </button>
               </div>
             </section>
@@ -500,11 +502,11 @@ export default function FeedbackNotesView({
             <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
               <div className="min-w-0">
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-zinc-200">Entries</h2>
+                  <h2 className="text-sm font-semibold text-zinc-200">{t("entries.title")}</h2>
                   {isClosed && (
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
                       <Lock className="h-3.5 w-3.5" />
-                      Closed
+                      {t("status.closed")}
                     </span>
                   )}
                 </div>
@@ -513,7 +515,7 @@ export default function FeedbackNotesView({
                     <textarea
                       value={entryDraft}
                       onChange={(event) => setEntryDraft(event.target.value)}
-                      placeholder="Add a raw note..."
+                      placeholder={t("entries.placeholder")}
                       rows={4}
                       className={textareaClass}
                     />
@@ -525,7 +527,7 @@ export default function FeedbackNotesView({
                         className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                       >
                         <Plus className="h-4 w-4" />
-                        Add entry
+                        {t("entries.add")}
                       </button>
                     </div>
                   </div>
@@ -608,10 +610,10 @@ export default function FeedbackNotesView({
               <div className="min-w-0">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold text-zinc-200">
-                    Final feedback
+                    {t("final.title")}
                   </h2>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-zinc-500">Modelo AI:</label>
+                    <label className="text-xs text-zinc-500">{t("final.modelLabel")}</label>
                     <select
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
@@ -629,7 +631,7 @@ export default function FeedbackNotesView({
                   value={finalDraft}
                   onChange={(event) => setFinalDraft(event.target.value)}
                   disabled={isClosed}
-                  placeholder="Write final feedback manually, or generate it from entries."
+                  placeholder={t("final.placeholder")}
                   rows={14}
                   className={textareaClass}
                 />
@@ -642,7 +644,7 @@ export default function FeedbackNotesView({
                       className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/[0.08] px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.12] disabled:opacity-50"
                     >
                       <Save className="h-4 w-4" />
-                      Save final
+                      {t("final.save")}
                     </button>
                   )}
                   <button
@@ -656,7 +658,7 @@ export default function FeedbackNotesView({
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
-                    {finalCopied ? "Copied!" : "Copy final"}
+                    {finalCopied ? t("final.copied") : t("final.copy")}
                   </button>
                   {!isClosed && (
                     <button
@@ -670,7 +672,7 @@ export default function FeedbackNotesView({
                       ) : (
                         <Sparkles className="h-4 w-4" />
                       )}
-                      Generate with AI
+                      {t("final.generate")}
                     </button>
                   )}
                   <button
@@ -680,7 +682,7 @@ export default function FeedbackNotesView({
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/[0.08] px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.12] disabled:opacity-50"
                   >
                     <Clipboard className="h-4 w-4" />
-                    Copy AI prompt
+                    {t("final.copyPrompt")}
                   </button>
                 </div>
               </div>
@@ -692,8 +694,8 @@ export default function FeedbackNotesView({
       <CopyPromptModal 
         isOpen={isCopyModalOpen} 
         onClose={() => setIsCopyModalOpen(false)} 
-        title="Prompt copiado"
-        message="Puedes copiarlo en ChatGPT, Claude o tu AI favorita para generar el resultado."
+        title={t("copyPrompt.title")}
+        message={t("copyPrompt.message")}
         promptContent={copiedPromptContent}
       />
     </div>

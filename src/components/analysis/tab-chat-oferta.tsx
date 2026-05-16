@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 import {
   Bot,
   Loader2,
@@ -29,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 interface TabChatOfertaProps {
   analysisId: string;
@@ -114,6 +116,8 @@ function ConversationList({
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useTranslations("analysisDetail.chat");
+  const common = useTranslations("common.actions");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
@@ -133,7 +137,7 @@ function ConversationList({
     <div className="flex w-64 shrink-0 flex-col border-r border-white/[0.06]">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-3">
         <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-          Conversaciones
+          {t("conversations")}
         </span>
         <Button
           variant="ghost"
@@ -148,7 +152,7 @@ function ConversationList({
         <div className="space-y-0.5 p-2">
           {conversations.length === 0 && (
             <p className="px-2 py-6 text-center text-xs text-zinc-600">
-              Sin conversaciones
+              {t("noConversations")}
             </p>
           )}
           {conversations.map((conv) => (
@@ -190,14 +194,14 @@ function ConversationList({
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem onClick={() => startEditing(conv)}>
                     <Pencil className="mr-2 size-3.5" />
-                    Renombrar
+                    {t("rename")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-red-400 focus:text-red-400"
                     onClick={() => onDelete(conv.id)}
                   >
                     <Trash2 className="mr-2 size-3.5" />
-                    Eliminar
+                    {common("delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -214,6 +218,9 @@ export default function TabChatOferta({
   geminiApiKey,
   hasGeminiApiKey,
 }: TabChatOfertaProps) {
+  const t = useTranslations("analysisDetail.chat");
+  const { locale } = useInterfaceLanguage();
+  const timeLocale = locale === "es" ? "es-ES" : "en-US";
   const [conversations, setConversations] = useState<
     AnalysisChatConversation[]
   >([]);
@@ -237,7 +244,7 @@ export default function TabChatOferta({
       const res = await fetch(`/api/job-match-analyses/${analysisId}/chat`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok)
-        throw new Error(data.error || "Error cargando conversaciones.");
+        throw new Error(data.error || t("loadConversationsFailed"));
       const convs = (data.conversations ?? []) as AnalysisChatConversation[];
       setConversations(convs);
       if (convs.length > 0 && !activeConversationId) {
@@ -245,12 +252,12 @@ export default function TabChatOferta({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error cargando conversaciones.",
+        err instanceof Error ? err.message : t("loadConversationsFailed"),
       );
     } finally {
       setIsLoadingConversations(false);
     }
-  }, [analysisId, activeConversationId]);
+  }, [analysisId, activeConversationId, t]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
@@ -261,17 +268,17 @@ export default function TabChatOferta({
           `/api/job-match-analyses/${analysisId}/chat?conversationId=${conversationId}`,
         );
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Error cargando mensajes.");
+        if (!res.ok) throw new Error(data.error || t("loadMessagesFailed"));
         setMessages(data.messages ?? []);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Error cargando mensajes.",
+          err instanceof Error ? err.message : t("loadMessagesFailed"),
         );
       } finally {
         setIsLoadingMessages(false);
       }
     },
-    [analysisId],
+    [analysisId, t],
   );
 
   useEffect(() => {
@@ -307,7 +314,7 @@ export default function TabChatOferta({
         body: JSON.stringify({ action: "create_conversation" }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Error creando conversación.");
+      if (!res.ok) throw new Error(data.error || t("createConversationFailed"));
       const conv = data.conversation as AnalysisChatConversation;
       setConversations((prev) => [conv, ...prev]);
       setActiveConversationId(conv.id);
@@ -315,7 +322,7 @@ export default function TabChatOferta({
       textareaRef.current?.focus();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error creando conversación.",
+        err instanceof Error ? err.message : t("createConversationFailed"),
       );
     }
   };
@@ -367,7 +374,7 @@ export default function TabChatOferta({
     const message = draft.trim();
     if (!message || isSending) return;
     if (!hasGeminiApiKey) {
-      setError("Configura tu API key de Gemini antes de chatear con la IA.");
+      setError(t("missingApiKey"));
       return;
     }
 
@@ -382,14 +389,14 @@ export default function TabChatOferta({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok)
-          throw new Error(data.error || "Error creando conversación.");
+          throw new Error(data.error || t("createConversationFailed"));
         const conv = data.conversation as AnalysisChatConversation;
         setConversations((prev) => [conv, ...prev]);
         setActiveConversationId(conv.id);
         conversationId = conv.id;
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Error creando conversación.",
+          err instanceof Error ? err.message : t("createConversationFailed"),
         );
         return;
       }
@@ -410,7 +417,7 @@ export default function TabChatOferta({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok)
-        throw new Error(data.error || "No se pudo enviar el mensaje.");
+        throw new Error(data.error || t("sendFailed"));
       setMessages((current) => [
         ...current,
         data.userMessage,
@@ -419,7 +426,7 @@ export default function TabChatOferta({
       setDraft("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "No se pudo enviar el mensaje.",
+        err instanceof Error ? err.message : t("sendFailed"),
       );
     } finally {
       setIsSending(false);
@@ -428,7 +435,7 @@ export default function TabChatOferta({
 
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleTimeString("es-ES", {
+    return d.toLocaleTimeString(timeLocale, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -461,17 +468,17 @@ export default function TabChatOferta({
             </div>
             <div>
               <h4 className="text-sm font-medium text-zinc-200">
-                Chat sobre la oferta
+                {t("title")}
               </h4>
               <p className="text-[11px] text-zinc-600">
-                Conectado a tu CV, la oferta y el análisis
+                {t("subtitle")}
               </p>
             </div>
           </div>
           <select
             value={model}
             onChange={(event) => setModel(event.target.value)}
-            aria-label="Modelo para el chat"
+            aria-label={t("modelLabel")}
             className="h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-[11px] text-zinc-400 outline-none transition-colors hover:border-white/[0.12] focus:border-cyan-500/30"
           >
             <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
@@ -485,7 +492,7 @@ export default function TabChatOferta({
             {isLoadingConversations || isLoadingMessages ? (
               <div className="flex flex-1 items-center justify-center py-20 text-sm text-zinc-600">
                 <Loader2 className="mr-2 size-4 animate-spin" />
-                Cargando...
+                {t("loading")}
               </div>
             ) : !activeConversationId ? (
               <EmptyState onNew={createConversation} />
@@ -516,7 +523,7 @@ export default function TabChatOferta({
                 </div>
                 <div className="flex items-center gap-2 rounded-2xl rounded-tl-md bg-white/[0.03] px-4 py-2.5 text-sm text-zinc-500">
                   <Loader2 className="size-3.5 animate-spin" />
-                  Pensando...
+                  {t("thinking")}
                 </div>
               </motion.div>
             )}
@@ -553,7 +560,7 @@ export default function TabChatOferta({
                   void handleSubmit(e);
                 }
               }}
-              placeholder="Pregunta sobre esta oferta..."
+              placeholder={t("inputPlaceholder")}
               rows={1}
               className="min-h-[40px] max-h-[120px] flex-1 resize-none rounded-xl border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-cyan-500/20"
             />
@@ -627,6 +634,8 @@ function ChatBubble({
 }
 
 function EmptyState({ onNew }: { onNew: () => void }) {
+  const t = useTranslations("analysisDetail.chat");
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20 text-center">
       <div className="flex size-14 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400">
@@ -634,10 +643,10 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       </div>
       <div>
         <p className="text-sm font-medium text-zinc-300">
-          Empieza una conversación
+          {t("startTitle")}
         </p>
         <p className="mt-1 text-xs text-zinc-600">
-          Pregunta sobre la oferta, skills, posicionamiento o estrategia.
+          {t("startDescription")}
         </p>
       </div>
       <Button
@@ -647,22 +656,24 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         className="mt-1 border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
       >
         <Plus className="mr-1.5 size-3.5" />
-        Nueva conversación
+        {t("newConversation")}
       </Button>
     </div>
   );
 }
 
 function EmptyChat() {
+  const t = useTranslations("analysisDetail.chat");
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20 text-center">
       <div className="flex size-12 items-center justify-center rounded-xl bg-white/[0.04] text-zinc-600">
         <Sparkles className="size-5" />
       </div>
       <div>
-        <p className="text-sm text-zinc-400">Haz tu primera pregunta</p>
+        <p className="text-sm text-zinc-400">{t("firstQuestion")}</p>
         <p className="mt-1 text-xs text-zinc-600">
-          La IA tiene contexto completo de tu CV, la oferta y el análisis.
+          {t("firstQuestionDescription")}
         </p>
       </div>
     </div>

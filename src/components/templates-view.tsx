@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Check,
@@ -44,6 +45,7 @@ export default function TemplatesView({
   onOpenUpload,
   onCVUpdated,
 }: TemplatesViewProps) {
+  const t = useTranslations("analysisFlow.templates");
   const [selectedTemplate, setSelectedTemplate] =
     useState<CVTemplateDefinition | null>(null);
   const [selectedCvId, setSelectedCvId] = useState<string>("");
@@ -79,7 +81,7 @@ export default function TemplatesView({
       const data = await res.json();
       if (!res.ok) {
         throw new Error(
-          data.error || data.details || "Error al crear la versión",
+          data.error || data.details || t("createFailed"),
         );
       }
 
@@ -98,14 +100,13 @@ export default function TemplatesView({
         <header className="mb-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1.5 text-xs font-medium text-teal-300">
             <LayoutTemplate className="h-3.5 w-3.5" />
-            Catálogo de Plantillas
+            {t("badge")}
           </div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-white">
-            Elige un diseño para tu nuevo CV
+            {t("title")}
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-zinc-400">
-            Selecciona una plantilla profesional y conéctala con uno de tus CVs
-            subidos o generados para empezar a editar con IA.
+            {t("description")}
           </p>
         </header>
 
@@ -153,7 +154,7 @@ export default function TemplatesView({
                     onClick={() => setSelectedTemplate(template)}
                     className="w-full bg-white text-black hover:bg-zinc-200"
                   >
-                    Usar esta plantilla
+                    {t("useTemplate")}
                   </Button>
                 </div>
               </div>
@@ -186,10 +187,10 @@ export default function TemplatesView({
                   </button>
                   <div>
                     <h2 className="text-xl font-semibold text-white">
-                      Configurar versión
+                      {t("configureVersion")}
                     </h2>
                     <p className="text-sm text-zinc-500">
-                      Conecta {selectedTemplate.name} con un CV
+                      {t("connectWithCv", { template: selectedTemplate.name })}
                     </p>
                   </div>
                 </div>
@@ -205,13 +206,13 @@ export default function TemplatesView({
                 <div className="grid gap-8 md:grid-cols-2 items-start">
                   <div>
                     <label className="mb-4 block text-sm font-medium text-zinc-300">
-                      1. Elige tu CV de origen
+                      {t("chooseSourceCv")}
                     </label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                       <input
                         type="text"
-                        placeholder="Buscar CV..."
+                        placeholder={t("searchCv")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none"
@@ -246,14 +247,14 @@ export default function TemplatesView({
                       ) : (
                         <div className="flex flex-col items-center justify-center py-8 text-center">
                           <p className="text-sm text-zinc-500">
-                            No tienes CVs disponibles
+                            {t("noCvs")}
                           </p>
                           <Button
                             variant="link"
                             className="mt-2 text-teal-400"
                             onClick={onOpenUpload}
                           >
-                            <Plus className="mr-2 h-4 w-4" /> Subir mi primer CV
+                            <Plus className="mr-2 h-4 w-4" /> {t("uploadFirstCv")}
                           </Button>
                         </div>
                       )}
@@ -263,7 +264,7 @@ export default function TemplatesView({
                   <div className="space-y-6">
                     <div>
                       <label className="mb-4 block text-sm font-medium text-zinc-300">
-                        2. Idioma de salida
+                        {t("outputLanguage")}
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         {(["es", "en"] as const).map((l) => (
@@ -276,7 +277,7 @@ export default function TemplatesView({
                                 : "border-white/5 bg-white/[0.02] text-zinc-500 hover:border-white/20 hover:bg-white/5"
                             }`}
                           >
-                            {l === "es" ? "Español" : "English"}
+                            {l === "es" ? t("spanish") : t("english")}
                           </button>
                         ))}
                       </div>
@@ -288,15 +289,14 @@ export default function TemplatesView({
                           <KeyRound className="h-5 w-5 shrink-0 text-amber-400" />
                           <div>
                             <p className="text-xs leading-relaxed text-amber-200">
-                              Necesitas configurar tu API Key para que la IA
-                              pueda procesar tu CV por primera vez.
+                              {t("missingApiKey")}
                             </p>
                             <Button
                               variant="link"
                               className="h-auto p-0 mt-2 text-xs font-bold text-amber-400 hover:text-amber-300"
                               onClick={onOpenSettings}
                             >
-                              Configurar ahora
+                              {t("configureNow")}
                             </Button>
                           </div>
                         </div>
@@ -312,11 +312,11 @@ export default function TemplatesView({
                         {creating ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Estructurando CV...
+                            {t("structuring")}
                           </>
                         ) : (
                           <>
-                            Crear Versión Editable
+                            {t("createVersion")}
                             <ChevronRight className="ml-2 h-4 w-4" />
                           </>
                         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowDown, ArrowUp, Briefcase, Code, GraduationCap, GripVertical, Languages, Palette, RotateCcw, Save, User, FileText, Wrench, Award, FolderOpen, Heart, Trophy, BookOpen } from "lucide-react";
 import type { StandardCVProfile } from "@/lib/cv-profile";
@@ -39,6 +40,7 @@ export function ManualEditor({
   onChange,
   onSave,
 }: ManualEditorProps) {
+  const t = useTranslations("cvEditor.manual");
   const [draggedSection, setDraggedSection] = useState<CVRenderableSectionId | null>(null);
 
   const handleChange = useCallback((updater: (prev: StandardCVProfile) => StandardCVProfile) => {
@@ -127,27 +129,27 @@ export function ManualEditor({
   };
 
   const sections = [
-    { id: "basics", label: "Datos personales", icon: User, content: <SectionBasics basics={profile.basics ?? {}} onChange={(basics) => handleChange((p) => ({ ...p, basics }))} /> },
-    { id: "summary", label: "Resumen", icon: FileText, content: <SectionSummary summary={profile.summary ?? ""} onChange={(summary) => handleChange((p) => ({ ...p, summary }))} /> },
-    { id: "experience", label: "Experiencia", icon: Briefcase, count: profile.experience?.length, content: <SectionExperience items={profile.experience ?? []} onChange={(experience) => handleChange((p) => ({ ...p, experience }))} /> },
-    { id: "education", label: "Educación", icon: GraduationCap, count: profile.education?.length, content: <SectionEducation items={profile.education ?? []} onChange={(education) => handleChange((p) => ({ ...p, education }))} /> },
-    { id: "skills", label: "Habilidades", icon: Wrench, count: profile.skills?.length, content: <SectionSkills items={profile.skills ?? []} onChange={(skills) => handleChange((p) => ({ ...p, skills }))} /> },
-    { id: "technicalSkills", label: "Habilidades técnicas", icon: Code, count: profile.technicalSkills?.length, content: <EditableBulletList items={profile.technicalSkills ?? []} onChange={(technicalSkills) => handleChange((p) => ({ ...p, technicalSkills }))} placeholder="Ej: React, Node.js, Python..." /> },
-    { id: "languages", label: "Idiomas", icon: Languages, count: profile.languages?.length, content: <SectionLanguages items={profile.languages ?? []} onChange={(languages) => handleChange((p) => ({ ...p, languages }))} /> },
-    { id: "certifications", label: "Certificaciones", icon: Award, count: profile.certifications?.length, content: <SectionNamedItems items={profile.certifications ?? []} onChange={(certifications) => handleChange((p) => ({ ...p, certifications }))} sectionLabel="Certificación" /> },
-    { id: "projects", label: "Proyectos", icon: FolderOpen, count: profile.projects?.length, content: <SectionNamedItems items={profile.projects ?? []} onChange={(projects) => handleChange((p) => ({ ...p, projects }))} sectionLabel="Proyecto" /> },
-    { id: "awards", label: "Premios", icon: Trophy, count: profile.awards?.length, content: <SectionNamedItems items={profile.awards ?? []} onChange={(awards) => handleChange((p) => ({ ...p, awards }))} sectionLabel="Premio" /> },
-    { id: "publications", label: "Publicaciones", icon: BookOpen, count: profile.publications?.length, content: <SectionNamedItems items={profile.publications ?? []} onChange={(publications) => handleChange((p) => ({ ...p, publications }))} sectionLabel="Publicación" /> },
-    { id: "volunteering", label: "Voluntariado", icon: Heart, count: profile.volunteering?.length, content: <SectionNamedItems items={profile.volunteering ?? []} onChange={(volunteering) => handleChange((p) => ({ ...p, volunteering }))} sectionLabel="Voluntariado" /> },
+    { id: "basics", label: t("sections.basics"), icon: User, content: <SectionBasics basics={profile.basics ?? {}} onChange={(basics) => handleChange((p) => ({ ...p, basics }))} /> },
+    { id: "summary", label: t("sections.summary"), icon: FileText, content: <SectionSummary summary={profile.summary ?? ""} onChange={(summary) => handleChange((p) => ({ ...p, summary }))} /> },
+    { id: "experience", label: t("sections.experience"), icon: Briefcase, count: profile.experience?.length, content: <SectionExperience items={profile.experience ?? []} onChange={(experience) => handleChange((p) => ({ ...p, experience }))} /> },
+    { id: "education", label: t("sections.education"), icon: GraduationCap, count: profile.education?.length, content: <SectionEducation items={profile.education ?? []} onChange={(education) => handleChange((p) => ({ ...p, education }))} /> },
+    { id: "skills", label: t("sections.skills"), icon: Wrench, count: profile.skills?.length, content: <SectionSkills items={profile.skills ?? []} onChange={(skills) => handleChange((p) => ({ ...p, skills }))} /> },
+    { id: "technicalSkills", label: t("sections.technicalSkills"), icon: Code, count: profile.technicalSkills?.length, content: <EditableBulletList items={profile.technicalSkills ?? []} onChange={(technicalSkills) => handleChange((p) => ({ ...p, technicalSkills }))} placeholder={t("technicalSkillsPlaceholder")} /> },
+    { id: "languages", label: t("sections.languages"), icon: Languages, count: profile.languages?.length, content: <SectionLanguages items={profile.languages ?? []} onChange={(languages) => handleChange((p) => ({ ...p, languages }))} /> },
+    { id: "certifications", label: t("sections.certifications"), icon: Award, count: profile.certifications?.length, content: <SectionNamedItems items={profile.certifications ?? []} onChange={(certifications) => handleChange((p) => ({ ...p, certifications }))} sectionLabel={t("singular.certification")} /> },
+    { id: "projects", label: t("sections.projects"), icon: FolderOpen, count: profile.projects?.length, content: <SectionNamedItems items={profile.projects ?? []} onChange={(projects) => handleChange((p) => ({ ...p, projects }))} sectionLabel={t("singular.project")} /> },
+    { id: "awards", label: t("sections.awards"), icon: Trophy, count: profile.awards?.length, content: <SectionNamedItems items={profile.awards ?? []} onChange={(awards) => handleChange((p) => ({ ...p, awards }))} sectionLabel={t("singular.award")} /> },
+    { id: "publications", label: t("sections.publications"), icon: BookOpen, count: profile.publications?.length, content: <SectionNamedItems items={profile.publications ?? []} onChange={(publications) => handleChange((p) => ({ ...p, publications }))} sectionLabel={t("singular.publication")} /> },
+    { id: "volunteering", label: t("sections.volunteering"), icon: Heart, count: profile.volunteering?.length, content: <SectionNamedItems items={profile.volunteering ?? []} onChange={(volunteering) => handleChange((p) => ({ ...p, volunteering }))} sectionLabel={t("singular.volunteering")} /> },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Editor manual</h3>
+        <h3 className="text-sm font-semibold text-white">{t("title")}</h3>
         <div className="flex items-center gap-2">
-          {saveState === "saving" && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-400 animate-pulse">Guardando...</span>}
-          {saveState === "saved" && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">Guardado ✓</span>}
+          {saveState === "saving" && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-400 animate-pulse">{t("saving")}</span>}
+          {saveState === "saved" && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">{t("saved")}</span>}
           <button
             onClick={onSave}
             className="flex items-center gap-1 rounded-lg bg-white/5 border border-white/5 px-2 py-1 text-[11px] text-zinc-400 hover:text-white hover:bg-white/10"
@@ -161,11 +163,11 @@ export function ManualEditor({
         <div className="flex items-center justify-between pb-2 border-b border-white/[0.02]">
           <div className="flex items-center gap-2">
             <Palette className="h-3.5 w-3.5 text-teal-400" />
-            <h4 className="text-xs font-semibold text-white tracking-wide">Presentación</h4>
+            <h4 className="text-xs font-semibold text-white tracking-wide">{t("presentation")}</h4>
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer group">
-              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">Acento</span>
+              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">{t("accent")}</span>
               <div className="relative flex items-center gap-1.5">
                 <div 
                   className="h-3.5 w-3.5 rounded-full border border-white/10 shadow-inner" 
@@ -177,13 +179,13 @@ export function ManualEditor({
                   value={accentColor}
                   onChange={(event) => updateAccentColor(event.target.value)}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  aria-label="Color de acento"
+                  aria-label={t("accentColor")}
                 />
               </div>
             </label>
             <div className="h-3 w-px bg-white/[0.05]" />
             <label className="flex items-center gap-2 cursor-pointer group">
-              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">Etiquetas</span>
+              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">{t("tags")}</span>
               <div className="relative flex items-center gap-1.5">
                 <div 
                   className="h-3.5 w-3.5 rounded-full border border-white/10 shadow-inner" 
@@ -195,7 +197,7 @@ export function ManualEditor({
                   value={tagsColor}
                   onChange={(event) => updateTagsColor(event.target.value)}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  aria-label="Color de etiquetas"
+                  aria-label={t("tagsColor")}
                 />
               </div>
             </label>
@@ -203,7 +205,7 @@ export function ManualEditor({
             <button
               onClick={resetPresentation}
               className="text-[10px] text-zinc-500 hover:text-white transition-colors flex items-center gap-1"
-              title="Restablecer presentación"
+              title={t("resetPresentation")}
             >
               <RotateCcw className="h-3 w-3" />
               <span>Reset</span>
@@ -232,7 +234,7 @@ export function ManualEditor({
                 }}
                 onDragEnd={() => setDraggedSection(null)}
                 className="inline-flex h-6 w-6 cursor-grab items-center justify-center text-zinc-600 hover:text-zinc-300 active:cursor-grabbing opacity-50 group-hover:opacity-100 transition-opacity"
-                title="Arrastrar sección"
+                title={t("dragSection")}
                 type="button"
               >
                 <GripVertical className="h-3.5 w-3.5" />
@@ -249,7 +251,7 @@ export function ManualEditor({
                   onClick={() => moveSection(section, -1)}
                   disabled={index === 0}
                   className="inline-flex h-6 w-6 items-center justify-center text-zinc-500 hover:text-white disabled:pointer-events-none disabled:opacity-20"
-                  title="Subir sección"
+                  title={t("moveUp")}
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
                 </button>
@@ -257,7 +259,7 @@ export function ManualEditor({
                   onClick={() => moveSection(section, 1)}
                   disabled={index === DEFAULT_SECTION_ORDER.length - 1}
                   className="inline-flex h-6 w-6 items-center justify-center text-zinc-500 hover:text-white disabled:pointer-events-none disabled:opacity-20"
-                  title="Bajar sección"
+                  title={t("moveDown")}
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
                 </button>

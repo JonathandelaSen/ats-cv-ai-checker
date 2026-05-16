@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Activity,
   AlertTriangle,
@@ -15,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ProcessingEvent, ProcessingEventStatus } from "@/lib/observability";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 interface AdminObservabilityDashboardProps {
   userEmail: string | null;
@@ -52,6 +54,9 @@ const statusIcon = {
 export default function AdminObservabilityDashboard({
   userEmail,
 }: AdminObservabilityDashboardProps) {
+  const t = useTranslations("admin");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
   const [events, setEvents] = useState<ProcessingEvent[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -125,13 +130,13 @@ export default function AdminObservabilityDashboard({
       const res = await fetch(`/api/admin/processing-events?${params}`);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "No he podido cargar los eventos.");
+        throw new Error(data.error || t("errors.loadEvents"));
       }
 
       setEvents(data.events ?? []);
       setSelectedId((current) => current ?? data.events?.[0]?.id ?? null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error inesperado.");
+      setError(err instanceof Error ? err.message : t("errors.unexpected"));
     } finally {
       setLoading(false);
     }
@@ -152,7 +157,7 @@ export default function AdminObservabilityDashboard({
               {userEmail ?? "Admin"}
             </div>
             <h1 className="text-2xl font-semibold tracking-normal">
-              Observabilidad interna
+              {t("title")}
             </h1>
           </div>
         </div>
@@ -163,7 +168,7 @@ export default function AdminObservabilityDashboard({
           disabled={loading}
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Actualizar
+          {t("refresh")}
         </button>
       </header>
 
@@ -180,7 +185,7 @@ export default function AdminObservabilityDashboard({
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option || "all"} value={option}>
-                        {option || "Todos"}
+                        {option || t("all")}
                       </option>
                     ))}
                   </select>
@@ -192,7 +197,7 @@ export default function AdminObservabilityDashboard({
                 >
                   {STAGE_OPTIONS.map((option) => (
                     <option key={option || "all"} value={option}>
-                      {option || "Todas las etapas"}
+                      {option || t("allStages")}
                     </option>
                   ))}
                 </select>
@@ -202,7 +207,7 @@ export default function AdminObservabilityDashboard({
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar request, CV, análisis o error"
+                  placeholder={t("searchPlaceholder")}
                   className="h-9 w-full rounded-lg border border-white/[0.06] bg-[#0d0d14] pl-9 pr-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-indigo-500/50"
                 />
               </label>
@@ -217,7 +222,7 @@ export default function AdminObservabilityDashboard({
               {filteredEvents.length === 0 ? (
                 <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-3 text-center text-zinc-500">
                   <Activity className="h-7 w-7" />
-                  <p className="text-sm">Sin eventos para esos filtros.</p>
+                  <p className="text-sm">{t("empty")}</p>
                 </div>
               ) : (
                 filteredEvents.map((event) => (
@@ -234,14 +239,14 @@ export default function AdminObservabilityDashboard({
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <StatusBadge status={event.status} />
                       <span className="shrink-0 text-[11px] text-zinc-500">
-                        {formatTime(event.created_at)}
+                        {formatTime(event.created_at, dateLocale)}
                       </span>
                     </div>
                     <p className="truncate text-sm font-medium text-zinc-100">
                       {event.stage}
                     </p>
                     <p className="mt-1 truncate text-xs text-zinc-500">
-                      {event.source || "sin fuente"} · {event.request_id}
+                      {event.source || t("noSource")} · {event.request_id}
                     </p>
                     {event.error_code && (
                       <p className="mt-2 truncate text-xs text-rose-300">
@@ -278,12 +283,12 @@ export default function AdminObservabilityDashboard({
                       {copiedId === selectedEvent.id ? (
                         <>
                           <Check className="h-3 w-3 text-emerald-400" />
-                          Copiado
+                          {t("copied")}
                         </>
                       ) : (
                         <>
                           <Copy className="h-3 w-3" />
-                          Copiar JSON
+                          {t("copyJson")}
                         </>
                       )}
                     </button>
@@ -292,11 +297,11 @@ export default function AdminObservabilityDashboard({
                     <Metric label="Request" value={selectedEvent.request_id} />
                     <Metric label="CV" value={selectedEvent.cv_id ?? "-"} />
                     <Metric
-                      label="Análisis"
+                      label={t("analysis")}
                       value={selectedEvent.analysis_id ?? "-"}
                     />
                     <Metric
-                      label="Duración"
+                      label={t("duration")}
                       value={
                         selectedEvent.duration_ms === null
                           ? "-"
@@ -310,7 +315,7 @@ export default function AdminObservabilityDashboard({
                   <div className="min-h-0 overflow-y-auto p-5">
                     <div className="mb-4 flex items-center justify-between gap-2">
                       <h2 className="text-sm font-semibold text-zinc-300">
-                        Timeline del intento
+                        {t("attemptTimeline")}
                       </h2>
                       <button
                         type="button"
@@ -326,12 +331,12 @@ export default function AdminObservabilityDashboard({
                         {copiedId === "timeline" ? (
                           <>
                             <Check className="h-3 w-3 text-emerald-400" />
-                            Flujo copiado
+                            {t("flowCopied")}
                           </>
                         ) : (
                           <>
                             <Copy className="h-3 w-3" />
-                            Copiar flujo
+                            {t("copyFlow")}
                           </>
                         )}
                       </button>
@@ -358,7 +363,7 @@ export default function AdminObservabilityDashboard({
                                   {event.source ? ` · ${event.source}` : ""}
                                 </p>
                                 <p className="mt-1 text-xs text-zinc-500">
-                                  {formatDateTime(event.created_at)}
+                                  {formatDateTime(event.created_at, dateLocale)}
                                 </p>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
@@ -366,7 +371,7 @@ export default function AdminObservabilityDashboard({
                                   type="button"
                                   onClick={() => handleCopy(event)}
                                   className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.06] bg-white/[0.03] text-zinc-400 transition hover:bg-white/[0.06] hover:text-white"
-                                  title="Copiar JSON del evento"
+                                  title={t("copyEventJson")}
                                 >
                                   {copiedId === event.id ? (
                                     <Check className="h-3 w-3 text-emerald-400" />
@@ -379,15 +384,15 @@ export default function AdminObservabilityDashboard({
                             </div>
                             <div className="mt-3 grid gap-2 text-xs text-zinc-500 sm:grid-cols-3">
                               <span>
-                                Texto: {event.text_length ?? "-"}
+                                {t("text")}: {event.text_length ?? "-"}
                               </span>
                               <span>
-                                Archivo: {formatBytes(event.file_size)}
+                                {t("file")}: {formatBytes(event.file_size)}
                               </span>
                               <span>
                                 {event.duration_ms === null
-                                  ? "Duración: -"
-                                  : `Duración: ${event.duration_ms} ms`}
+                                  ? `${t("duration")}: -`
+                                  : `${t("duration")}: ${event.duration_ms} ms`}
                               </span>
                             </div>
                             {(event.error_code || event.error_message) && (
@@ -410,7 +415,7 @@ export default function AdminObservabilityDashboard({
 
                   <aside className="min-h-0 overflow-y-auto border-t border-white/[0.06] p-5 lg:border-l lg:border-t-0">
                     <h2 className="mb-4 text-sm font-semibold text-zinc-300">
-                      Metadatos
+                      {t("metadata")}
                     </h2>
                     <pre className="overflow-x-auto rounded-lg border border-white/[0.06] bg-[#08080d] p-3 text-xs leading-5 text-zinc-400">
                       {JSON.stringify(selectedEvent.metadata ?? {}, null, 2)}
@@ -420,7 +425,7 @@ export default function AdminObservabilityDashboard({
               </div>
             ) : (
               <div className="flex h-full min-h-[520px] items-center justify-center text-sm text-zinc-500">
-                Selecciona un evento.
+                {t("selectEvent")}
               </div>
             )}
           </section>
@@ -450,15 +455,15 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString("es-ES", {
+function formatTime(value: string, locale: string) {
+  return new Date(value).toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString("es-ES", {
+function formatDateTime(value: string, locale: string) {
+  return new Date(value).toLocaleString(locale, {
     dateStyle: "medium",
     timeStyle: "medium",
   });

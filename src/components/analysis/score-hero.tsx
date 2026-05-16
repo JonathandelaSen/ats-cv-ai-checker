@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Clock,
   Cpu,
@@ -18,6 +19,7 @@ import {
   Pencil,
 } from "lucide-react";
 import type { AnalysisMode } from "@/lib/analysis-types";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 interface ScoreHeroProps {
   score: number;
@@ -61,15 +63,15 @@ function getScoreColor(score: number) {
   };
 }
 
-function getScoreLabel(score: number) {
-  if (score >= 80) return "Excelente";
-  if (score >= 60) return "Mejorable";
-  return "Necesita Trabajo";
+function getScoreLabelKey(score: number) {
+  if (score >= 80) return "excellent";
+  if (score >= 60) return "improvable";
+  return "needsWork";
 }
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string, locale: string) {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -96,6 +98,10 @@ export default function ScoreHero({
   onSaveUrl,
   isSavingUrl,
 }: ScoreHeroProps) {
+  const t = useTranslations("analysisDetail.score");
+  const common = useTranslations("common.actions");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
   const colors = getScoreColor(score);
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [editedUrl, setEditedUrl] = useState(jobUrl || "");
@@ -161,25 +167,25 @@ export default function ScoreHero({
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${colors.bg} ${colors.text} ${colors.border} border`}
               >
-                {getScoreLabel(score)}
+                {t(getScoreLabelKey(score))}
               </span>
               {analysisMode === "general" ? (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">
                   <FileSearch className="w-3 h-3" />
-                  Análisis General
+                  {t("general")}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
                   <Briefcase className="w-3 h-3" />
-                  Match con Oferta
+                  {t("jobMatch")}
                 </span>
               )}
             </div>
             <h3 className="text-xl font-bold text-zinc-100">
               {title ||
                 (analysisMode === "general"
-                  ? "CV Quality Score"
-                  : "ATS Match Score")}
+                  ? t("qualityScore")
+                  : t("matchScore"))}
             </h3>
           </div>
           <p className="text-zinc-400 leading-relaxed text-sm line-clamp-3">
@@ -194,12 +200,12 @@ export default function ScoreHero({
             </span>
             <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded-md">
               <Clock className="w-3 h-3" />
-              {formatDate(analyzedAt)}
+              {formatDate(analyzedAt, dateLocale)}
             </span>
             {jobDescription && (
               <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded-md">
                 <Briefcase className="w-3 h-3" />
-                Con oferta
+                {t("withOffer")}
               </span>
             )}
 
@@ -286,7 +292,7 @@ export default function ScoreHero({
                     className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded-md transition-colors"
                   >
                     <Plus className="w-3 h-3" />
-                    URL oferta
+                    {t("offerUrl")}
                   </button>
                 )}
               </>
@@ -300,7 +306,7 @@ export default function ScoreHero({
               className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-2.5 py-1 rounded-md transition-all"
             >
               <FileDown className="w-3.5 h-3.5" />
-              Exportar
+              {t("export")}
             </button>
             <button
               onClick={onDelete}
@@ -312,7 +318,7 @@ export default function ScoreHero({
               ) : (
                 <Trash2 className="w-3.5 h-3.5" />
               )}
-              {isDeleting ? "Borrando..." : "Eliminar"}
+              {isDeleting ? common("deleting") : common("delete")}
             </button>
           </div>
         </div>

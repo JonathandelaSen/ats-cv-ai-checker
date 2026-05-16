@@ -188,7 +188,8 @@ test("new analysis flow can create an extraction without a Gemini API key", () =
     /Configura tu API key de Gemini antes de lanzar el análisis/
   );
   assert.doesNotMatch(newAnalysisFlowSource, /disabled=\{loading \|\| !hasGeminiApiKey\}/);
-  assert.match(newAnalysisFlowSource, /Crear extracción/);
+  assert.match(newAnalysisFlowSource, /analysisFlow\.newExtraction/);
+  assert.match(newAnalysisFlowSource, /t\("create"\)/);
 });
 
 test("new analysis flow receives every saved CV including template versions", () => {
@@ -202,7 +203,7 @@ test("new analysis flow receives every saved CV including template versions", ()
     /cvs=\{cvs\.filter\(c => c\.type === "uploaded"\)\}/
   );
   assert.match(newAnalysisFlowSource, /cv\.type === "template"/);
-  assert.match(newAnalysisFlowSource, /Plantilla/);
+  assert.match(newAnalysisFlowSource, /t\("template"\)/);
 });
 
 test("template CVs create analyses by parsing their rendered PDF", () => {

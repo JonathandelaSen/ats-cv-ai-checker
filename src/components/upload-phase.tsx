@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { UploadCloud, CheckCircle2, FileText, Loader2, Zap } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -10,6 +11,7 @@ interface UploadPhaseProps {
 }
 
 export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
+  const t = useTranslations("analysisFlow.upload");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,14 +44,14 @@ export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
         setFile(droppedFile);
         setError(null);
       } else {
-        setError("Solo se permiten archivos PDF.");
+        setError(t("pdfOnly"));
       }
     }
   };
 
   const handleUpload = async () => {
     if (!file) {
-      setError("Selecciona un archivo PDF.");
+      setError(t("selectPdf"));
       return;
     }
 
@@ -67,7 +69,7 @@ export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Error al procesar el PDF");
+        throw new Error(data.error || t("processFailed"));
       }
 
       const data = await res.json();
@@ -96,14 +98,13 @@ export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 mb-4"
           >
             <Zap className="w-3.5 h-3.5" />
-            Fase 1 — Extracción de Texto
+            {t("step")}
           </motion.div>
           <h1 className="text-3xl font-bold text-zinc-100 mb-2">
-            Sube tu Currículum
+            {t("title")}
           </h1>
           <p className="text-zinc-500 text-sm max-w-md mx-auto">
-            Extraeremos el texto con 3 parsers diferentes para que veas cómo lo
-            interpretan los sistemas ATS.
+            {t("description")}
           </p>
         </div>
 
@@ -147,12 +148,12 @@ export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
             )}
             <div>
               <p className="text-zinc-200 font-medium text-lg">
-                {file ? file.name : "Arrastra tu PDF aquí"}
+                {file ? file.name : t("dropPdf")}
               </p>
               <p className="text-zinc-500 text-sm mt-1">
                 {file
                   ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-                  : "o haz click para seleccionar — máximo 10MB"}
+                  : t("clickToSelect")}
               </p>
             </div>
           </div>
@@ -186,12 +187,12 @@ export default function UploadPhase({ onUploadComplete }: UploadPhaseProps) {
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Extrayendo texto...
+              {t("extracting")}
             </>
           ) : (
             <>
               <FileText className="w-5 h-5" />
-              Extraer Texto del CV
+              {t("extract")}
             </>
           )}
         </motion.button>

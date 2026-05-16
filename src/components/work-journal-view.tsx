@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import {
   BriefcaseBusiness,
@@ -57,6 +58,8 @@ export default function WorkJournalView({
   hasGeminiApiKey,
   onOpenSettings,
 }: WorkJournalViewProps) {
+  const t = useTranslations("workJournal");
+  const common = useTranslations("common.actions");
   const [contexts, setContexts] = useState<WorkJournalContext[]>([]);
   const [suggestions, setSuggestions] = useState<WorkJournalContextSuggestion[]>([]);
   const [entries, setEntries] = useState<WorkJournalEntry[]>([]);
@@ -98,10 +101,10 @@ export default function WorkJournalView({
       const contextData = await contextRes.json();
       const entriesData = await entriesRes.json();
       if (!contextRes.ok) {
-        throw new Error(contextData.error || "No se pudieron cargar los contextos");
+        throw new Error(contextData.error || t("errors.loadContexts"));
       }
       if (!entriesRes.ok) {
-        throw new Error(entriesData.error || "No se pudieron cargar las entradas");
+        throw new Error(entriesData.error || t("errors.loadEntries"));
       }
 
       const loadedContexts = (contextData.contexts ?? []) as WorkJournalContext[];
@@ -138,7 +141,7 @@ export default function WorkJournalView({
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "No se pudo crear el contexto");
+      setError(data.error || t("errors.createContext"));
       return;
     }
     setNewContextName("");
@@ -154,7 +157,7 @@ export default function WorkJournalView({
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "No se pudo usar la sugerencia");
+      setError(data.error || t("errors.useSuggestion"));
       return;
     }
     await fetchAll();
@@ -172,7 +175,7 @@ export default function WorkJournalView({
 
   const saveEntry = async () => {
     if (!draft.context_id || !draft.raw_notes.trim()) {
-      setError("El contexto y las notas son obligatorios.");
+      setError(t("errors.requiredFields"));
       return;
     }
 
@@ -190,7 +193,7 @@ export default function WorkJournalView({
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "No se pudo guardar la entrada");
+      setError(data.error || t("errors.saveEntry"));
       return;
     }
 
@@ -209,7 +212,7 @@ export default function WorkJournalView({
       return;
     }
     if (!draft.context_id || !draft.raw_notes.trim()) {
-      setError("Añade contexto y notas antes de redactar con IA.");
+      setError(t("errors.aiDraftRequired"));
       return;
     }
 
@@ -230,7 +233,7 @@ export default function WorkJournalView({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo redactar con IA");
+      if (!res.ok) throw new Error(data.error || t("errors.aiDraft"));
       setDraft((current) => ({ ...current, final_text: data.final_text }));
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -272,7 +275,7 @@ export default function WorkJournalView({
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "No se pudo actualizar la entrada");
+      setError(data.error || t("errors.updateEntry"));
       return;
     }
     setEditingEntryId(null);
@@ -280,7 +283,7 @@ export default function WorkJournalView({
   };
 
   const deleteEntry = async (entry: WorkJournalEntry) => {
-    if (!confirm("¿Seguro que quieres borrar esta entrada?")) return;
+    if (!confirm(t("errors.confirmDelete"))) return;
     await fetch(`/api/work-journal/entries/${entry.id}`, { method: "DELETE" });
     await fetchAll();
   };
@@ -292,7 +295,7 @@ export default function WorkJournalView({
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b border-white/5 pb-8 mb-8">
           <div>
             <h1 className="text-3xl lg:text-4xl font-light tracking-tight text-zinc-50 flex items-center gap-4">
-              Diario de Trabajo
+              {t("title")}
               {loading && <Loader2 className="h-5 w-5 animate-spin text-zinc-700" />}
             </h1>
           </div>
@@ -301,7 +304,7 @@ export default function WorkJournalView({
             <div className="relative group">
               <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 transition-colors group-focus-within:text-zinc-300" />
               <input 
-                placeholder="Buscar en el diario..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-7 pr-4 py-2 bg-transparent border-b border-transparent text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 outline-none w-48 transition-all focus:w-64"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -315,7 +318,7 @@ export default function WorkJournalView({
               value={contextFilter}
               onChange={(e) => setContextFilter(e.target.value)}
             >
-              <option value="" className="bg-zinc-900">Todos los contextos</option>
+              <option value="" className="bg-zinc-900">{t("allContexts")}</option>
               {activeContexts.map((context) => (
                 <option key={`filter-${context.id}`} value={context.id} className="bg-zinc-900">
                   {context.name}
@@ -328,7 +331,7 @@ export default function WorkJournalView({
               className={`flex items-center gap-2 text-sm font-medium transition-colors px-4 py-2 rounded-full ${showForm ? "bg-white/10 text-white hover:bg-white/20" : "bg-white text-black hover:bg-zinc-200"}`}
             >
               {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {showForm ? "Cerrar" : "Nueva entrada"}
+              {showForm ? t("close") : t("newEntry")}
             </button>
           </div>
         </header>
@@ -369,7 +372,7 @@ export default function WorkJournalView({
                                 : "text-zinc-600 border-transparent hover:text-zinc-400"
                             }`}
                           >
-                            {mode === "manual" ? "Escritura libre" : "Redacción con IA"}
+                            {mode === "manual" ? t("freeWriting") : t("aiWriting")}
                           </button>
                         )
                       )}
@@ -377,7 +380,7 @@ export default function WorkJournalView({
 
                     <textarea
                       className="w-full bg-transparent text-xl font-light leading-relaxed text-zinc-200 placeholder:text-zinc-700 outline-none resize-none min-h-[160px]"
-                      placeholder="¿Qué has hecho hoy? Notas rápidas, bloqueos, decisiones, avances..."
+                      placeholder={t("notesPlaceholder")}
                       value={draft.raw_notes}
                       onChange={(event) =>
                         setDraft((current) => ({ ...current, raw_notes: event.target.value }))
@@ -394,7 +397,7 @@ export default function WorkJournalView({
                             className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50"
                           >
                             {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                            Generar redacción profesional
+                            {t("generateProfessionalDraft")}
                           </button>
                           <button
                             type="button"
@@ -403,7 +406,7 @@ export default function WorkJournalView({
                             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors disabled:opacity-50"
                           >
                             <Clipboard className="h-4 w-4" />
-                            Copiar prompt de IA
+                            {t("copyAiPrompt")}
                           </button>
                         </div>
                         
@@ -426,14 +429,14 @@ export default function WorkJournalView({
                         className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2"
                       >
                         <Save className="h-4 w-4" />
-                        Guardar entrada
+                        {t("saveEntry")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowForm(false)}
                         className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
-                        Cancelar
+                        {common("cancel")}
                       </button>
                     </div>
                   </div>
@@ -441,7 +444,7 @@ export default function WorkJournalView({
                   {/* Right Col: Metadata & Context */}
                   <div className="space-y-8">
                     <div>
-                      <label className={labelClass}>Contexto</label>
+                      <label className={labelClass}>{t("context")}</label>
                       <select
                         className={inputClass}
                         value={draft.context_id}
@@ -449,10 +452,10 @@ export default function WorkJournalView({
                           setDraft((current) => ({ ...current, context_id: event.target.value }))
                         }
                       >
-                        <option value="" disabled className="bg-zinc-900 text-zinc-500">Selecciona un contexto</option>
+                        <option value="" disabled className="bg-zinc-900 text-zinc-500">{t("selectContext")}</option>
                         {activeContexts.map((context) => (
                           <option key={`form-ctx-${context.id}`} value={context.id} className="bg-zinc-900 text-zinc-200">
-                            {context.name} {context.type === 'project' ? '(Proyecto)' : ''}
+                            {context.name} {context.type === 'project' ? t("projectSuffix") : ''}
                           </option>
                         ))}
                       </select>
@@ -460,7 +463,7 @@ export default function WorkJournalView({
 
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <label className={labelClass}>Desde</label>
+                        <label className={labelClass}>{t("dateFrom")}</label>
                         <input
                           type="date"
                           className={inputClass}
@@ -469,7 +472,7 @@ export default function WorkJournalView({
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Hasta</label>
+                        <label className={labelClass}>{t("dateTo")}</label>
                         <input
                           type="date"
                           className={inputClass}
@@ -480,10 +483,10 @@ export default function WorkJournalView({
                     </div>
 
                     <div>
-                      <label className={labelClass}>Tema / Etiqueta (opcional)</label>
+                      <label className={labelClass}>{t("topic")}</label>
                       <input
                         className={inputClass}
-                        placeholder="Ej: Integración LTI, Onboarding..."
+                        placeholder={t("topicPlaceholder")}
                         value={draft.topic}
                         onChange={(event) => setDraft((current) => ({ ...current, topic: event.target.value }))}
                       />
@@ -491,19 +494,19 @@ export default function WorkJournalView({
 
                     {/* Create new context subtly integrated */}
                     <div className="pt-6 border-t border-white/5 space-y-4">
-                      <p className="text-xs font-medium text-zinc-500">Crear nuevo contexto</p>
+                      <p className="text-xs font-medium text-zinc-500">{t("createContext")}</p>
                       <div className="flex gap-2">
                         <select
                           className="bg-transparent border-b border-white/10 text-sm text-zinc-400 focus:border-zinc-300 focus:ring-0 outline-none w-24 py-1"
                           value={newContextType}
                           onChange={(e) => setNewContextType(e.target.value as WorkJournalContextType)}
                         >
-                          <option value="employment" className="bg-zinc-900">Empleo</option>
-                          <option value="project" className="bg-zinc-900">Proyecto</option>
+                          <option value="employment" className="bg-zinc-900">{t("contextTypes.employment")}</option>
+                          <option value="project" className="bg-zinc-900">{t("contextTypes.project")}</option>
                         </select>
                         <input
                           className="flex-1 bg-transparent border-b border-white/10 text-sm text-zinc-100 placeholder:text-zinc-700 focus:border-zinc-300 focus:ring-0 outline-none py-1"
-                          placeholder="Nombre..."
+                          placeholder={t("contextNamePlaceholder")}
                           value={newContextName}
                           onChange={(e) => setNewContextName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && void createContext()}
@@ -521,7 +524,7 @@ export default function WorkJournalView({
                     {/* Suggestions */}
                     {suggestions.length > 0 && (
                       <div className="pt-6 border-t border-white/5 space-y-3">
-                         <p className="text-xs font-medium text-zinc-500">Sugeridos desde tus CVs</p>
+                         <p className="text-xs font-medium text-zinc-500">{t("suggestions")}</p>
                          <div className="flex flex-wrap gap-2">
                            {suggestions.slice(0, 3).map((suggestion) => (
                               <div key={`sugg-${suggestion.name}`} className="flex items-center gap-1 bg-white/5 rounded-full pl-3 pr-1 py-1">
@@ -547,7 +550,7 @@ export default function WorkJournalView({
         {/* Timeline */}
         <div className="pl-4 md:pl-8 py-4 relative">
           {filteredEntries.length === 0 ? (
-            <EmptyState icon={FilePenLine} text="No hay entradas para mostrar." />
+            <EmptyState icon={FilePenLine} text={t("empty")} />
           ) : (
             filteredEntries.map((entry, index) => (
               <TimelineEntry
@@ -568,8 +571,8 @@ export default function WorkJournalView({
       <CopyPromptModal 
         isOpen={isCopyModalOpen} 
         onClose={() => setIsCopyModalOpen(false)} 
-        title="Prompt copiado"
-        message="Puedes copiarlo en ChatGPT, Claude o tu AI favorita para generar el resultado."
+        title={t("promptCopiedTitle")}
+        message={t("promptCopiedMessage")}
         promptContent={copiedPromptContent}
       />
     </div>
@@ -608,6 +611,8 @@ function TimelineEntry({
   onSave: (updates: Partial<WorkJournalEntry>) => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations("workJournal");
+  const common = useTranslations("common.actions");
   const [edit, setEdit] = useState(entry);
 
   if (isEditing) {
@@ -620,12 +625,12 @@ function TimelineEntry({
           <div className="flex flex-wrap gap-4">
              <input type="date" className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1" value={edit.date_start} onChange={e => setEdit({...edit, date_start: e.target.value})} />
              <input type="date" className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1" value={edit.date_end || ''} onChange={e => setEdit({...edit, date_end: e.target.value || null})} />
-             <input placeholder="Tema..." className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1 flex-1 min-w-[200px]" value={edit.topic || ''} onChange={e => setEdit({...edit, topic: e.target.value || null})} />
+             <input placeholder={t("editTopicPlaceholder")} className="bg-transparent border-b border-zinc-700 text-sm text-zinc-200 outline-none pb-1 flex-1 min-w-[200px]" value={edit.topic || ''} onChange={e => setEdit({...edit, topic: e.target.value || null})} />
           </div>
           
           <div className="space-y-4">
              <div>
-                <label className="text-xs font-medium text-zinc-500 mb-2 block">Redacción Final</label>
+                <label className="text-xs font-medium text-zinc-500 mb-2 block">{t("finalText")}</label>
                 <textarea
                   className="w-full bg-transparent text-[17px] md:text-lg font-light leading-relaxed text-zinc-200 placeholder:text-zinc-700 outline-none resize-y min-h-[240px] border border-white/10 rounded-xl p-4 focus:border-white/20 transition-colors"
                   value={edit.final_text}
@@ -634,7 +639,7 @@ function TimelineEntry({
              </div>
              
              <div>
-                <label className="text-xs font-medium text-zinc-500 mb-2 block">Notas Crudas (Opcional)</label>
+                <label className="text-xs font-medium text-zinc-500 mb-2 block">{t("rawNotes")}</label>
                 <textarea
                   className="w-full bg-transparent text-[15px] font-light leading-relaxed text-zinc-400 placeholder:text-zinc-700 outline-none resize-y min-h-[120px] border border-white/5 rounded-xl p-4 focus:border-white/20 transition-colors"
                   value={edit.raw_notes}
@@ -644,8 +649,8 @@ function TimelineEntry({
           </div>
           
           <div className="flex items-center gap-3">
-             <button onClick={() => onSave(edit)} className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-zinc-200 transition-colors">Guardar cambios</button>
-             <button onClick={onCancel} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">Cancelar</button>
+             <button onClick={() => onSave(edit)} className="px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-zinc-200 transition-colors">{t("saveChanges")}</button>
+             <button onClick={onCancel} className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">{common("cancel")}</button>
           </div>
         </div>
       </div>
@@ -688,14 +693,14 @@ function TimelineEntry({
            <button
              onClick={onEdit}
              className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors"
-             title="Editar entrada"
+             title={t("editEntry")}
            >
              <Pencil className="h-3.5 w-3.5" />
            </button>
            <button
              onClick={onDelete}
              className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
-             title="Borrar entrada"
+             title={t("deleteEntry")}
            >
              <Trash2 className="h-3.5 w-3.5" />
            </button>

@@ -1,6 +1,8 @@
 "use client";
 
 import { FileSearch, Clock, Sparkles, Trash2, Plus, FileText } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 import type { AnalysisSummary } from "@/components/sidebar";
 
 interface CVAnalysesListViewProps {
@@ -17,9 +19,9 @@ const getScoreColor = (score: number | null) => {
   return "text-rose-400 bg-rose-500/15 border-rose-500/20";
 };
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr: string, locale: string) => {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -32,6 +34,11 @@ export default function CVAnalysesListView({
   onNewAnalysis,
   onDelete,
 }: CVAnalysesListViewProps) {
+  const t = useTranslations("analysisFlow.lists");
+  const common = useTranslations("common");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* Header */}
@@ -42,11 +49,9 @@ export default function CVAnalysesListView({
               <FileSearch className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-zinc-100">Análisis de CV</h1>
+              <h1 className="text-lg font-semibold text-zinc-100">{t("cvTitle")}</h1>
               <p className="text-xs text-zinc-500">
-                {analyses.length === 0
-                  ? "Sin análisis"
-                  : `${analyses.length} análisis`}
+                {t("cvCount", { count: analyses.length })}
               </p>
             </div>
           </div>
@@ -55,7 +60,7 @@ export default function CVAnalysesListView({
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-900/30 active:scale-[0.97] transition-all"
           >
             <Plus className="w-4 h-4" />
-            Nuevo análisis
+            {t("newAnalysis")}
           </button>
         </div>
       </div>
@@ -68,9 +73,9 @@ export default function CVAnalysesListView({
               <FileText className="w-8 h-8 text-zinc-600" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-zinc-400">No hay análisis de CV</p>
+              <p className="text-sm font-medium text-zinc-400">{t("cvEmptyTitle")}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                Sube un CV para obtener un análisis general ATS
+                {t("cvEmptyDescription")}
               </p>
             </div>
             <button
@@ -78,7 +83,7 @@ export default function CVAnalysesListView({
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white transition-all"
             >
               <Plus className="w-4 h-4" />
-              Nuevo análisis
+              {t("newAnalysis")}
             </button>
           </div>
         ) : (
@@ -99,7 +104,7 @@ export default function CVAnalysesListView({
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[11px] text-zinc-500 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {formatDate(a.created_at)}
+                    {formatDate(a.created_at, dateLocale)}
                   </span>
                 </div>
               </div>
@@ -114,7 +119,7 @@ export default function CVAnalysesListView({
                 ) : (
                   <span className="text-[11px] text-zinc-600 flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800/50">
                     <Sparkles className="w-3 h-3" />
-                    Pendiente
+                    {common("states.pending")}
                   </span>
                 )}
                 <button

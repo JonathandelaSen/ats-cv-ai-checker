@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   CheckCircle2,
@@ -22,16 +23,12 @@ interface NewAnalysisFlowProps {
 
 type CVSource = "existing" | "upload";
 
-function getCVSourceLabel(cv: CVSummary) {
-  if (cv.type === "template") return "Plantilla";
-  return cv.filename ?? "PDF original";
-}
-
 export default function NewAnalysisFlow({
   cvs,
   onCVCreated,
   onAnalysisCreated,
 }: NewAnalysisFlowProps) {
+  const t = useTranslations("analysisFlow.newExtraction");
   const [source, setSource] = useState<CVSource>(
     cvs.length > 0 ? "existing" : "upload",
   );
@@ -49,9 +46,14 @@ export default function NewAnalysisFlow({
     [cvs, selectedCvId],
   );
 
+  const getCVSourceLabel = (cv: CVSummary) => {
+    if (cv.type === "template") return t("template");
+    return cv.filename ?? t("originalPdf");
+  };
+
   const handleFile = (nextFile: File) => {
     if (nextFile.type !== "application/pdf") {
-      setError("Solo se permiten archivos PDF.");
+      setError(t("selectPdfOnly"));
       return;
     }
     setFile(nextFile);
@@ -60,7 +62,7 @@ export default function NewAnalysisFlow({
   };
 
   const uploadCV = async () => {
-    if (!file) throw new Error("Selecciona un CV en PDF.");
+    if (!file) throw new Error(t("selectPdf"));
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", cvName.trim() || file.name.replace(/\.pdf$/i, ""));
@@ -72,7 +74,7 @@ export default function NewAnalysisFlow({
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || data.details || "Error al subir el CV");
+      throw new Error(data.error || data.details || t("uploadFailed"));
     }
     onCVCreated();
     return data.id as string;
@@ -80,15 +82,15 @@ export default function NewAnalysisFlow({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      setError("Ponle nombre al análisis para poder diferenciarlo.");
+      setError(t("titleRequired"));
       return;
     }
     if (source === "existing" && !selectedCvId) {
-      setError("Selecciona un CV existente o sube uno nuevo.");
+      setError(t("chooseSource"));
       return;
     }
     if (source === "upload" && !file) {
-      setError("Selecciona un CV en PDF.");
+      setError(t("selectPdf"));
       return;
     }
     setLoading(true);
@@ -108,7 +110,7 @@ export default function NewAnalysisFlow({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || data.details || "Error creando análisis");
+        throw new Error(data.error || data.details || t("createFailed"));
       }
 
       onAnalysisCreated(data.id);
@@ -130,14 +132,13 @@ export default function NewAnalysisFlow({
         <div className="flex flex-col gap-2">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300">
             <Zap className="h-3.5 w-3.5" />
-            Nueva extracción
+            {t("badge")}
           </div>
           <h1 className="text-3xl font-bold text-zinc-100">
-            Sube o elige un CV para extraer su contenido
+            {t("title")}
           </h1>
           <p className="max-w-2xl text-sm text-zinc-500">
-            Podrás validar la extracción con diferentes motores antes de lanzar
-            el análisis con IA.
+            {t("description")}
           </p>
         </div>
 
@@ -153,9 +154,9 @@ export default function NewAnalysisFlow({
             } ${cvs.length === 0 ? "cursor-not-allowed opacity-50" : ""}`}
           >
             <FileText className="mb-4 h-6 w-6 text-indigo-300" />
-            <p className="font-semibold">Usar CV existente</p>
+            <p className="font-semibold">{t("existing")}</p>
             <p className="mt-1 text-sm text-zinc-500">
-              {cvs.length} versiones disponibles en tu biblioteca.
+              {t("existingDescription", { count: cvs.length })}
             </p>
           </button>
           <button
@@ -169,9 +170,9 @@ export default function NewAnalysisFlow({
             }`}
           >
             <UploadCloud className="mb-4 h-6 w-6 text-emerald-300" />
-            <p className="font-semibold">Subir nuevo CV</p>
+            <p className="font-semibold">{t("upload")}</p>
             <p className="mt-1 text-sm text-zinc-500">
-              Se guardará como una versión reutilizable.
+              {t("uploadDescription")}
             </p>
           </button>
         </section>
@@ -199,8 +200,8 @@ export default function NewAnalysisFlow({
             {selectedCv && (
               <p className="mt-2 text-xs text-zinc-600">
                 {selectedCv.type === "template"
-                  ? "Versión generada desde plantilla."
-                  : `PDF original: ${selectedCv.filename ?? "Sin nombre de archivo"}`}
+                  ? t("templateVersion")
+                  : t("originalPdfName", { filename: selectedCv.filename ?? t("noFilename") })}
               </p>
             )}
           </section>
@@ -247,22 +248,22 @@ export default function NewAnalysisFlow({
                 <UploadCloud className="mb-3 h-8 w-8 text-zinc-500" />
               )}
               <p className="font-medium text-zinc-200">
-                {file ? file.name : "Arrastra tu PDF aquí"}
+                {file ? file.name : t("dropPdf")}
               </p>
               <p className="mt-1 text-sm text-zinc-500">
                 {file
                   ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-                  : "o haz click para seleccionar"}
+                  : t("clickToSelect")}
               </p>
             </div>
             <div>
               <label className="mb-2 block text-sm text-zinc-400">
-                Nombre para este CV
+                {t("cvName")}
               </label>
               <input
                 value={cvName}
                 onChange={(event) => setCvName(event.target.value)}
-                placeholder="CV Frontend Abril"
+                placeholder={t("cvNamePlaceholder")}
                 className="h-11 w-full rounded-xl border border-white/[0.06] bg-[#0a0a12] px-4 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500/40 focus:outline-none"
               />
             </div>
@@ -271,12 +272,12 @@ export default function NewAnalysisFlow({
 
         <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
           <label className="mb-2 block text-sm text-zinc-400">
-            Nombre del análisis / extracción
+            {t("extractionName")}
           </label>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Frontend React - Factorial"
+            placeholder={t("extractionNamePlaceholder")}
             className="h-11 w-full rounded-xl border border-white/[0.06] bg-[#0a0a12] px-4 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:outline-none"
           />
         </section>
@@ -297,12 +298,12 @@ export default function NewAnalysisFlow({
           {loading ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Creando extracción...
+              {t("creating")}
             </>
           ) : (
             <>
               <FileText className="h-5 w-5" />
-              Crear extracción
+              {t("create")}
               <ArrowRight className="h-5 w-5" />
             </>
           )}

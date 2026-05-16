@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Briefcase,
   FileSearch,
@@ -25,6 +26,7 @@ import TabOferta from "./tab-oferta";
 import TabEntrevista from "./tab-entrevista";
 import TabSeguimiento from "./tab-seguimiento";
 import TabChatOferta from "./tab-chat-oferta";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 
 interface AIAnalysisViewProps {
   analysis: {
@@ -106,6 +108,9 @@ export default function AIAnalysisView({
   onUpdate,
 }: AIAnalysisViewProps) {
   const router = useRouter();
+  const t = useTranslations("analysisDetail");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   const [offerStatus, setOfferStatus] = useState<OfferStatus>(
@@ -136,7 +141,7 @@ export default function AIAnalysisView({
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("es-ES", {
+    return d.toLocaleDateString(dateLocale, {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -151,37 +156,37 @@ export default function AIAnalysisView({
       ? `${window.location.origin}/api/cvs/${analysis.cv.id}/${analysis.cv.type === "template" ? "template-pdf" : "pdf"}`
       : null;
     const report = `
-INFORME DE ANÁLISIS ATS
+${t("export.title")}
 -----------------------
-Archivo: ${analysis.filename}
-Nombre: ${analysis.title}
-CV utilizado: ${cvName}
-${cvUrl ? `Link CV: ${cvUrl}` : ""}
-ID de Análisis: ${analysis.id}
-Fecha: ${formatDate(analysis.ai_analyzed_at)}
-Modelo: ${analysis.ai_model}
+${t("export.file")}: ${analysis.filename}
+${t("export.name")}: ${analysis.title}
+${t("export.cvUsed")}: ${cvName}
+${cvUrl ? `${t("export.cvLink")}: ${cvUrl}` : ""}
+${t("export.analysisId")}: ${analysis.id}
+${t("export.date")}: ${formatDate(analysis.ai_analyzed_at)}
+${t("export.model")}: ${analysis.ai_model}
 
-PUNTUACIÓN: ${analysis.ai_score}/100
+${t("export.score")}: ${analysis.ai_score}/100
 
-FEEDBACK:
+${t("export.feedback")}:
 ${analysis.ai_feedback}
 
-PALABRAS CLAVE DETECTADAS:
-${keywords.join(", ") || "Ninguna"}
+${t("export.detectedKeywords")}:
+${keywords.join(", ") || t("export.none")}
 
-KEYWORDS OFERTA:
-${jobKeywords.join(", ") || "Ninguna"}
+${t("export.jobKeywords")}:
+${jobKeywords.join(", ") || t("export.none")}
 
-KEYWORDS CV:
-${cvKeywords.join(", ") || "Ninguna"}
+${t("export.cvKeywords")}:
+${cvKeywords.join(", ") || t("export.none")}
 
-KEYWORDS FALTANTES:
-${missingKeywords.join(", ") || "Ninguna"}
+${t("export.missingKeywords")}:
+${missingKeywords.join(", ") || t("export.none")}
 
-ÁREAS DE MEJORA:
-${improvements.map((imp) => `- ${imp}`).join("\n") || "Sin sugerencias"}
+${t("export.improvements")}:
+${improvements.map((imp) => `- ${imp}`).join("\n") || t("export.noSuggestions")}
 
-${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` : ""}
+${analysis.job_description ? `${t("export.jobDescription")}:\n${analysis.job_description}` : ""}
     `.trim();
 
     const blob = new Blob([report], { type: "text/plain" });
@@ -199,7 +204,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
     if (!onDelete) return;
     if (
       !confirm(
-        "¿Seguro que quieres borrar este análisis? Esta acción no se puede deshacer.",
+        t("alerts.confirmDelete"),
       )
     ) {
       return;
@@ -209,7 +214,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       await onDelete(analysis.id);
     } catch (error) {
       console.error("Error deleting analysis:", error);
-      alert("No se pudo borrar el análisis.");
+      alert(t("alerts.deleteFailed"));
     } finally {
       setIsDeleting(false);
     }
@@ -223,12 +228,12 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_url: url || null }),
       });
-      if (!res.ok) throw new Error("Error al guardar la URL");
+      if (!res.ok) throw new Error(t("alerts.saveUrlFailed"));
       onUpdate?.();
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert("No se pudo guardar la URL.");
+      alert(t("alerts.saveUrlFailed"));
     } finally {
       setIsSavingUrl(false);
     }
@@ -247,12 +252,12 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
           offer_next_action_at: offerNextActionAt || null,
         }),
       });
-      if (!res.ok) throw new Error("Error al guardar el seguimiento");
+      if (!res.ok) throw new Error(t("alerts.saveTrackingFailed"));
       onUpdate?.();
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert("No se pudo guardar el seguimiento de la oferta.");
+      alert(t("alerts.saveTrackingFailed"));
     } finally {
       setIsSavingTracking(false);
     }
@@ -261,11 +266,11 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
   const handleCreateInterviewQuestion = async (generateAfter = false) => {
     if (!quickQuestion.trim()) return;
     if (generateAfter && !hasGeminiApiKey) {
-      alert("Configura tu API key de Gemini antes de generar respuestas.");
+      alert(t("alerts.missingApiKeyForAnswer"));
       return;
     }
     if (generateAfter && !quickQuestionContext.trim()) {
-      alert("Añade contexto para generar la respuesta con IA.");
+      alert(t("alerts.missingContextForAnswer"));
       return;
     }
     setIsCreatingQuestion(true);
@@ -282,7 +287,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "No se pudo crear la pregunta");
+        throw new Error(data.error || t("alerts.createQuestionFailed"));
       }
       const created = await res.json();
       if (generateAfter) {
@@ -302,7 +307,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
         );
         if (!generateRes.ok) {
           const data = await generateRes.json().catch(() => ({}));
-          throw new Error(data.error || "No se pudo generar la respuesta");
+          throw new Error(data.error || t("alerts.generateAnswerFailed"));
         }
       }
       setQuickQuestion("");
@@ -314,7 +319,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
       alert(
         err instanceof Error
           ? err.message
-          : "No se pudo crear la pregunta asociada.",
+          : t("alerts.createLinkedQuestionFailed"),
       );
     } finally {
       setIsCreatingQuestion(false);
@@ -361,7 +366,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                   className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                 >
                   <Sparkles className="size-4" />
-                  Resumen
+                  {t("tabs.summary")}
                 </TabsTrigger>
                 {isJobMatch && (
                   <>
@@ -370,14 +375,14 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                     >
                       <Briefcase className="size-4" />
-                      Oferta
+                      {t("tabs.offer")}
                     </TabsTrigger>
                     <TabsTrigger
                       value="entrevista"
                       className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                     >
                       <MessageSquareQuote className="size-4" />
-                      Preguntas
+                      {t("tabs.questions")}
                       {interviewQuestions.length > 0 && (
                         <span className="ml-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold px-2 py-0.5">
                           {interviewQuestions.length}
@@ -396,7 +401,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                       className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                     >
                       <CalendarClock className="size-4" />
-                      Seguimiento
+                      {t("tabs.tracking")}
                     </TabsTrigger>
                   </>
                 )}
@@ -406,7 +411,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                     className="px-5 py-2 gap-2 text-sm font-semibold transition-all data-active:bg-white/10 data-active:text-white data-active:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                   >
                     <FileSearch className="size-4" />
-                    Contexto
+                    {t("tabs.context")}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -484,7 +489,7 @@ ${analysis.job_description ? `OFERTA DE TRABAJO:\n${analysis.job_description}` :
                   >
                     <h4 className="text-sm font-semibold text-violet-300 flex items-center gap-2 mb-3">
                       <FileSearch className="w-4 h-4" />
-                      Contexto del Análisis
+                      {t("context.title")}
                     </h4>
                     <p className="text-xs text-zinc-400 italic bg-[#0a0a12] rounded-lg p-3 border border-white/[0.04]">
                       {analysis.ai_context.additionalContext}

@@ -103,12 +103,12 @@ test("analysis UI exposes a persistent offer chat tab with conversations", () =>
 
   assert.match(analysisView, /TabChatOferta/);
   assert.match(analysisView, /value="chat"/);
-  assert.match(analysisView, /Chat/);
+  assert.match(analysisView, /useTranslations\("analysisDetail"\)/);
   assert.match(analysisView, /geminiApiKey=\{geminiApiKey\}/);
   assert.match(analysisView, /hasGeminiApiKey=\{hasGeminiApiKey\}/);
   assert.match(tabChat, /\/api\/job-match-analyses\/\$\{analysisId\}\/chat/);
   assert.match(tabChat, /role === "assistant"/);
-  assert.match(tabChat, /Pregunta sobre esta oferta/);
+  assert.match(tabChat, /inputPlaceholder/);
   assert.match(tabChat, /Loader2/);
   assert.match(tabChat, /Send/);
   assert.match(tabChat, /ConversationList/);

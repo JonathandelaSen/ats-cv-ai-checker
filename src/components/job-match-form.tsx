@@ -13,6 +13,7 @@ import {
   KeyRound,
   Link,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface JobMatchFormProps {
   onSubmit: (jobDescription: string, jobUrl: string, model: string) => void;
@@ -31,6 +32,8 @@ export default function JobMatchForm({
   hasGeminiApiKey,
   onOpenSettings,
 }: JobMatchFormProps) {
+  const t = useTranslations("analysisFlow.forms");
+  const common = useTranslations("common");
   const [jobDescription, setJobDescription] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
@@ -52,7 +55,7 @@ export default function JobMatchForm({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-300">
             <Briefcase className="w-3.5 h-3.5" />
-            Match con Oferta de Trabajo
+            {t("jobTitle")}
           </div>
         </div>
         <button
@@ -60,7 +63,7 @@ export default function JobMatchForm({
           className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Cambiar modo
+          {t("changeMode")}
         </button>
       </div>
 
@@ -70,9 +73,9 @@ export default function JobMatchForm({
           <div>
             <label className="flex items-center gap-2 text-sm text-zinc-400 mb-1.5">
               <Link className="w-3.5 h-3.5" />
-              URL de la oferta
+              {t("jobUrl")}
               <span className="text-[10px] text-zinc-500 bg-zinc-800/60 px-1.5 py-0.5 rounded border border-white/[0.05]">
-                Opcional
+                {t("optional")}
               </span>
             </label>
             <input
@@ -88,13 +91,13 @@ export default function JobMatchForm({
           <div>
             <label className="flex items-center gap-2 text-sm text-zinc-400 mb-1.5">
               <Briefcase className="w-3.5 h-3.5" />
-              Descripción de la oferta
+              {t("jobDescription")}
               <span className="text-[10px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
-                Requerido
+                {t("required")}
               </span>
             </label>
             <textarea
-              placeholder="Pega aquí la oferta de trabajo completa para una comparación precisa..."
+              placeholder={t("jobDescriptionPlaceholder")}
               className="w-full h-48 px-4 py-3 rounded-xl bg-[#0a0a12] border border-white/[0.06] text-sm text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10 transition-all"
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
@@ -105,7 +108,7 @@ export default function JobMatchForm({
           <div>
             <label className="flex items-center gap-2 text-sm text-zinc-400 mb-1.5">
               <Cpu className="w-3.5 h-3.5" />
-              Modelo de IA
+              {t("aiModel")}
             </label>
             <div className="relative">
               <select
@@ -114,10 +117,10 @@ export default function JobMatchForm({
                 className="w-full h-10 px-4 rounded-xl bg-[#0a0a12] border border-white/[0.06] text-sm text-zinc-300 focus:outline-none focus:border-emerald-500/40 appearance-none cursor-pointer"
               >
                 <option value="gemini-2.5-flash">
-                  Gemini 2.5 Flash (Rápido)
+                  Gemini 2.5 Flash ({t("fast")})
                 </option>
                 <option value="gemini-3.1-pro-preview">
-                  Gemini 3.1 Pro Preview (Más Potente)
+                  Gemini 3.1 Pro Preview ({t("powerful")})
                 </option>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
@@ -136,12 +139,12 @@ export default function JobMatchForm({
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Analizando...
+              {common("states.analyzing")}
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              Comparar con Oferta
+              {t("compareOffer")}
               <ArrowRight className="w-4 h-4" />
             </>
           )}
@@ -155,8 +158,7 @@ export default function JobMatchForm({
           className="mt-3 flex flex-col gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between"
         >
           <span>
-            Configura tu API key de Gemini para activar el análisis. La clave se
-            guarda solo en este navegador.
+            {t("missingApiKey")}
           </span>
           <button
             type="button"
@@ -164,7 +166,7 @@ export default function JobMatchForm({
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-zinc-950 transition-colors hover:bg-amber-300"
           >
             <KeyRound className="h-3.5 w-3.5" />
-            Configurar
+            {common("actions.configure")}
           </button>
         </motion.div>
       )}

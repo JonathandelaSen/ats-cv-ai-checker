@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   Briefcase,
   CheckCircle2,
@@ -53,6 +54,7 @@ export default function InterviewQuestionsView({
   onOpenSettings,
   onOpenAnalysis,
 }: InterviewQuestionsViewProps) {
+  const t = useTranslations("interviewQuestions");
   const [selectedId, setSelectedId] = useState<string | null>(
     questions[0]?.id ?? null,
   );
@@ -119,7 +121,7 @@ export default function InterviewQuestionsView({
       return;
     }
     if (generateAfter && !draft.context.trim()) {
-      setError("Añade contexto para generar la respuesta con IA.");
+      setError(t("errors.contextRequired"));
       return;
     }
     setSaving(true);
@@ -138,7 +140,7 @@ export default function InterviewQuestionsView({
       });
       const data = await res.json();
       if (!res.ok)
-        throw new Error(data.error || "No se pudo crear la pregunta");
+        throw new Error(data.error || t("errors.create"));
       resetDraft();
       if (generateAfter) {
         const generateRes = await fetch(
@@ -157,7 +159,7 @@ export default function InterviewQuestionsView({
         );
         const generated = await generateRes.json();
         if (!generateRes.ok) {
-          throw new Error(generated.error || "No se pudo generar la respuesta");
+          throw new Error(generated.error || t("errors.generate"));
         }
       }
       await refreshAndSelect(data.id);
@@ -180,7 +182,7 @@ export default function InterviewQuestionsView({
       });
       const data = await res.json();
       if (!res.ok)
-        throw new Error(data.error || "No se pudo guardar la pregunta");
+        throw new Error(data.error || t("errors.save"));
       await refreshAndSelect(data.id);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -200,7 +202,7 @@ export default function InterviewQuestionsView({
 
   const deleteSelected = async () => {
     if (!selected) return;
-    if (!confirm("¿Seguro que quieres borrar esta pregunta?")) return;
+    if (!confirm(t("errors.confirmDelete"))) return;
     setSaving(true);
     setError(null);
     try {
@@ -209,7 +211,7 @@ export default function InterviewQuestionsView({
       });
       const data = await res.json();
       if (!res.ok)
-        throw new Error(data.error || "No se pudo borrar la pregunta");
+        throw new Error(data.error || t("errors.delete"));
       await refreshAndSelect();
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -243,7 +245,7 @@ export default function InterviewQuestionsView({
         },
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo usar la IA");
+      if (!res.ok) throw new Error(data.error || t("errors.useAI"));
       setAiInstruction("");
       await refreshAndSelect(data.id);
     } catch (err: unknown) {
@@ -268,7 +270,7 @@ export default function InterviewQuestionsView({
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar preguntas"
+                placeholder={t("searchPlaceholder")}
                 className="h-10 w-full rounded-lg border border-white/[0.08] bg-[#0a0a12] pl-9 pr-3 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
               />
             </label>
@@ -278,7 +280,7 @@ export default function InterviewQuestionsView({
                 onChange={(event) => setCvFilter(event.target.value)}
                 className="h-9 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-2 text-xs text-zinc-300 outline-none"
               >
-                <option value="">Todos los CVs</option>
+                <option value="">{t("allCvs")}</option>
                 {cvs.map((cv) => (
                   <option key={cv.id} value={cv.id}>
                     {cv.name}
@@ -290,7 +292,7 @@ export default function InterviewQuestionsView({
                 onChange={(event) => setAnalysisFilter(event.target.value)}
                 className="h-9 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-2 text-xs text-zinc-300 outline-none"
               >
-                <option value="">Todas las ofertas</option>
+                <option value="">{t("allOffers")}</option>
                 {jobAnalyses.map((analysis) => (
                   <option key={analysis.id} value={analysis.id}>
                     {analysis.title}
@@ -305,9 +307,9 @@ export default function InterviewQuestionsView({
               }
               className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#0a0a12] px-2 text-xs text-zinc-300 outline-none"
             >
-              <option value="all">Todas</option>
-              <option value="answered">Con respuesta</option>
-              <option value="empty">Pendientes</option>
+              <option value="all">{t("all")}</option>
+              <option value="answered">{t("answeredFilter")}</option>
+              <option value="empty">{t("pendingFilter")}</option>
             </select>
           </div>
 
@@ -315,7 +317,7 @@ export default function InterviewQuestionsView({
             {filteredQuestions.length === 0 ? (
               <div className="flex h-48 flex-col items-center justify-center text-center text-sm text-zinc-600">
                 <MessageSquareQuote className="mb-3 h-8 w-8" />
-                No hay preguntas con estos filtros.
+                {t("emptyFiltered")}
               </div>
             ) : (
               filteredQuestions.map((item) => (
@@ -336,11 +338,11 @@ export default function InterviewQuestionsView({
                     {item.answer ? (
                       <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                         <CheckCircle2 className="h-3 w-3" />
-                        Respondida
+                        {t("answered")}
                       </span>
                     ) : (
                       <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                        Pendiente
+                        {t("pending")}
                       </span>
                     )}
                     {item.cv && (
@@ -352,7 +354,7 @@ export default function InterviewQuestionsView({
                     {item.analysis && (
                       <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                         <Briefcase className="h-3 w-3" />
-                        Oferta
+                        {t("offer")}
                       </span>
                     )}
                   </div>
@@ -366,7 +368,7 @@ export default function InterviewQuestionsView({
           <div className="border-b border-white/[0.06] p-4">
             <p className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-zinc-300">
               <Plus className="h-3.5 w-3.5 text-fuchsia-300" />
-              Nueva pregunta
+              {t("newQuestion")}
             </p>
             <div className="grid gap-3 lg:grid-cols-2">
               <textarea
@@ -377,7 +379,7 @@ export default function InterviewQuestionsView({
                     question: event.target.value,
                   }))
                 }
-                placeholder="Pregunta obligatoria"
+                placeholder={t("questionRequired")}
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
               />
               <textarea
@@ -388,7 +390,7 @@ export default function InterviewQuestionsView({
                     context: event.target.value,
                   }))
                 }
-                placeholder="Contexto para la IA"
+                placeholder={t("aiContext")}
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
               />
               <textarea
@@ -399,7 +401,7 @@ export default function InterviewQuestionsView({
                     answer: event.target.value,
                   }))
                 }
-                placeholder="Respuesta manual opcional"
+                placeholder={t("manualAnswer")}
                 className="min-h-24 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40 lg:col-span-2"
               />
               <select
@@ -412,7 +414,7 @@ export default function InterviewQuestionsView({
                 }
                 className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
               >
-                <option value="">Sin CV asociado</option>
+                <option value="">{t("noCv")}</option>
                 {cvs.map((cv) => (
                   <option key={cv.id} value={cv.id}>
                     {cv.name}
@@ -429,7 +431,7 @@ export default function InterviewQuestionsView({
                 }
                 className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
               >
-                <option value="">Sin oferta asociada</option>
+                <option value="">{t("noOffer")}</option>
                 {jobAnalyses.map((analysis) => (
                   <option key={analysis.id} value={analysis.id}>
                     {analysis.title}
@@ -449,12 +451,12 @@ export default function InterviewQuestionsView({
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-                Guardar sin IA
+                {t("saveWithoutAI")}
               </button>
               <select
                 value={model}
                 onChange={(event) => setModel(event.target.value)}
-                aria-label="Modelo para generar con IA"
+                aria-label={t("modelLabel")}
                 className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
               >
                 <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
@@ -471,7 +473,7 @@ export default function InterviewQuestionsView({
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                Crear y generar con IA
+                {t("createWithAI")}
               </button>
             </div>
           </div>
@@ -487,7 +489,7 @@ export default function InterviewQuestionsView({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                    Detalle
+                    {t("detail")}
                   </p>
                   <h2 className="mt-1 text-xl font-bold text-zinc-100">
                     {selected.question}
@@ -544,7 +546,7 @@ export default function InterviewQuestionsView({
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
-                  Guardar cambios manuales
+                  {t("saveManualChanges")}
                 </button>
                 <select
                   value={selected.cv_id ?? ""}
@@ -553,7 +555,7 @@ export default function InterviewQuestionsView({
                   }
                   className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
                 >
-                  <option value="">Sin CV asociado</option>
+                  <option value="">{t("noCv")}</option>
                   {cvs.map((cv) => (
                     <option key={cv.id} value={cv.id}>
                       {cv.name}
@@ -567,7 +569,7 @@ export default function InterviewQuestionsView({
                   }
                   className="h-10 rounded-lg border border-white/[0.08] bg-[#0a0a12] px-3 text-sm text-zinc-300 outline-none"
                 >
-                  <option value="">Sin oferta asociada</option>
+                  <option value="">{t("noOffer")}</option>
                   {jobAnalyses.map((analysis) => (
                     <option key={analysis.id} value={analysis.id}>
                       {analysis.title}
@@ -580,20 +582,20 @@ export default function InterviewQuestionsView({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <p className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <Sparkles className="h-4 w-4 text-fuchsia-300" />
-                    IA
+                    {t("ai")}
                   </p>
                 </div>
                 <div className="grid gap-3 lg:grid-cols-[1fr_180px_auto_auto]">
                   <input
                     value={aiInstruction}
                     onChange={(event) => setAiInstruction(event.target.value)}
-                    placeholder="Instrucción para editar con IA"
+                    placeholder={t("editInstructionPlaceholder")}
                     className="h-10 rounded-lg border border-white/[0.08] bg-[#09090f] px-3 text-sm text-zinc-100 outline-none focus:border-fuchsia-500/40"
                   />
                   <select
                     value={model}
                     onChange={(event) => setModel(event.target.value)}
-                    aria-label="Modelo para generar con IA"
+                    aria-label={t("modelLabel")}
                     className="h-10 rounded-lg border border-white/[0.08] bg-[#09090f] px-3 text-xs text-zinc-300 outline-none"
                   >
                     <option value="gemini-3.1-pro-preview">
@@ -612,7 +614,7 @@ export default function InterviewQuestionsView({
                     ) : (
                       <Sparkles className="h-4 w-4" />
                     )}
-                    Generar con IA
+                    {t("generateWithAI")}
                   </button>
                   <button
                     type="button"
@@ -629,7 +631,7 @@ export default function InterviewQuestionsView({
                     ) : (
                       <Pencil className="h-4 w-4" />
                     )}
-                    Editar con IA
+                    {t("editWithAI")}
                   </button>
                 </div>
                 {!hasGeminiApiKey && (
@@ -638,7 +640,7 @@ export default function InterviewQuestionsView({
                     onClick={onOpenSettings}
                     className="mt-3 text-xs font-semibold text-fuchsia-300 hover:text-fuchsia-200"
                   >
-                    Configurar Gemini API key
+                    {t("configureGemini")}
                   </button>
                 )}
               </div>
@@ -652,18 +654,18 @@ export default function InterviewQuestionsView({
                 className="inline-flex h-9 items-center gap-2 rounded-lg text-sm font-semibold text-zinc-500 hover:text-emerald-300 disabled:hidden"
               >
                 <Briefcase className="h-4 w-4" />
-                Abrir oferta asociada
+                {t("openLinkedOffer")}
               </button>
               {saving && (
                 <p className="inline-flex items-center gap-2 text-xs text-zinc-500">
                   <Save className="h-3.5 w-3.5" />
-                  Guardando...
+                  {t("saving")}
                 </p>
               )}
             </div>
           ) : (
             <div className="flex h-72 items-center justify-center text-sm text-zinc-600">
-              Selecciona o crea una pregunta.
+              {t("selectOrCreate")}
             </div>
           )}
         </section>

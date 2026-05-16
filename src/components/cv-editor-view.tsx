@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -88,6 +89,7 @@ export default function CVEditorView({
   onCVUpdated,
   onBackToLibrary,
 }: CVEditorViewProps) {
+  const t = useTranslations("cvEditor");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isSavingModalOpen, setIsSavingModalOpen] = useState(false);
   const [isPublicModalOpen, setIsPublicModalOpen] = useState(false);
@@ -220,7 +222,7 @@ export default function CVEditorView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: saveName.trim() }),
       });
-      if (!res.ok) throw new Error("Error al guardar como CV");
+      if (!res.ok) throw new Error(t("errors.saveAsCv"));
       setIsSavingModalOpen(false);
       onCVUpdated();
     } catch (err) {
@@ -274,7 +276,7 @@ export default function CVEditorView({
           body: JSON.stringify({ profile: normalized }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Save failed");
+        if (!res.ok) throw new Error(data.error || t("errors.save"));
         savedProfileJsonRef.current = json;
         setEditedVersion(data);
         setSaveState("saved");
@@ -287,7 +289,7 @@ export default function CVEditorView({
         return false;
       }
     },
-    [currentVersionIdForSave, onCVUpdated, reloadPreview],
+    [currentVersionIdForSave, onCVUpdated, reloadPreview, t],
   );
 
   useEffect(() => {
@@ -344,7 +346,7 @@ export default function CVEditorView({
   const applyInstruction = async (instruction = editInstruction) => {
     if (!currentVersion?.id) return;
     if (!hasGeminiApiKey) {
-      setError("Configura tu API key de Gemini antes de editar.");
+      setError(t("errors.missingApiKey"));
       return;
     }
     if (!instruction.trim()) return;
@@ -371,13 +373,13 @@ export default function CVEditorView({
       } catch {
         console.error("Non-JSON response from edit API:", text);
         throw new Error(
-          `El servidor devolvió un error inesperado (Status: ${res.status}). Puede ser un timeout o un error de conexión.`,
+          t("errors.unexpectedServer", { status: res.status }),
         );
       }
 
       if (!res.ok) {
         throw new Error(
-          data.error || data.details || "No se pudo editar el CV",
+          data.error || data.details || t("errors.editFailed"),
         );
       }
       if (data.version?.profile) {
@@ -407,7 +409,7 @@ export default function CVEditorView({
         body: JSON.stringify({ template_locale: nextLocale }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo cambiar idioma");
+      if (!res.ok) throw new Error(data.error || t("errors.changeLanguage"));
       setEditedVersion(data.version);
       reloadPreview();
       onCVUpdated();
@@ -438,7 +440,7 @@ export default function CVEditorView({
       const data = await res.json();
       if (!res.ok)
         throw new Error(
-          data.error || "No se pudo actualizar la página pública",
+          data.error || t("errors.updatePublicPage"),
         );
       setEditedVersion(data);
       setPublicSlugDraft({
@@ -469,11 +471,10 @@ export default function CVEditorView({
             <LayoutTemplate className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">
-            Selecciona un CV para editar
+            {t("empty.title")}
           </h2>
           <p className="text-zinc-500 mb-8">
-            Elige uno de los CVs basados en plantillas para comenzar a editarlo
-            con IA.
+            {t("empty.description")}
           </p>
 
           {cvs.length > 0 ? (
@@ -501,13 +502,13 @@ export default function CVEditorView({
           ) : (
             <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 mx-auto max-w-md">
               <p className="text-zinc-500 mb-6">
-                No tienes ningún CV en formato plantilla.
+                {t("empty.noTemplateCvs")}
               </p>
               <Button
                 onClick={onOpenTemplates}
                 className="bg-teal-500 text-black hover:bg-teal-400"
               >
-                Ir al catálogo de plantillas
+                {t("empty.openTemplates")}
               </Button>
             </div>
           )}
@@ -535,9 +536,9 @@ export default function CVEditorView({
               <h2 className="truncate text-sm font-semibold text-white">
                 {currentVersion.name}
               </h2>
-              <span className="text-[10px] text-zinc-600">basado en</span>
+              <span className="text-[10px] text-zinc-600">{t("basedOn")}</span>
               <span className="truncate text-[11px] font-medium text-teal-500/80 italic">
-                CV Original
+                {t("originalCv")}
               </span>
             </div>
             <div className="flex items-center gap-2 text-[10px] text-zinc-500">
@@ -559,7 +560,7 @@ export default function CVEditorView({
               disabled={!canUndo}
               onClick={undo}
               className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
-              title="Deshacer (Cmd/Ctrl+Z)"
+              title={t("undo")}
             >
               <Undo2 className="h-3.5 w-3.5" />
             </Button>
@@ -569,7 +570,7 @@ export default function CVEditorView({
               disabled={!canRedo}
               onClick={redo}
               className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
-              title="Rehacer (Cmd+Shift+Z / Ctrl+Y)"
+              title={t("redo")}
             >
               <Redo2 className="h-3.5 w-3.5" />
             </Button>
@@ -577,14 +578,14 @@ export default function CVEditorView({
 
           <Button
             onClick={() => {
-              setSaveName(`${currentVersion.name} (Editado)`);
+              setSaveName(t("editedName", { name: currentVersion.name }));
               setIsSavingModalOpen(true);
             }}
             variant="ghost"
             className="h-9 gap-2 border border-teal-500/20 bg-teal-500/5 text-xs text-teal-400 hover:bg-teal-500/10"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Guardar nueva versión</span>{" "}
+            <span className="hidden sm:inline">{t("saveNewVersion")}</span>{" "}
           </Button>
 
           <div className="hidden h-4 w-[1px] bg-white/10 md:block" />
@@ -596,7 +597,7 @@ export default function CVEditorView({
             className="inline-flex h-9 items-center gap-2 rounded-md border border-white/5 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
           >
             <Download className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Descargar PDF</span>
+            <span className="hidden sm:inline">{t("downloadPdf")}</span>
             <span className="sm:hidden">PDF</span>
           </a>
 
@@ -731,10 +732,10 @@ export default function CVEditorView({
 
                         <div className="flex flex-wrap gap-2">
                           {[
-                            "Acorta el Sobre mí",
-                            "Mejora claridad",
-                            "Hazlo más ejecutivo",
-                            "Corregir erratas",
+                            t("aiHints.shortenSummary"),
+                            t("aiHints.improveClarity"),
+                            t("aiHints.moreExecutive"),
+                            t("aiHints.fixTypos"),
                           ].map((hint) => (
                             <button
                               key={hint}
@@ -760,7 +761,7 @@ export default function CVEditorView({
                           <Lightbulb className="h-4 w-4" />
                         </div>
                         <h3 className="text-sm font-semibold text-white">
-                          Recomendaciones
+                          {t("recommendations.title")}
                         </h3>
                       </div>
                       {recommendationAnalysis?.ai_score && (
@@ -804,7 +805,7 @@ export default function CVEditorView({
                     ) : (
                       <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
                         <p className="text-xs text-zinc-500 mb-3">
-                          No hay análisis para este CV
+                          {t("recommendations.empty")}
                         </p>
                         <Button
                           variant="outline"
@@ -812,7 +813,7 @@ export default function CVEditorView({
                           onClick={onStartAnalysis}
                           className="h-8 text-[11px] border-white/10 text-zinc-400 hover:text-white"
                         >
-                          Analizar ahora
+                          {t("recommendations.analyzeNow")}
                         </Button>
                       </div>
                     )}
@@ -826,12 +827,12 @@ export default function CVEditorView({
                         </div>
                         <div>
                           <h3 className="text-sm font-semibold text-white">
-                            Página pública
+                            {t("publicPage.title")}
                           </h3>
                           <p className="text-[11px] text-zinc-600">
                             {currentVersion.public_enabled
-                              ? "Activa por enlace"
-                              : "Desactivada"}
+                              ? t("publicPage.enabled")
+                              : t("publicPage.disabled")}
                           </p>
                         </div>
                       </div>
@@ -842,7 +843,7 @@ export default function CVEditorView({
                           onClick={() => void updatePublicSettings(false)}
                           className="h-8 border border-rose-500/20 bg-rose-500/5 px-3 text-[11px] text-rose-300 hover:bg-rose-500/10"
                         >
-                          Despublicar
+                          {t("publicPage.unpublish")}
                         </Button>
                       ) : (
                         <Button
@@ -852,14 +853,14 @@ export default function CVEditorView({
                           onClick={() => setIsPublicModalOpen(true)}
                           className="h-8 bg-sky-500 px-3 text-[11px] font-bold text-black hover:bg-sky-400"
                         >
-                          Publicar
+                          {t("publicPage.publish")}
                         </Button>
                       )}
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                        URL editable
+                        {t("publicPage.editableUrl")}
                       </label>
                       <div className="flex min-w-0 items-center gap-2 rounded-xl border border-white/5 bg-white/5 p-1.5">
                         <span className="hidden shrink-0 pl-2 text-[11px] text-zinc-600 sm:inline">
@@ -884,8 +885,7 @@ export default function CVEditorView({
                         />
                       </div>
                       <p className="text-[11px] leading-relaxed text-zinc-600">
-                        El identificador es único y estable. Puedes cambiar el
-                        nombre visible de la URL.
+                        {t("publicPage.urlHelp")}
                       </p>
                     </div>
 
@@ -902,7 +902,7 @@ export default function CVEditorView({
                             {savingPublicSettings ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              "Guardar URL"
+                              t("publicPage.saveUrl")
                             )}
                           </Button>
                         )}
@@ -918,7 +918,7 @@ export default function CVEditorView({
                             ) : (
                               <Copy className="mr-2 h-3.5 w-3.5" />
                             )}
-                            {publicCopied ? "Copiada" : "Copiar URL"}
+                            {publicCopied ? t("publicPage.copied") : t("publicPage.copyUrl")}
                           </Button>
                           <a
                             href={publicUrl}
@@ -936,13 +936,13 @@ export default function CVEditorView({
                   {/* Settings Section */}
                   <section className="pt-4 border-t border-white/5 space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-600">
-                      Configuración
+                      {t("settings.title")}
                     </h3>
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-zinc-500">
-                          Idioma del CV
+                          {t("settings.cvLanguage")}
                         </span>
                         <div className="flex gap-1 rounded-lg border border-white/5 p-1 bg-white/5">
                           {(["es", "en"] as const).map((l) => (
@@ -963,13 +963,13 @@ export default function CVEditorView({
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500">Diseño</span>
+                        <span className="text-xs text-zinc-500">{t("settings.design")}</span>
                         <Button
                           variant="link"
                           onClick={onOpenTemplates}
                           className="h-auto p-0 text-xs text-teal-400"
                         >
-                          Cambiar plantilla
+                          {t("settings.changeTemplate")}
                         </Button>
                       </div>
                     </div>
@@ -982,15 +982,14 @@ export default function CVEditorView({
                       className="w-full h-10 text-xs bg-amber-500 text-black hover:bg-amber-400"
                     >
                       <KeyRound className="mr-2 h-3.5 w-3.5" />
-                      Configurar API Key
+                      {t("settings.configureApiKey")}
                     </Button>
                   )}
                 </div>
 
                 <div className="mt-auto pt-10">
                   <p className="text-[10px] text-zinc-600 leading-relaxed">
-                    Estás editando una versión derivada. El archivo original y
-                    su extracción se mantienen intactos.
+                    {t("derivedNotice")}
                   </p>
                 </div>
               </div>
@@ -1012,17 +1011,13 @@ export default function CVEditorView({
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-semibold text-white">
-                Publicar este CV
+                {t("publicModal.title")}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                Cualquiera con este enlace podrá ver el CV completo dentro de la
-                plataforma, incluidos email, teléfono, enlaces, experiencia y
-                cualquier otro dato que hayas escrito en esta versión.
+                {t("publicModal.description")}
               </p>
               <div className="mt-4 rounded-2xl border border-rose-500/15 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-200">
-                No lo haremos indexable por buscadores, pero el enlace público
-                se podrá reenviar y la página permite descargar una copia en
-                PDF.
+                {t("publicModal.warning")}
               </div>
               <div className="mt-6 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs text-zinc-300">
                 {publicDraftUrl || `/cv/id/${normalizedPublicSlug}`}
@@ -1033,7 +1028,7 @@ export default function CVEditorView({
                   onClick={() => setIsPublicModalOpen(false)}
                   className="flex-1 text-zinc-400 hover:bg-white/5"
                 >
-                  Cancelar
+                  {t("actions.cancel")}
                 </Button>
                 <Button
                   disabled={savingPublicSettings || !normalizedPublicSlug}
@@ -1043,7 +1038,7 @@ export default function CVEditorView({
                   {savingPublicSettings ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    "Entiendo y publicar"
+                    t("publicModal.confirm")
                   )}
                 </Button>
               </div>
@@ -1060,22 +1055,22 @@ export default function CVEditorView({
               className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0a0a12] p-6 shadow-2xl"
             >
               <h3 className="text-lg font-semibold text-white">
-                Guardar en biblioteca
+                {t("saveModal.title")}
               </h3>
               <p className="mt-2 text-sm text-zinc-500">
-                Se creará un nuevo CV en tu biblioteca con los cambios actuales.
+                {t("saveModal.description")}
               </p>
               <div className="mt-6 space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-zinc-600">
-                    Nombre del CV
+                    {t("saveModal.nameLabel")}
                   </label>
                   <input
                     type="text"
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
                     className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-teal-500/50 focus:outline-none"
-                    placeholder="Ej: Mi CV - Versión IA"
+                    placeholder={t("saveModal.namePlaceholder")}
                     autoFocus
                   />
                 </div>
@@ -1085,7 +1080,7 @@ export default function CVEditorView({
                     onClick={() => setIsSavingModalOpen(false)}
                     className="flex-1 text-zinc-400 hover:bg-white/5"
                   >
-                    Cancelar
+                    {t("actions.cancel")}
                   </Button>
                   <Button
                     onClick={handleSaveAsCV}
@@ -1095,7 +1090,7 @@ export default function CVEditorView({
                     {savingAsCv ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Guardar"
+                      t("actions.save")
                     )}
                   </Button>
                 </div>

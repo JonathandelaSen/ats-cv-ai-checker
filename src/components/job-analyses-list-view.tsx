@@ -1,17 +1,10 @@
 "use client";
 
 import { Briefcase, Clock, Sparkles, Trash2, Plus, FileText } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useInterfaceLanguage } from "@/components/i18n-provider";
 import type { AnalysisSummary } from "@/components/sidebar";
 import type { OfferStatus } from "@/lib/analysis-types";
-
-const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
-  interesante: "Interesante",
-  aplicado: "Aplicado",
-  entrevista: "Entrevista",
-  oferta: "Oferta",
-  rechazado: "Rechazado",
-  descartado: "Descartado",
-};
 
 const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
   interesante: "border-sky-500/20 bg-sky-500/10 text-sky-300",
@@ -29,9 +22,9 @@ const getScoreColor = (score: number | null) => {
   return "text-rose-400 bg-rose-500/15 border-rose-500/20";
 };
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr: string, locale: string) => {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -51,6 +44,12 @@ export default function JobAnalysesListView({
   onNewAnalysis,
   onDelete,
 }: JobAnalysesListViewProps) {
+  const t = useTranslations("analysisFlow.lists");
+  const common = useTranslations("common");
+  const navigation = useTranslations("navigation");
+  const { locale } = useInterfaceLanguage();
+  const dateLocale = locale === "es" ? "es-ES" : "en-US";
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* Header */}
@@ -61,11 +60,9 @@ export default function JobAnalysesListView({
               <Briefcase className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-zinc-100">Análisis de Ofertas</h1>
+              <h1 className="text-lg font-semibold text-zinc-100">{t("jobTitle")}</h1>
               <p className="text-xs text-zinc-500">
-                {analyses.length === 0
-                  ? "Sin análisis"
-                  : `${analyses.length} ${analyses.length === 1 ? "oferta" : "ofertas"}`}
+                {t("jobCount", { count: analyses.length })}
               </p>
             </div>
           </div>
@@ -74,7 +71,7 @@ export default function JobAnalysesListView({
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/30 active:scale-[0.97] transition-all"
           >
             <Plus className="w-4 h-4" />
-            Nueva oferta
+            {t("newOffer")}
           </button>
         </div>
       </div>
@@ -87,9 +84,9 @@ export default function JobAnalysesListView({
               <FileText className="w-8 h-8 text-zinc-600" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-zinc-400">No hay análisis de ofertas</p>
+              <p className="text-sm font-medium text-zinc-400">{t("jobEmptyTitle")}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                Analiza cómo encaja tu CV con una oferta de empleo
+                {t("jobEmptyDescription")}
               </p>
             </div>
             <button
@@ -97,7 +94,7 @@ export default function JobAnalysesListView({
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white transition-all"
             >
               <Plus className="w-4 h-4" />
-              Nueva oferta
+              {t("newOffer")}
             </button>
           </div>
         ) : (
@@ -118,13 +115,13 @@ export default function JobAnalysesListView({
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[11px] text-zinc-500 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {formatDate(a.created_at)}
+                    {formatDate(a.created_at, dateLocale)}
                   </span>
                   {a.offer_status && (
                     <span
                       className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${OFFER_STATUS_BADGE_CLASS[a.offer_status]}`}
                     >
-                      {OFFER_STATUS_LABELS[a.offer_status]}
+                      {navigation(`offerStatuses.${a.offer_status}`)}
                     </span>
                   )}
                 </div>
@@ -140,7 +137,7 @@ export default function JobAnalysesListView({
                 ) : (
                   <span className="text-[11px] text-zinc-600 flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800/50">
                     <Sparkles className="w-3 h-3" />
-                    Pendiente
+                    {common("states.pending")}
                   </span>
                 )}
                 <button

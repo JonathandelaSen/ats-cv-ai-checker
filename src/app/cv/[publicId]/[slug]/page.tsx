@@ -9,6 +9,8 @@ import { buildPublicCVPath } from "@/modules/cv-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCVTemplate, type CVTemplateId, type CVTemplateLocale } from "@/lib/cv-templates";
 import { presentCVDocument } from "@/modules/cv-library";
+import { getMessages } from "@/i18n/messages";
+import { resolveInterfaceLanguage } from "@/i18n/server";
 
 type PublicCVPageProps = {
   params: Promise<{
@@ -29,18 +31,22 @@ export async function generateMetadata({
   params,
 }: PublicCVPageProps): Promise<Metadata> {
   const { publicId } = await params;
+  const interfaceLocale = await resolveInterfaceLanguage();
+  const messages = getMessages(interfaceLocale);
   const cv = await getPublicCV(publicId);
-  const name = cv?.profile?.basics?.name ?? cv?.name ?? "CV público";
+  const name = cv?.profile?.basics?.name ?? cv?.name ?? messages.publicCv.fallbackName;
 
   return {
     title: `${name} | JulyLog`,
-    description: "CV público creado y compartido desde JulyLog",
+    description: messages.publicCv.metadataDescription,
     robots: { index: false, follow: false },
   };
 }
 
 export default async function PublicCVPage({ params }: PublicCVPageProps) {
   const { publicId, slug } = await params;
+  const interfaceLocale = await resolveInterfaceLanguage();
+  const messages = getMessages(interfaceLocale);
   const cv = await getPublicCV(publicId);
 
   if (!cv?.profile || !cv.template_id || !cv.public_slug || !cv.public_id) {
@@ -73,14 +79,14 @@ export default async function PublicCVPage({ params }: PublicCVPageProps) {
               className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white/70 px-3 text-xs font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-white hover:text-zinc-950"
             >
               <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Descargar PDF</span>
+              <span className="hidden sm:inline">{messages.publicCv.downloadPdf}</span>
               <span className="sm:hidden">PDF</span>
             </a>
             <Link
               href="/"
               className="rounded-md border border-zinc-300 bg-white/70 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-white hover:text-zinc-950"
             >
-              Crear mi CV
+              {messages.publicCv.createMyCv}
             </Link>
           </div>
         </div>

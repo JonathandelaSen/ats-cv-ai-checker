@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle2, Star, ChevronRight, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { AnalysisMode } from "@/lib/analysis-types";
 
 interface TabResumenProps {
@@ -23,6 +24,8 @@ export default function TabResumen({
   missingKeywords,
   analysisMode,
 }: TabResumenProps) {
+  const t = useTranslations("analysisDetail.summary");
+
   return (
     <div className="space-y-6">
       {/* Improvements & Keywords */}
@@ -35,7 +38,7 @@ export default function TabResumen({
         >
           <h4 className="text-sm font-semibold text-amber-400 flex items-center gap-2 mb-4">
             <Star className="w-4 h-4" />
-            Áreas de Mejora
+            {t("improvements")}
           </h4>
           <ul className="space-y-3">
             {improvements.length > 0 ? (
@@ -53,7 +56,7 @@ export default function TabResumen({
               ))
             ) : (
               <span className="text-zinc-500 text-sm italic">
-                Sin sugerencias de mejora.
+                {t("noImprovements")}
               </span>
             )}
           </ul>
@@ -67,13 +70,13 @@ export default function TabResumen({
         >
           <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
             <CheckCircle2 className="w-4 h-4" />
-            Keywords Encontradas
+            {t("keywordsFound")}
           </h4>
           {analysisMode === "job_match" && (
             <div className="mb-4 grid gap-3">
               <div>
                 <p className="mb-2 text-xs font-semibold text-zinc-500">
-                  Oferta
+                  {t("offer")}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {jobKeywords.map((kw) => (
@@ -87,7 +90,7 @@ export default function TabResumen({
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-xs font-semibold text-zinc-500">CV</p>
+                <p className="mb-2 text-xs font-semibold text-zinc-500">{t("cv")}</p>
                 <div className="flex flex-wrap gap-2">
                   {cvKeywords.map((kw) => (
                     <span
@@ -116,7 +119,7 @@ export default function TabResumen({
               ))
             ) : (
               <span className="text-zinc-500 text-sm italic">
-                No se detectaron palabras clave destacadas.
+                {t("noKeywords")}
               </span>
             )}
           </div>
@@ -134,7 +137,7 @@ export default function TabResumen({
           >
             <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 mb-4">
               <CheckCircle2 className="w-4 h-4" />
-              Coincidencias CV ↔ oferta
+              {t("matchingKeywords")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {matchingKeywords.length > 0 ? (
@@ -148,7 +151,7 @@ export default function TabResumen({
                 ))
               ) : (
                 <span className="text-sm italic text-zinc-500">
-                  No se detectaron coincidencias destacadas.
+                  {t("noMatches")}
                 </span>
               )}
             </div>
@@ -161,7 +164,7 @@ export default function TabResumen({
           >
             <h4 className="text-sm font-semibold text-rose-400 flex items-center gap-2 mb-4">
               <XCircle className="w-4 h-4" />
-              Keywords faltantes
+              {t("missingKeywords")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {missingKeywords.length > 0 ? (
@@ -175,7 +178,7 @@ export default function TabResumen({
                 ))
               ) : (
                 <span className="text-sm italic text-zinc-500">
-                  No hay keywords críticas faltantes.
+                  {t("noMissingKeywords")}
                 </span>
               )}
             </div>

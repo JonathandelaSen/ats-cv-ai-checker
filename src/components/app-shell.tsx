@@ -100,6 +100,7 @@ export default function AppShell({
   initialIsAdmin = false,
 }: AppShellProps) {
   const common = useTranslations("common");
+  const analysisFlow = useTranslations("analysisFlow.appShell");
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [cvs, setCVs] = useState<CVSummary[]>([]);
   const [interviewQuestions, setInterviewQuestions] = useState<
@@ -762,7 +763,7 @@ export default function AppShell({
                     `}
                   >
                     <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Extracción
+                    {analysisFlow("extractionTab")}
                   </button>
                   <button
                     onClick={() => setViewTab("analysis")}
@@ -776,7 +777,7 @@ export default function AppShell({
                     `}
                   >
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Análisis IA
+                    {analysisFlow("analysisTab")}
                   </button>
                 </div>
               )}
@@ -866,7 +867,7 @@ export default function AppShell({
               className="flex-1 flex items-center justify-center"
             >
               <div className="text-center text-zinc-600">
-                <p>Selecciona un análisis o sube un nuevo CV</p>
+                <p>{analysisFlow("empty")}</p>
               </div>
             </motion.div>
           )}

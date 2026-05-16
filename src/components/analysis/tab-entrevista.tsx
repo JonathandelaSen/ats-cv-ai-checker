@@ -8,6 +8,7 @@ import {
   Check,
   Sparkles,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 
 interface TabEntrevistaProps {
@@ -35,6 +36,8 @@ export default function TabEntrevista({
   isCreatingQuestion,
   onCreateQuestion,
 }: TabEntrevistaProps) {
+  const t = useTranslations("analysisDetail.interview");
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -50,10 +53,10 @@ export default function TabEntrevista({
             </div>
             <div>
               <h4 className="text-sm font-semibold text-fuchsia-300">
-                Preguntas asociadas
+                {t("title")}
               </h4>
               <p className="text-xs text-zinc-500">
-                {interviewQuestions.length} vinculadas a esta oferta.
+                {t("linkedCount", { count: interviewQuestions.length })}
               </p>
             </div>
           </div>
@@ -63,7 +66,7 @@ export default function TabEntrevista({
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-3 text-xs font-semibold text-fuchsia-300 transition-colors hover:bg-fuchsia-500/20"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            Abrir gestor
+            {t("openManager")}
           </button>
         </div>
 
@@ -85,7 +88,7 @@ export default function TabEntrevista({
                   </span>
                 ) : (
                   <span className="mt-2 inline-flex rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                    Pendiente de respuesta
+                    {t("pendingAnswer")}
                   </span>
                 )}
               </button>
@@ -93,19 +96,19 @@ export default function TabEntrevista({
           </div>
         ) : (
           <p className="mb-5 rounded-xl border border-white/[0.04] bg-[#0a0a12]/70 px-4 py-4 text-sm text-zinc-600">
-            Todavía no hay preguntas asociadas a esta oferta.
+            {t("empty")}
           </p>
         )}
 
         <div className="rounded-xl border border-white/[0.06] bg-[#0a0a12]/70 p-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-600">
-            Crear nueva pregunta vinculada
+            {t("createTitle")}
           </p>
           <div className="grid gap-3 lg:grid-cols-2">
             <textarea
               value={quickQuestion}
               onChange={(event) => onQuickQuestionChange(event.target.value)}
-              placeholder="Pregunta de entrevista"
+              placeholder={t("questionPlaceholder")}
               rows={2}
               className="resize-none rounded-lg border border-white/[0.06] bg-[#09090f] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-fuchsia-500/40 focus:outline-none focus:ring-1 focus:ring-fuchsia-500/40"
             />
@@ -114,7 +117,7 @@ export default function TabEntrevista({
               onChange={(event) =>
                 onQuickQuestionContextChange(event.target.value)
               }
-              placeholder="Contexto opcional para la IA"
+              placeholder={t("contextPlaceholder")}
               rows={2}
               className="resize-none rounded-lg border border-white/[0.06] bg-[#09090f] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-fuchsia-500/40 focus:outline-none focus:ring-1 focus:ring-fuchsia-500/40"
             />
@@ -130,14 +133,14 @@ export default function TabEntrevista({
                 ) : (
                   <Check className="h-3.5 w-3.5" />
                 )}
-                Guardar sin IA
+                {t("saveWithoutAI")}
               </button>
               <select
                 value={quickQuestionModel}
                 onChange={(event) =>
                   onQuickQuestionModelChange(event.target.value)
                 }
-                aria-label="Modelo para generar con IA"
+                aria-label={t("modelLabel")}
                 className="h-10 rounded-lg border border-white/[0.08] bg-[#09090f] px-3 text-xs text-zinc-300 outline-none"
               >
                 <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
@@ -154,7 +157,7 @@ export default function TabEntrevista({
                 ) : (
                   <Sparkles className="h-3.5 w-3.5" />
                 )}
-                Crear y generar con IA
+                {t("createWithAI")}
               </button>
             </div>
           </div>

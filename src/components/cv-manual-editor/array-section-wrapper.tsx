@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ArraySectionWrapperProps<T> {
   items: T[];
@@ -13,6 +14,7 @@ interface ArraySectionWrapperProps<T> {
 }
 
 export function ArraySectionWrapper<T>({ items, onChange, renderItem, createEmpty, getPreview, label }: ArraySectionWrapperProps<T>) {
+  const t = useTranslations("cvEditor.manual");
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const updateItem = (index: number, value: T) => {
@@ -78,7 +80,7 @@ export function ArraySectionWrapper<T>({ items, onChange, renderItem, createEmpt
       ))}
       <button onClick={add} className="flex items-center gap-1.5 text-[11px] text-teal-400 hover:text-teal-300 pt-1">
         <Plus className="h-3 w-3" />
-        Añadir {label.toLowerCase()}
+        {t("addItem", { label: label.toLowerCase() })}
       </button>
     </div>
   );

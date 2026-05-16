@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import {
   FileText,
   Copy,
@@ -55,25 +56,25 @@ type ParserTab = "python" | "pdfjs" | "node";
 const PARSERS: {
   key: ParserTab;
   label: string;
-  description: string;
+  descriptionKey: "python" | "pdfjs" | "node";
   color: string;
 }[] = [
   {
     key: "python",
     label: "Python (pdfminer)",
-    description: "Respeta mejor el layout — usado por la mayoría de ATS",
+    descriptionKey: "python",
     color: "bg-blue-500",
   },
   {
     key: "pdfjs",
     label: "Node (pdfjs-dist)",
-    description: "Motor PDF del navegador — simula lectura web",
+    descriptionKey: "pdfjs",
     color: "bg-emerald-500",
   },
   {
     key: "node",
     label: "Node (pdf-parse)",
-    description: "Parser ligero de Node.js — extracción básica",
+    descriptionKey: "node",
     color: "bg-amber-500",
   },
 ];
@@ -85,6 +86,7 @@ export default function ExtractionView({
   hasGeminiApiKey,
   onOpenSettings,
 }: ExtractionViewProps) {
+  const t = useTranslations("analysisFlow.extraction");
   const [activeTab, setActiveTab] = useState<ParserTab>("python");
   const [fullscreen, setFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -141,7 +143,7 @@ export default function ExtractionView({
 
   const handleGeneralAnalysis = async (context: AIContext, model: string) => {
     if (!hasGeminiApiKey) {
-      setAiError("Configura tu API key de Gemini antes de lanzar el análisis.");
+      setAiError(t("missingApiKey"));
       return;
     }
 
@@ -161,7 +163,7 @@ export default function ExtractionView({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Error en el análisis IA");
+        throw new Error(data.error || t("aiAnalysisFailed"));
       }
 
       onAIAnalysisComplete();
@@ -178,7 +180,7 @@ export default function ExtractionView({
     model: string,
   ) => {
     if (!hasGeminiApiKey) {
-      setAiError("Configura tu API key de Gemini antes de lanzar el análisis.");
+      setAiError(t("missingApiKey"));
       return;
     }
 
@@ -199,7 +201,7 @@ export default function ExtractionView({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Error en el análisis IA");
+        throw new Error(data.error || t("aiAnalysisFailed"));
       }
 
       onAIAnalysisComplete();
@@ -223,7 +225,7 @@ export default function ExtractionView({
               {analysis.filename}
             </h2>
             <p className="text-[10px] sm:text-xs text-zinc-500 truncate">
-              Texto extraído con 3 parsers diferentes
+              {t("subtitle")}
             </p>
           </div>
         </div>
@@ -240,10 +242,10 @@ export default function ExtractionView({
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span className="hidden xs:inline">
-                  {showPdfPreview ? "Cerrar PDF" : "Ver PDF Original"}
+                  {showPdfPreview ? t("closePdf") : t("viewPdf")}
                 </span>
                 <span className="xs:hidden">
-                  {showPdfPreview ? "Cerrar" : "PDF"}
+                  {showPdfPreview ? t("close") : "PDF"}
                 </span>
               </button>
               <a
@@ -251,22 +253,22 @@ export default function ExtractionView({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all"
-                title="Ver PDF original"
+                title={t("viewPdf")}
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Descargar</span>
+                <span className="hidden xs:inline">{t("download")}</span>
               </a>
             </>
           )}
           <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
             <span className="text-[10px] sm:text-xs text-zinc-500 bg-zinc-800/60 px-2 py-1 rounded-md whitespace-nowrap">
               {wordCount.toLocaleString()}{" "}
-              <span className="hidden xs:inline">palabras</span>
+              <span className="hidden xs:inline">{t("words")}</span>
               <span className="xs:hidden">w</span>
             </span>
             <span className="text-[10px] sm:text-xs text-zinc-500 bg-zinc-800/60 px-2 py-1 rounded-md whitespace-nowrap">
               {charCount.toLocaleString()}{" "}
-              <span className="hidden xs:inline">caracteres</span>
+              <span className="hidden xs:inline">{t("characters")}</span>
               <span className="xs:hidden">ch</span>
             </span>
           </div>
@@ -309,10 +311,10 @@ export default function ExtractionView({
                   </p>
                   <p className="text-[10px] sm:text-[11px] text-zinc-600 truncate">
                     {hasError
-                      ? "Error"
+                      ? t("error")
                       : hasContent
                         ? `${(text?.length || 0).toLocaleString()} chars`
-                        : "Sin resultado"}
+                        : t("noResult")}
                   </p>
                 </div>
               </button>
@@ -341,7 +343,7 @@ export default function ExtractionView({
                     className={`w-2 h-2 rounded-full shrink-0 ${PARSERS.find((p) => p.key === activeTab)?.color}`}
                   />
                   <span className="text-[10px] sm:text-xs text-zinc-400 font-medium truncate">
-                    {PARSERS.find((p) => p.key === activeTab)?.description}
+                    {t(`parserDescriptions.${PARSERS.find((p) => p.key === activeTab)?.descriptionKey ?? "python"}`)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -356,7 +358,7 @@ export default function ExtractionView({
                       <Copy className="w-3.5 h-3.5" />
                     )}
                     <span className="hidden xs:inline">
-                      {copied ? "Copiado" : "Copiar"}
+                      {copied ? t("copied") : t("copy")}
                     </span>
                   </button>
                   <button
@@ -379,7 +381,7 @@ export default function ExtractionView({
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-sm">
-                        Error en la extracción
+                        {t("extractionError")}
                       </p>
                       <p className="text-xs text-rose-400/70 mt-1 font-mono break-all">
                         {currentError}
@@ -394,7 +396,7 @@ export default function ExtractionView({
                   <div className="flex flex-col items-center justify-center h-full py-10 text-zinc-600">
                     <FileText className="w-8 h-8 sm:w-10 sm:h-10 mb-3 opacity-30" />
                     <p className="text-xs sm:text-sm text-center px-4">
-                      Este parser no produjo texto para este PDF
+                      {t("noText")}
                     </p>
                   </div>
                 )}
@@ -415,7 +417,7 @@ export default function ExtractionView({
                   <div className="flex items-center gap-2">
                     <FileText className="w-3.5 h-3.5 text-indigo-400" />
                     <span className="text-xs font-semibold text-zinc-200">
-                      Vista Previa del PDF
+                      {t("pdfPreview")}
                     </span>
                   </div>
                   <button

@@ -12,7 +12,7 @@ const migrationSource = read(
 const analysisRouteSource = read("src/app/api/job-match-analyses/[id]/route.ts");
 const validationSource = read("src/app/api/job-match-analyses/validation.ts");
 const analysisTypesSource = read("src/lib/analysis-types.ts");
-const analysisViewSource = read("src/components/ai-analysis-view.tsx");
+const analysisViewSource = read("src/components/analysis/analysis-view.tsx");
 const jobAnalysesListSource = read("src/components/job-analyses-list-view.tsx");
 
 test("offer tracking migration adds constrained analysis fields", () => {
@@ -51,8 +51,8 @@ test("offer tracking fields flow through DB summaries and UI", () => {
   assert.match(analysisTypesSource, /offer_status: OfferStatus \| null/);
   assert.match(analysisTypesSource, /job_url: string \| null/);
   assert.match(analysisTypesSource, /offer_next_action_at: string \| null/);
-  assert.match(analysisViewSource, /Seguimiento de oferta/);
+  assert.match(analysisViewSource, /tabs\.tracking/);
   assert.match(analysisViewSource, /offer_next_action_at/);
   assert.match(jobAnalysesListSource, /OFFER_STATUS_BADGE_CLASS/);
-  assert.match(jobAnalysesListSource, /OFFER_STATUS_LABELS\[a\.offer_status\]/);
+  assert.match(jobAnalysesListSource, /navigation\(`offerStatuses\.\$\{a\.offer_status\}`\)/);
 });

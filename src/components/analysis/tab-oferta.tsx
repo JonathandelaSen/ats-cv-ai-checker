@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ListChecks, Briefcase, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   Accordion,
   AccordionItem,
@@ -19,6 +20,8 @@ export default function TabOferta({
   jobKeyData,
   jobDescription,
 }: TabOfertaProps) {
+  const t = useTranslations("analysisDetail.offer");
+
   return (
     <div className="space-y-6">
       {jobKeyData && (
@@ -30,18 +33,18 @@ export default function TabOferta({
         >
           <h4 className="text-sm font-semibold text-sky-300 flex items-center gap-2 mb-4">
             <ListChecks className="w-4 h-4" />
-            Datos clave de la oferta
+            {t("keyData")}
           </h4>
           <div className="grid gap-3 md:grid-cols-3">
             {(
               [
-                ["Puesto", jobKeyData.title],
-                ["Empresa", jobKeyData.company],
-                ["Ubicación", jobKeyData.location],
-                ["Modalidad", jobKeyData.remote],
-                ["Salario", jobKeyData.salary],
-                ["Seniority", jobKeyData.seniority],
-                ["Contrato", jobKeyData.contractType],
+                [t("title"), jobKeyData.title],
+                [t("company"), jobKeyData.company],
+                [t("location"), jobKeyData.location],
+                [t("remote"), jobKeyData.remote],
+                [t("salary"), jobKeyData.salary],
+                [t("seniority"), jobKeyData.seniority],
+                [t("contractType"), jobKeyData.contractType],
               ] as Array<[string, string | null | undefined]>
             ).map(([label, value]) => (
               <div
@@ -52,7 +55,7 @@ export default function TabOferta({
                   {label}
                 </p>
                 <p className="mt-1 text-sm text-zinc-300">
-                  {value || "No indicado"}
+                  {value || t("notSpecified")}
                 </p>
               </div>
             ))}
@@ -60,10 +63,10 @@ export default function TabOferta({
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {(
               [
-                ["Requisitos", jobKeyData.requirements],
-                ["Responsabilidades", jobKeyData.responsibilities],
-                ["Beneficios", jobKeyData.benefits],
-                ["Puntos relevantes", jobKeyData.notablePoints],
+                [t("requirements"), jobKeyData.requirements],
+                [t("responsibilities"), jobKeyData.responsibilities],
+                [t("benefits"), jobKeyData.benefits],
+                [t("notablePoints"), jobKeyData.notablePoints],
               ] as Array<[string, string[] | undefined]>
             ).map(([label, values]) => {
               const list = Array.isArray(values) ? values : [];
@@ -88,7 +91,7 @@ export default function TabOferta({
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-xs italic text-zinc-600">No indicado.</p>
+                    <p className="text-xs italic text-zinc-600">{t("notSpecified")}.</p>
                   )}
                 </div>
               );
@@ -109,7 +112,7 @@ export default function TabOferta({
               <AccordionTrigger className="py-0 hover:no-underline">
                 <h4 className="text-sm font-semibold text-emerald-300 flex items-center gap-2">
                   <Briefcase className="w-4 h-4" />
-                  Descripción completa de la oferta
+                  {t("fullDescription")}
                 </h4>
               </AccordionTrigger>
               <AccordionContent className="pt-4">

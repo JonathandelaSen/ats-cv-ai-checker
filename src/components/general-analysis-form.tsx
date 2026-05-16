@@ -12,6 +12,7 @@ import {
   MessageSquare,
   KeyRound,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { AIContext } from "@/lib/analysis-types";
 
 interface GeneralAnalysisFormProps {
@@ -31,6 +32,8 @@ export default function GeneralAnalysisForm({
   hasGeminiApiKey,
   onOpenSettings,
 }: GeneralAnalysisFormProps) {
+  const t = useTranslations("analysisFlow.forms");
+  const common = useTranslations("common");
   const [additionalContext, setAdditionalContext] = useState("");
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
@@ -54,10 +57,10 @@ export default function GeneralAnalysisForm({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-medium text-violet-300">
             <Sparkles className="w-3.5 h-3.5" />
-            Análisis General del CV
+            {t("generalTitle")}
           </div>
           <span className="text-[10px] text-zinc-600">
-            Todos los campos son opcionales
+            {t("allFieldsOptional")}
           </span>
         </div>
         <button
@@ -65,7 +68,7 @@ export default function GeneralAnalysisForm({
           className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Cambiar modo
+          {t("changeMode")}
         </button>
       </div>
 
@@ -73,13 +76,13 @@ export default function GeneralAnalysisForm({
       <div className="mb-4">
         <label className="flex items-center gap-2 text-sm text-zinc-400 mb-1.5">
           <MessageSquare className="w-3.5 h-3.5" />
-          Contexto adicional
+          {t("additionalContext")}
           <span className="text-[10px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
-            Opcional
+            {t("optional")}
           </span>
         </label>
         <textarea
-          placeholder="Cuéntanos más sobre lo que buscas: ¿estás en transición de carrera? ¿buscas tu primer empleo? ¿quieres destacar algo específico?"
+          placeholder={t("additionalContextPlaceholder")}
           className="w-full h-24 px-4 py-3 rounded-xl bg-[#0a0a12] border border-white/[0.06] text-sm text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10 transition-all"
           value={additionalContext}
           onChange={(e) => setAdditionalContext(e.target.value)}
@@ -92,7 +95,7 @@ export default function GeneralAnalysisForm({
         <div className="flex-1">
           <label className="flex items-center gap-2 text-sm text-zinc-400 mb-1.5">
             <Cpu className="w-3.5 h-3.5" />
-            Modelo de IA
+            {t("aiModel")}
           </label>
           <div className="relative">
             <select
@@ -101,10 +104,10 @@ export default function GeneralAnalysisForm({
               className="w-full h-10 px-4 rounded-xl bg-[#0a0a12] border border-white/[0.06] text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/40 appearance-none cursor-pointer"
             >
               <option value="gemini-2.5-flash">
-                Gemini 2.5 Flash (Rápido)
+                Gemini 2.5 Flash ({t("fast")})
               </option>
               <option value="gemini-3.1-pro-preview">
-                Gemini 3.1 Pro Preview (Más Potente)
+                Gemini 3.1 Pro Preview ({t("powerful")})
               </option>
             </select>
             <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
@@ -122,12 +125,12 @@ export default function GeneralAnalysisForm({
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Analizando...
+              {common("states.analyzing")}
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              Analizar CV
+              {t("analyzeCV")}
               <ArrowRight className="w-4 h-4" />
             </>
           )}
@@ -141,8 +144,7 @@ export default function GeneralAnalysisForm({
           className="mt-3 flex flex-col gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between"
         >
           <span>
-            Configura tu API key de Gemini para activar el análisis. La clave se
-            guarda solo en este navegador.
+            {t("missingApiKey")}
           </span>
           <button
             type="button"
@@ -150,7 +152,7 @@ export default function GeneralAnalysisForm({
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-zinc-950 transition-colors hover:bg-amber-300"
           >
             <KeyRound className="h-3.5 w-3.5" />
-            Configurar
+            {common("actions.configure")}
           </button>
         </motion.div>
       )}
