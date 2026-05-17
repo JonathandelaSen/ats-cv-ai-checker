@@ -9,7 +9,6 @@ const cwd = process.cwd();
 const tracedRoutes = [
   ".next/server/app/api/parse/route.js.nft.json",
   ".next/server/app/api/cvs/route.js.nft.json",
-  ".next/server/app/api/analyses/route.js.nft.json",
 ];
 
 for (const routeTracePath of tracedRoutes) {
