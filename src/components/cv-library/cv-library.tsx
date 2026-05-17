@@ -23,7 +23,7 @@ import { getErrorMessage } from "@/lib/errors";
 import type { AnalysisSummary } from "@/lib/analysis-types";
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface CVLibraryProps {
   cvs: CVSummary[];

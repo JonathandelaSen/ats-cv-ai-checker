@@ -26,7 +26,7 @@ import TabOferta from "./tab-oferta";
 import TabEntrevista from "./tab-entrevista";
 import TabSeguimiento from "./tab-seguimiento";
 import TabChatOferta from "./tab-chat-oferta";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface AIAnalysisViewProps {
   analysis: {

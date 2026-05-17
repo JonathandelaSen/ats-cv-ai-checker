@@ -23,7 +23,7 @@ import {
   type CVTemplateDefinition,
   type CVTemplateLocale,
 } from "@/lib/cv-templates";
-import CVTemplatePreview from "@/components/cv-template-preview";
+import CVTemplatePreview from "@/components/cv-library/cv-template-preview";
 import { Button } from "@/components/ui/button";
 
 interface TemplatesViewProps {

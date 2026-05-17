@@ -29,7 +29,7 @@ import {
   removeStoredGeminiApiKey,
   saveStoredGeminiApiKey,
 } from "@/lib/browser-preferences";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 import type { InterfaceLanguage } from "@/i18n/config";
 
 const INITIAL_STATE: AuthFormState = {};

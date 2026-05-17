@@ -11,8 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
-import { InterfaceLanguageSelect } from "@/components/interface-language-select";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
+import { InterfaceLanguageSelect } from "@/components/shared/interface-language-select";
 
 const INITIAL_STATE: AuthFormState = {};
 

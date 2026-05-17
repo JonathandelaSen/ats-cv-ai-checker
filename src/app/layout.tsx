@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { I18nProvider } from "@/components/i18n-provider";
+import { I18nProvider } from "@/components/shared/i18n-provider";
 import { getMessages } from "@/i18n/messages";
 import { resolveInterfaceLanguage } from "@/i18n/server";
 import "./globals.css";

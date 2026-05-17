@@ -16,7 +16,8 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ProcessingEvent, ProcessingEventStatus } from "@/lib/observability";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
+import { ObservabilityListSkeleton, ObservabilityDetailSkeleton } from "@/components/shared/skeletons";
 
 interface AdminObservabilityDashboardProps {
   userEmail: string | null;
@@ -219,7 +220,9 @@ export default function AdminObservabilityDashboard({
                   {error}
                 </div>
               )}
-              {filteredEvents.length === 0 ? (
+              {loading ? (
+                <ObservabilityListSkeleton />
+              ) : filteredEvents.length === 0 ? (
                 <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-3 text-center text-zinc-500">
                   <Activity className="h-7 w-7" />
                   <p className="text-sm">{t("empty")}</p>
@@ -260,7 +263,9 @@ export default function AdminObservabilityDashboard({
           </aside>
 
           <section className="min-h-[520px] overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
-            {selectedEvent ? (
+            {loading ? (
+              <ObservabilityDetailSkeleton />
+            ) : selectedEvent ? (
               <div className="flex h-full min-h-0 flex-col">
                 <div className="shrink-0 border-b border-white/[0.06] p-5">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

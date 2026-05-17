@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface TabChatOfertaProps {
   analysisId: string;

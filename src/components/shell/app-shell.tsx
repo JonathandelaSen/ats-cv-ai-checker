@@ -2,24 +2,25 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import Sidebar, { type AnalysisSummary } from "@/components/sidebar";
-import NewAnalysisFlow from "@/components/new-analysis-flow";
-import CVLibrary from "@/components/cv-library";
-import TemplatesView from "@/components/templates-view";
-import CVEditorView from "@/components/cv-editor-view";
-import InterviewQuestionsView from "@/components/interview-questions-view";
-import WorkJournalView from "@/components/work-journal-view";
-import ObjectivesView from "@/components/objectives-view";
-import FeedbackNotesView from "@/components/feedback-notes-view";
-import ReceivedFeedbackView from "@/components/received-feedback-view";
-import ExtractionView from "@/components/extraction-view";
-import AIAnalysisView from "@/components/analysis/analysis-view";
-import CVAnalysesListView from "@/components/cv-analyses-list-view";
-import JobAnalysesListView from "@/components/job-analyses-list-view";
-import SettingsView from "@/components/settings-view";
-import AdminObservabilityDashboard from "@/components/admin-observability-dashboard";
+import Sidebar, { type AnalysisSummary } from "@/components/shell/sidebar";
+import NewAnalysisFlow from "@/components/cv-library/new-analysis-flow";
+import CVLibrary from "@/components/cv-library/cv-library";
+import TemplatesView from "@/components/cv-library/templates-view";
+import CVEditorView from "@/components/cv-library/cv-editor-view";
+import InterviewQuestionsView from "@/components/selection-process/interview-questions-view";
+import WorkJournalView from "@/components/work-journal/work-journal-view";
+import ObjectivesView from "@/components/commitments/objectives-view";
+import FeedbackNotesView from "@/components/feedback-notes/feedback-notes-view";
+import ReceivedFeedbackView from "@/components/received-feedback/received-feedback-view";
+import ExtractionView from "@/components/cv-analysis/extraction-view";
+import AIAnalysisView from "@/components/cv-analysis/analysis-view";
+import CVAnalysesListView from "@/components/cv-analysis/cv-analyses-list-view";
+import JobAnalysesListView from "@/components/job-match-analysis/job-analyses-list-view";
+import SettingsView from "@/components/settings/settings-view";
+import AdminObservabilityDashboard from "@/components/observability/admin-observability-dashboard";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Sparkles } from "lucide-react";
+import { AnalysisDetailSkeleton } from "@/components/shared/skeletons";
 import { createClient } from "@/lib/supabase/client";
 import type {
   AnalysisMode,
@@ -739,12 +740,9 @@ export default function AppShell({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex items-center justify-center"
+              className="flex-1 overflow-y-auto p-6"
             >
-              <div className="flex flex-col items-center gap-3 text-zinc-500">
-                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin" />
-                <span className="text-sm">{common("states.loadingAnalysis")}</span>
-              </div>
+              <AnalysisDetailSkeleton />
             </motion.div>
           ) : activeAnalysis ? (
             <motion.div

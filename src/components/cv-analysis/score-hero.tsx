@@ -19,7 +19,7 @@ import {
   Pencil,
 } from "lucide-react";
 import type { AnalysisMode } from "@/lib/analysis-types";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface ScoreHeroProps {
   score: number;

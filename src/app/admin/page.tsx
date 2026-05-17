@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import AppShell from "@/components/app-shell";
+import AppShell from "@/components/shell/app-shell";
 import { isAdminUser } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
 

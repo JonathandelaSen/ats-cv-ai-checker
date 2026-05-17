@@ -28,7 +28,7 @@ import {
   Target,
 } from "lucide-react";
 import type { AnalysisMode, OfferStatus } from "@/lib/analysis-types";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
   interesante: "border-sky-500/20 bg-sky-500/10 text-sky-300",

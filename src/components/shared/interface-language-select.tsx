@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Globe2 } from "lucide-react";
-import { useInterfaceLanguage } from "@/components/i18n-provider";
+import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 import type { InterfaceLanguage } from "@/i18n/config";
 
 export function InterfaceLanguageSelect({ compact = false }: { compact?: boolean }) {

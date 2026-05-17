@@ -34,11 +34,11 @@ import {
 } from "@/lib/cv-profile";
 
 import { Button } from "@/components/ui/button";
-import { ManualEditor } from "@/components/cv-manual-editor/manual-editor";
-import { useProfileHistory } from "@/components/cv-manual-editor/use-profile-history";
+import { ManualEditor } from "@/components/cv-library/cv-manual-editor/manual-editor";
+import { useProfileHistory } from "@/components/cv-library/cv-manual-editor/use-profile-history";
 
 const PDFPreview = dynamic(
-  () => import("@/components/pdf-preview").then((mod) => mod.PDFPreview),
+  () => import("@/components/shared/pdf-preview").then((mod) => mod.PDFPreview),
   {
     ssr: false,
     loading: () => (
