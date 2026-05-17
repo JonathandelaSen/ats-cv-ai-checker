@@ -16,12 +16,12 @@ const rootDir = path.resolve(
   "../.."
 );
 
-export const e2eDir = path.join(rootDir, ".e2e");
-export const logsDir = path.join(e2eDir, "logs");
-export const supabaseProjectRoot = path.join(e2eDir, "supabase-workdir");
+export const testInfraDir = path.join(rootDir, ".test-infra");
+export const logsDir = path.join(testInfraDir, "logs");
+export const supabaseProjectRoot = path.join(testInfraDir, "supabase-workdir");
 const supabaseDir = path.join(supabaseProjectRoot, "supabase");
-const envJsonPath = path.join(e2eDir, "env.json");
-const projectId = "ats-cv-ai-checker-e2e";
+const envJsonPath = path.join(testInfraDir, "env.json");
+export const projectId = "ats-cv-ai-checker-test";
 
 export const ports = {
   app: 3100,
@@ -188,12 +188,12 @@ export async function startSupabase() {
   ], { logName: "supabase-status" });
   const env = parseSupabaseEnv(stdout);
   if (!env.anonKey || !env.serviceRoleKey) {
-    throw new Error("Could not read Supabase E2E anon/service-role keys.");
+    throw new Error("Could not read Supabase test anon/service-role keys.");
   }
   return env;
 }
 
-export async function writeE2EEnv(supabaseEnv) {
+export async function writeTestEnv(supabaseEnv) {
   await writeFile(
     envJsonPath,
     JSON.stringify(

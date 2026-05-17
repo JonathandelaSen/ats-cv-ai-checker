@@ -3,16 +3,16 @@ import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import {
-  e2eDir,
+  testInfraDir,
   logsDir,
   ports,
   prepareSupabaseWorkdir,
   startSupabase,
   supabaseProjectRoot,
-  writeE2EEnv,
+  writeTestEnv,
 } from "./infra/supabase-stack.mjs";
 
-const envJsonPath = path.join(e2eDir, "env.json");
+const envJsonPath = path.join(testInfraDir, "env.json");
 
 function canReach(url) {
   return new Promise((resolve) => {
@@ -68,7 +68,7 @@ async function ensureSupabaseE2EStack() {
 
   await prepareSupabaseWorkdir();
   const supabaseEnv = await startSupabase();
-  await writeE2EEnv(supabaseEnv);
+  await writeTestEnv(supabaseEnv);
 
   console.log(`[backend-test] Supabase E2E stack ready at ${apiUrl}`);
   console.log(`[backend-test] Workdir: ${supabaseProjectRoot}`);

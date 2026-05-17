@@ -9,22 +9,23 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
-  e2eDir,
+  testInfraDir,
   logsDir,
   ports,
   prepareSupabaseWorkdir,
+  projectId,
   run,
   startSupabase,
   supabaseProjectRoot,
   waitForHttp,
-  writeE2EEnv,
+  writeTestEnv,
 } from "../infra/supabase-stack.mjs";
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 );
-const appWorkdir = path.join(e2eDir, "app-workdir");
+const appWorkdir = path.join(testInfraDir, "app-workdir");
 const parserContainerName = "ats-cv-ai-checker-pdf-parser-e2e";
 const parserImageName = "ats-cv-ai-checker-pdf-parser:e2e";
 const parserSecret = "e2e-parser-secret";
@@ -176,7 +177,7 @@ async function cleanup() {
       "--workdir",
       supabaseProjectRoot,
       "--project-id",
-      "ats-cv-ai-checker-e2e",
+      projectId,
       "--no-backup",
     ], { allowFailure: true, logName: "supabase-cleanup" });
   }
@@ -189,7 +190,7 @@ async function main() {
   const supabaseEnv = await startSupabase();
   await startParser(supabaseEnv);
   await startNext(supabaseEnv);
-  await writeE2EEnv(supabaseEnv);
+  await writeTestEnv(supabaseEnv);
 
   await run("npx", ["playwright", "install", "chromium"], {
     pipeOutput: true,

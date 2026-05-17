@@ -14,7 +14,7 @@
 /coverage
 /test-results
 /playwright-report
-/.e2e
+/.test-infra
 /.playwright
 
 # sqlite data

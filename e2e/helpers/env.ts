@@ -12,7 +12,7 @@ export interface E2EEnv {
 }
 
 export function getE2EEnv(): E2EEnv {
-  const envPath = path.resolve(process.cwd(), ".e2e/env.json");
+  const envPath = path.resolve(process.cwd(), ".test-infra/env.json");
   return JSON.parse(readFileSync(envPath, "utf8")) as E2EEnv;
 }
 
