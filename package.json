@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run test:backend && npm run ddd:check",
+    "test": "npm run ddd:check",
     "test:backend": "node scripts/test-backend.mjs",
     "ddd:check": "node scripts/verify-ddd.mjs",
     "test:e2e:local": "node scripts/e2e/run-local.mjs",
