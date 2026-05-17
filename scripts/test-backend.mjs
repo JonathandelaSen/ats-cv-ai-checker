@@ -10,7 +10,7 @@ import {
   startSupabase,
   supabaseProjectRoot,
   writeE2EEnv,
-} from "./e2e/run-local.mjs";
+} from "./infra/supabase-stack.mjs";
 
 const envJsonPath = path.join(e2eDir, "env.json");
 
