@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import Sidebar, { type AnalysisSummary } from "@/components/shell/sidebar";
+import type { AnalysisSummary } from "@/lib/analysis-types";
+import Sidebar from "@/components/shell/sidebar";
 import NewAnalysisFlow from "@/components/cv-library/new-analysis-flow";
 import CVLibrary from "@/components/cv-library/cv-library";
 import TemplatesView from "@/components/cv-library/templates-view";

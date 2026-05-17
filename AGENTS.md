@@ -143,6 +143,7 @@ Wrap the entire handler body in `try/catch` and delegate all error handling to `
 ```
 
 `handleApiError` (from `@/modules/shared`) handles:
+
 - `HttpError` (thrown by `notFound()`, `badRequest()`, `forbidden()`, `conflict()`) → proper 4xx status.
 - `DomainError` subclasses → 404 for `*NotFoundError`, 400 otherwise.
 - Anything else → 500 with console error log.
@@ -153,15 +154,15 @@ Do **not** use the legacy `handleDomainError()` from `domain-error-handler.ts` i
 
 Use the response helpers from `@/modules/shared` — never construct `NextResponse` manually:
 
-| Helper | Status | Use for |
-|---|---|---|
-| `ok(data)` | 200 | Successful reads |
-| `created(data)` | 201 | Successful creates |
-| `errorResponse(error)` | variable | Validation failures (from `parse*`) |
-| `notFound(msg)` | throws 404 | Resource not found (throw inside use case or controller) |
-| `badRequest(msg)` | throws 400 | Invalid state detected in controller |
-| `forbidden(msg)` | throws 403 | Authorization failure beyond auth check |
-| `conflict(msg)` | throws 409 | Conflicting resource state |
+| Helper                 | Status     | Use for                                                  |
+| ---------------------- | ---------- | -------------------------------------------------------- |
+| `ok(data)`             | 200        | Successful reads                                         |
+| `created(data)`        | 201        | Successful creates                                       |
+| `errorResponse(error)` | variable   | Validation failures (from `parse*`)                      |
+| `notFound(msg)`        | throws 404 | Resource not found (throw inside use case or controller) |
+| `badRequest(msg)`      | throws 400 | Invalid state detected in controller                     |
+| `forbidden(msg)`       | throws 403 | Authorization failure beyond auth check                  |
+| `conflict(msg)`        | throws 409 | Conflicting resource state                               |
 
 #### Complete canonical example
 
@@ -198,7 +199,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) return errorResponse(parsed.error);
 
     myModule.bindRequest(supabase);
-    const entity = await myModule.createEntity.execute({ userId: user.id, ...parsed.value });
+    const entity = await myModule.createEntity.execute({
+      userId: user.id,
+      ...parsed.value,
+    });
     return created(presentMyEntity(entity));
   } catch (error: unknown) {
     return handleApiError(error);
@@ -251,9 +255,30 @@ Each step should be a separate commit.
 
 Some `src/lib/` files are thin re-export shims that bridge old import paths to domain files inside modules (e.g., `src/lib/cv-profile.ts` → `@/modules/cv-library/domain/cv-profile`). These shims **must import from the domain file directly**, not from the module barrel (`@/modules/<name>`), because the barrel re-exports the full module (use cases, repositories, etc.) and Next.js Turbopack does not tree-shake barrel re-exports in client components — importing the barrel from a client component drags in `server-only` code and breaks the build. These shim files are listed in the `reExportShims` set in `scripts/verify-ddd-route-imports.mjs` so they are exempt from the barrel-only rule.
 
+## Frontend component organization (screaming architecture)
+
+Frontend components mirror backend module names under `src/components/`:
+
+```
+src/components/
+  auth/             cv-analysis/       cv-library/
+  commitments/      feedback-notes/    job-match-analysis/
+  observability/    received-feedback/ selection-process/
+  settings/         shell/             work-journal/
+  shared/           ui/
+```
+
+### Conventions
+
+1. New components go in `src/components/<backend-module-name>/`.
+2. Cross-module reusable components → `src/components/shared/`.
+3. Generic UI primitives → `src/components/ui/` (prefer shadcn).
+4. Each module folder has an `index.ts` barrel. Add new exports there.
+
 ### Build verification
 
 After any change under `src/modules/`, `src/lib/`, `src/app/`, or `src/components/`, run `npm run build` before finishing. Type-checking alone (`tsc --noEmit`) does not catch Next.js server/client boundary errors — only the full build does.
 
 ## Agent Workflow Preferences
+
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.

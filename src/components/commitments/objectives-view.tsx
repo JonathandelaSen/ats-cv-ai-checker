@@ -30,7 +30,7 @@ import type {
   CommitmentStatus,
 } from "@/modules/commitments";
 import { getErrorMessage } from "@/lib/errors";
-import { ObjectivesSidebarSkeleton, ObjectivesDetailSkeleton } from "@/components/shared/skeletons";
+import { ObjectivesSidebarSkeleton, ObjectivesDetailSkeleton } from "./objectives-skeleton";
 
 interface CommitmentWithRelations extends CommitmentPrimitives {
   items: CommitmentItemPrimitives[];

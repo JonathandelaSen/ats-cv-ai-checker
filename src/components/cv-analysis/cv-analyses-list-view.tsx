@@ -3,8 +3,8 @@
 import { FileSearch, Clock, Sparkles, Trash2, Plus, FileText } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
-import { CVAnalysesListSkeleton } from "@/components/shared/skeletons";
-import type { AnalysisSummary } from "@/components/shell/sidebar";
+import { CVAnalysesListSkeleton } from "./cv-analyses-list-skeleton";
+import type { AnalysisSummary } from "@/lib/analysis-types";
 
 interface CVAnalysesListViewProps {
   analyses: AnalysisSummary[];

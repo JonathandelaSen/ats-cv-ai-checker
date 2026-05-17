@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import type { ActivityContextPrimitives, ActivityContextType } from "@/modules/activity";
 import type { ReceivedFeedbackPrimitives } from "@/modules/received-feedback";
 import { getErrorMessage } from "@/lib/errors";
-import { ReceivedFeedbackSkeleton } from "@/components/shared/skeletons";
+import { ReceivedFeedbackSkeleton } from "./received-feedback-skeleton";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-300 focus:ring-0";

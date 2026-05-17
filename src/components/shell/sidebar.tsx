@@ -27,7 +27,11 @@ import {
   Inbox,
   Target,
 } from "lucide-react";
-import type { AnalysisMode, OfferStatus } from "@/lib/analysis-types";
+import type {
+  AnalysisMode,
+  AnalysisSummary,
+  OfferStatus,
+} from "@/lib/analysis-types";
 import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
@@ -38,20 +42,6 @@ const OFFER_STATUS_BADGE_CLASS: Record<OfferStatus, string> = {
   rechazado: "border-rose-500/20 bg-rose-500/10 text-rose-300",
   descartado: "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
 };
-
-export interface AnalysisSummary {
-  id: string;
-  cv_id: string | null;
-  title: string;
-  filename: string;
-  created_at: string;
-  analysis_mode: AnalysisMode;
-  ai_score: number | null;
-  ai_analyzed_at: string | null;
-  job_url: string | null;
-  offer_status: OfferStatus | null;
-  offer_next_action_at: string | null;
-}
 
 interface SidebarProps {
   generalAnalyses: AnalysisSummary[];

@@ -29,7 +29,7 @@ import type {
 import { buildWorkJournalEntryDraftPrompt } from "@/modules/work-journal/client";
 import { getErrorMessage } from "@/lib/errors";
 import { CopyPromptModal } from "@/components/shared/copy-prompt-modal";
-import { WorkJournalSkeleton } from "@/components/shared/skeletons";
+import { WorkJournalSkeleton } from "./work-journal-skeleton";
 import { Clipboard } from "lucide-react";
 
 interface WorkJournalViewProps {

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { ProcessingEvent, ProcessingEventStatus } from "@/lib/observability";
 import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
-import { ObservabilityListSkeleton, ObservabilityDetailSkeleton } from "@/components/shared/skeletons";
+import { ObservabilityListSkeleton, ObservabilityDetailSkeleton } from "./observability-skeleton";
 
 interface AdminObservabilityDashboardProps {
   userEmail: string | null;

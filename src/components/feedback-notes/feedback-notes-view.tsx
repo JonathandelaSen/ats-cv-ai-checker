@@ -29,7 +29,7 @@ import type {
 } from "@/modules/feedback-notes/client";
 import { getErrorMessage } from "@/lib/errors";
 import { CopyPromptModal } from "@/components/shared/copy-prompt-modal";
-import { FeedbackNotesListSkeleton, FeedbackNotesDetailSkeleton } from "@/components/shared/skeletons";
+import { FeedbackNotesListSkeleton, FeedbackNotesDetailSkeleton } from "./feedback-notes-skeleton";
 
 interface FeedbackNotesViewProps {
   geminiApiKey: string;
