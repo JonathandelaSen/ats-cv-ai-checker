@@ -64,7 +64,7 @@ src/modules/
 
 ### Key conventions
 
-- **Domain uses camelCase**. `snake_case` belongs to database rows and HTTP payloads only; infrastructure repositories and route presenters map between DB/API shapes and domain primitives.
+- **Domain uses camelCase**. `snake_case` belongs to database rows and legacy HTTP payloads only. New internal API response contracts should be camelCase; infrastructure repositories and route presenters map between DB/API shapes and domain primitives.
 - **Entities are aggregate roots**: classes extending `AggregateRoot`, built from ValueObjects, with an ID, `static create(params)`, `static fromPrimitives(primitives)`, `toPrimitives()`, private/protected constructors, and domain methods that record domain events internally.
 - **Value objects are immutable**: one `*.value-object.ts` file per VO, `static fromPrimitives(...)`, `toPrimitives()`, private/protected state, no mutating methods. Shared concerns such as IDs, ISO dates, optional ISO dates, timestamps, and user IDs live under `src/modules/shared/domain/value-objects/`.
 - **Primitives are boundary data**: `EntityPrimitives` interfaces live with the entity and use camelCase. Only `fromPrimitives` and `toPrimitives` convert between VOs and primitives. Do not pass primitives into entity constructors or domain methods.
@@ -255,29 +255,124 @@ Each step should be a separate commit.
 
 Some `src/lib/` files are thin re-export shims that bridge old import paths to domain files inside modules (e.g., `src/lib/cv-profile.ts` → `@/modules/cv-library/domain/cv-profile`). These shims **must import from the domain file directly**, not from the module barrel (`@/modules/<name>`), because the barrel re-exports the full module (use cases, repositories, etc.) and Next.js Turbopack does not tree-shake barrel re-exports in client components — importing the barrel from a client component drags in `server-only` code and breaks the build. These shim files are listed in the `reExportShims` set in `scripts/verify-ddd-route-imports.mjs` so they are exempt from the barrel-only rule.
 
-## Frontend component organization (screaming architecture)
+## Frontend feature architecture
 
-Frontend components mirror backend module names under `src/components/`:
+The frontend is moving from component-only module folders to route-driven feature folders. New substantial frontend work should use `src/features/<feature-name>/` instead of adding more business logic under `src/components/<module-name>/`.
 
 ```
+src/features/
+  <feature-name>/
+    api/          ← frontend HTTP client and query keys for the feature
+    hooks/        ← route state, TanStack Query hooks, mutation orchestration
+    components/   ← feature-specific React components
+    index.ts      ← public feature barrel
+
+src/frontend/
+  api/            ← cross-feature fetch helpers
+  query/          ← TanStack Query provider/config
+  data/           ← shared frontend data hooks/API clients when truly cross-feature
+
 src/components/
-  auth/             cv-analysis/       cv-library/
-  commitments/      feedback-notes/    job-match-analysis/
-  observability/    received-feedback/ selection-process/
-  settings/         shell/             work-journal/
-  shared/           ui/
+  shell/          ← global app chrome
+  shared/         ← cross-feature reusable UI components
+  ui/             ← generic UI primitives, prefer shadcn/ui
 ```
 
 ### Conventions
 
-1. New components go in `src/components/<backend-module-name>/`.
-2. Cross-module reusable components → `src/components/shared/`.
-3. Generic UI primitives → `src/components/ui/` (prefer shadcn).
-4. Each module folder has an `index.ts` barrel. Add new exports there.
+1. New feature UI, feature-specific hooks, and feature-specific API clients go in `src/features/<feature-name>/`.
+2. `src/components/<module-name>/` is legacy for existing screens. Do not add new business-heavy screens there unless the file is only a temporary migration shim.
+3. Cross-feature reusable UI components go in `src/components/shared/`.
+4. Generic UI primitives go in `src/components/ui/` and should prefer shadcn/ui.
+5. Feature internals are private by default. A feature may be imported by other code only through its `index.ts` public barrel.
+6. Do not deep-import from another feature. If a hook/API/type is needed by multiple features, either intentionally export it from the owning feature barrel or move it to `src/frontend/data/<domain>/` once a second real consumer exists.
+7. Do not move code to shared speculatively. Shared frontend code should be extracted only after reuse is real or dependency direction would otherwise be wrong.
+
+### Frontend API and response contracts
+
+Every API route that is consumed by frontend code should expose an explicit response contract in a colocated `responses.ts` file:
+
+```
+src/app/api/<route>/route.ts
+src/app/api/<route>/responses.ts
+```
+
+Rules:
+
+1. `responses.ts` belongs to the HTTP layer because it describes the exact serialized route response.
+2. `responses.ts` may compose presenter output types from one or more modules.
+3. `responses.ts` may contain pure response builders when a route aggregates data or transforms shape. For trivial responses, prefer response types plus `satisfies` in `route.ts`.
+4. New response contracts should be camelCase. Legacy snake_case responses may be migrated progressively.
+5. Frontend code must never import from `route.ts`.
+6. Frontend API clients may import response types from `responses.ts`, preferably with `import type`.
+7. `responses.ts` must be frontend-import-safe: no `NextRequest`, `NextResponse`, `server-only`, Supabase imports, module container imports, auth request context imports, route runtime logic, or infrastructure imports.
+
+Allowed frontend data flow:
+
+```
+src/modules/<module>/application presenters
+        ↓
+src/app/api/**/responses.ts
+        ↓
+src/features/<feature>/api/*-api.ts
+        ↓
+src/features/<feature>/hooks/*
+        ↓
+src/features/<feature>/components/*
+```
+
+Frontend files under `src/features/**`, `src/components/**`, and `src/frontend/**` must not import from `src/modules/**` or `@/modules/**`. Module types and presenters are consumed by API routes/responses, not by React components or frontend hooks.
+
+### TanStack Query and frontend state
+
+TanStack Query is the standard owner for server state in migrated frontend features. Use it for data loaded from the backend, mutation state, invalidation, refetching, and optimistic updates.
+
+Do not copy `useQuery().data` into `useState` unless it is intentionally becoming an editable local draft.
+
+Use React local state for UI-only state:
+
+- form drafts and textarea contents
+- current inline edit id
+- modal open/closed state
+- copied indicators
+- purely local visual state
+
+Do not create view models that are 1:1 copies of API response types. Prefer frontend-friendly camelCase response contracts, derived aliases such as `Response[number]`, and mappers only when the UI needs a genuinely different shape.
+
+### Feedback Notes pilot
+
+`feedback-notes` is the pilot for the new frontend architecture. It should be migrated completely to `src/features/feedback-notes`.
+
+Target route contract:
+
+```
+/feedback-notes
+/feedback-notes/[feedbackId]
+/feedback-notes/[feedbackId]?status=active|closed|all
+```
+
+Rules:
+
+1. `feedback-notes` is a real route segment, not `/?view=feedback-notes`.
+2. The existing global `AppShell`/sidebar remains the app chrome.
+3. `feedbackId` in the path controls the detail resource.
+4. `status` query param controls only the sidebar tab/list. If missing, default to `active`.
+5. If there is no `feedbackId`, load the current tab, select the first feedback note, and `router.replace` to its detail URL.
+6. If the path feedback note is not present in the selected tab, keep the detail open but do not mark any sidebar item as selected.
+7. Selecting a sidebar item uses `router.push` and preserves the current `status`.
 
 ### Build verification
 
-After any change under `src/modules/`, `src/lib/`, `src/app/`, or `src/components/`, run `npm run build` before finishing. Type-checking alone (`tsc --noEmit`) does not catch Next.js server/client boundary errors — only the full build does.
+After any change under `src/modules/`, `src/lib/`, `src/app/`, `src/components/`, `src/features/`, or `src/frontend/`, run `npm run build` before finishing. Type-checking alone (`tsc --noEmit`) does not catch Next.js server/client boundary errors — only the full build does.
+
+### Architecture verification
+
+Frontend boundary checks should be automated alongside the existing DDD checks. The verification should reject:
+
+- frontend imports from `src/modules/**` or `@/modules/**`
+- frontend imports from `src/app/api/**/route` or `@/app/api/**/route`
+- cross-feature deep imports that bypass a feature `index.ts`
+- `responses.ts` files importing Next runtime, `server-only`, Supabase, `@/lib/container`, auth request context, or module infrastructure
 
 ## Agent Workflow Preferences
 

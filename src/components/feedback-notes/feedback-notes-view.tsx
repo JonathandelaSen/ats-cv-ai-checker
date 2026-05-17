@@ -63,6 +63,8 @@ export default function FeedbackNotesView({
   const [personNameDraft, setPersonNameDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAddingEntry, setIsAddingEntry] = useState(false);
+  const [deletingEntryIds, setDeletingEntryIds] = useState<Set<string>>(new Set());
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
@@ -180,7 +182,10 @@ export default function FeedbackNotesView({
 
   const addEntry = async () => {
     if (!selectedFeedback || !entryDraft.trim()) return;
+    const content = entryDraft;
+    setEntryDraft("");
     setSaving(true);
+    setIsAddingEntry(true);
     setError(null);
     try {
       const res = await fetch(
@@ -188,17 +193,16 @@ export default function FeedbackNotesView({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: entryDraft }),
+          body: JSON.stringify({ content }),
         }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("errors.addEntry"));
-      setEntryDraft("");
-      await fetchEntries(selectedFeedback.id);
-      await fetchFeedbacks(selectedFeedback.id);
+      setEntries((prev) => [...prev, data as FeedbackEntryPrimitives]);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
+      setIsAddingEntry(false);
       setSaving(false);
     }
   };
@@ -227,16 +231,49 @@ export default function FeedbackNotesView({
 
   const deleteEntry = async (entryId: string) => {
     if (!confirm(t("confirmDeleteEntry"))) return;
-    const res = await fetch(`/api/feedback-notes/entries/${entryId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || t("errors.deleteEntry"));
-      return;
+
+    const entryIndex = entries.findIndex((entry) => entry.id === entryId);
+    const deletedEntry = entries[entryIndex];
+    const wasEditingDeletedEntry = editingEntryId === entryId;
+    const previousEditDraft = entryEditDraft;
+
+    if (!deletedEntry) return;
+
+    setError(null);
+    setDeletingEntryIds((prev) => new Set(prev).add(entryId));
+    setEntries((prev) => prev.filter((entry) => entry.id !== entryId));
+    if (wasEditingDeletedEntry) {
+      setEditingEntryId(null);
+      setEntryEditDraft("");
     }
-    await fetchEntries(selectedFeedback?.id ?? null);
-    await fetchFeedbacks(selectedFeedback?.id ?? null);
+
+    try {
+      const res = await fetch(`/api/feedback-notes/entries/${entryId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || t("errors.deleteEntry"));
+      }
+    } catch (err: unknown) {
+      setEntries((prev) => {
+        if (prev.some((entry) => entry.id === entryId)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(entryIndex, next.length), 0, deletedEntry);
+        return next;
+      });
+      if (wasEditingDeletedEntry) {
+        setEditingEntryId(entryId);
+        setEntryEditDraft(previousEditDraft);
+      }
+      setError(getErrorMessage(err));
+    } finally {
+      setDeletingEntryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entryId);
+        return next;
+      });
+    }
   };
 
   const deleteFeedback = async () => {
@@ -518,16 +555,21 @@ export default function FeedbackNotesView({
                       onChange={(event) => setEntryDraft(event.target.value)}
                       placeholder={t("entries.placeholder")}
                       rows={4}
+                      disabled={isAddingEntry}
                       className={textareaClass}
                     />
                     <div className="mt-2 flex justify-end">
                       <button
                         type="button"
                         onClick={() => void addEntry()}
-                        disabled={saving || !entryDraft.trim()}
-                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                        disabled={saving || (!isAddingEntry && !entryDraft.trim())}
+                        className="inline-flex min-w-[6.75rem] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                       >
-                        <Plus className="h-4 w-4" />
+                        {isAddingEntry ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
                         {t("entries.add")}
                       </button>
                     </div>
@@ -556,6 +598,7 @@ export default function FeedbackNotesView({
                                   setEditingEntryId(entry.id);
                                   setEntryEditDraft(entry.content);
                                 }}
+                                disabled={deletingEntryIds.has(entry.id)}
                                 className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -563,9 +606,14 @@ export default function FeedbackNotesView({
                               <button
                                 type="button"
                                 onClick={() => void deleteEntry(entry.id)}
-                                className="rounded-md p-1.5 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300"
+                                disabled={deletingEntryIds.has(entry.id)}
+                                className="rounded-md p-1.5 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-50"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                {deletingEntryIds.has(entry.id) ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
                               </button>
                             </div>
                           )}
@@ -702,4 +750,3 @@ export default function FeedbackNotesView({
     </div>
   );
 }
-
