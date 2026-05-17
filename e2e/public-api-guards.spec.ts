@@ -9,19 +9,20 @@ test("core API guards return controlled errors without external AI calls", async
   const user = await createConfirmedUser("guards");
   await loginViaUI(page, user);
 
-  const missingCv = await page.request.post("/api/analyses", {
+  const missingCv = await page.request.post("/api/cv-analyses", {
     data: { title: "Missing CV" },
   });
   expect(missingCv.status()).toBe(400);
   expect(await missingCv.json()).toEqual({ error: "cvId is required" });
 
-  const missingGemini = await page.request.post("/api/score", {
-    data: {
-      analysisId: "00000000-0000-0000-0000-000000000000",
-      mode: "general",
-      geminiApiKey: "",
-    },
-  });
+  const missingGemini = await page.request.post(
+    "/api/cv-analyses/00000000-0000-0000-0000-000000000000/score",
+    {
+      data: {
+        geminiApiKey: "",
+      },
+    }
+  );
   expect(missingGemini.status()).toBe(400);
   expect(await missingGemini.json()).toEqual({
     error:
@@ -39,7 +40,7 @@ test("core API guards return controlled errors without external AI calls", async
   );
 
   const analysisDelete = await page.request.delete(
-    `/api/analyses/${fixture.analysis.id}`
+    `/api/cv-analyses/${fixture.analysis.id}`
   );
   expect(analysisDelete.status()).toBe(200);
   expect(await analysisDelete.json()).toEqual({ success: true });

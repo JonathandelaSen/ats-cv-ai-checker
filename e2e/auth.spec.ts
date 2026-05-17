@@ -6,7 +6,7 @@ test("protected APIs reject anonymous requests", async ({ request }) => {
   const cvs = await request.get("/api/cvs");
   expect(cvs.status()).toBe(401);
 
-  const analyses = await request.get("/api/analyses");
+  const analyses = await request.get("/api/cv-analyses");
   expect(analyses.status()).toBe(401);
 
   const adminMe = await request.get("/api/admin/me");

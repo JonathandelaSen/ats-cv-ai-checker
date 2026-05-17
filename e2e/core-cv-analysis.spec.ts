@@ -21,7 +21,7 @@ test("user can upload a PDF, create an extraction, and read persisted backend st
   const cv = cvs.find((item) => item.id === analysis.cv_id);
   expect(cv?.name).toBe(cvName);
 
-  const analysesResponse = await page.request.get("/api/analyses");
+  const analysesResponse = await page.request.get("/api/cv-analyses");
   expect(analysesResponse.status()).toBe(200);
   const analyses = (await analysesResponse.json()) as Array<{
     id: string;
@@ -33,7 +33,7 @@ test("user can upload a PDF, create an extraction, and read persisted backend st
     ])
   );
 
-  const detailResponse = await page.request.get(`/api/analyses/${analysis.id}`);
+  const detailResponse = await page.request.get(`/api/cv-analyses/${analysis.id}`);
   expect(detailResponse.status()).toBe(200);
   const detail = await detailResponse.json();
   expect(detail).toMatchObject({

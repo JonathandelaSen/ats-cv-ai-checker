@@ -26,12 +26,12 @@ export async function createExtractionViaUI(page: Page) {
   await page
     .getByTestId("new-analysis-file-input")
     .setInputFiles(path.resolve(process.cwd(), "test.pdf"));
-  await page.getByPlaceholder("CV Frontend Abril").fill(cvName);
-  await page.getByPlaceholder("Frontend React - Factorial").fill(analysisTitle);
+  await page.getByPlaceholder("Frontend CV April").fill(cvName);
+  await page.getByPlaceholder("React Frontend - Factorial").fill(analysisTitle);
 
   const analysisResponsePromise = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/api/analyses") &&
+      response.url().endsWith("/api/cv-analyses") &&
       response.request().method() === "POST"
   );
   await page.getByTestId("new-analysis-submit").click();
@@ -65,7 +65,7 @@ export async function createFixtureViaApi(
   expect(cvResponse.ok()).toBeTruthy();
   const cv = (await cvResponse.json()) as CreatedAnalysisFixture["cv"];
 
-  const analysisResponse = await request.post("/api/analyses", {
+  const analysisResponse = await request.post("/api/cv-analyses", {
     data: {
       cvId: cv.id,
       title: analysisTitle,
