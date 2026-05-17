@@ -75,4 +75,5 @@ async function ensureSupabaseE2EStack() {
 }
 
 await ensureSupabaseE2EStack();
-await run("npx", ["vitest", "run"]);
+const args = process.argv.slice(2);
+await run("npx", ["vitest", "run", ...args]);
