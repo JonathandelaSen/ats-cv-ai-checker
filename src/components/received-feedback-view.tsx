@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { ActivityContextPrimitives, ActivityContextType } from "@/modules/activity";
 import type { ReceivedFeedbackPrimitives } from "@/modules/received-feedback";
 import { getErrorMessage } from "@/lib/errors";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-300 focus:ring-0";
@@ -329,10 +330,7 @@ export default function ReceivedFeedbackView() {
 
         <section className="min-h-0">
           {loading ? (
-            <div className="flex items-center gap-2 py-10 text-sm text-zinc-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t("loading")}
-            </div>
+            <ReceivedFeedbackSkeleton />
           ) : items.length === 0 ? (
             <div className="rounded-lg border border-dashed border-white/10 py-12 text-center">
               <p className="text-sm font-medium text-zinc-300">{t("empty")}</p>
@@ -389,6 +387,31 @@ export default function ReceivedFeedbackView() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function ReceivedFeedbackSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-lg border border-white/10 bg-white/[0.025] p-4"
+        >
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-3.5 w-20" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-3/4" />
+          <div className="mt-3 border-l border-white/10 pl-3">
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
