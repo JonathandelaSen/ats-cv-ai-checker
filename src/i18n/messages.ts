@@ -1641,7 +1641,6 @@ export const messages = {
       editObjective: "Editar objetivo",
       loading: "Cargando objetivos",
       emptySelection: "No hay ningún objetivo seleccionado.",
-      sampleNotice: "Se muestra un objetivo de ejemplo para dar forma a la vista. Crea tu primer objetivo para sustituirlo.",
       doneCount: "{done}/{total} completadas",
       priorityBadge: "Prioridad {priority}",
       started: "Inicio {date}",

@@ -105,80 +105,6 @@ const itemStatusLabels: Record<CommitmentItemStatus, string> = {
   cancelled: "Cancelled",
 };
 
-const sampleCommitment: CommitmentWithRelations = {
-  id: "sample",
-  userId: "sample",
-  contextId: "sample-context",
-  title: "Lead onboarding redesign",
-  description: "Turn the onboarding flow into a repeatable path for new engineers joining the team.",
-  successCriteria: "Reduce ramp-up time and give juniors a clearer first 30 days.",
-  resultNotes: null,
-  source: "manager",
-  status: "active",
-  priority: "high",
-  startDate: new Date().toISOString().slice(0, 10),
-  targetDate: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  items: [
-    {
-      id: "sample-item-1",
-      userId: "sample",
-      commitmentId: "sample",
-      title: "Map the current onboarding gaps",
-      notes: null,
-      evidenceNotes: "Interviewed 3 recent hires and grouped blockers by phase.",
-      status: "done",
-      dueDate: null,
-      completedAt: new Date().toISOString(),
-      orderIndex: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "sample-item-2",
-      userId: "sample",
-      commitmentId: "sample",
-      title: "Publish first-week checklist",
-      notes: null,
-      evidenceNotes: null,
-      status: "in_progress",
-      dueDate: null,
-      completedAt: null,
-      orderIndex: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ],
-  outcomes: [
-    {
-      id: "sample-outcome",
-      userId: "sample",
-      commitmentId: "sample",
-      type: "leadership",
-      status: "expected",
-      title: "Own onboarding practice",
-      description: "Be recognized as the person leading onboarding quality.",
-      amount: null,
-      currency: "EUR",
-      decidedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ],
-};
-
-const sampleContext: CommitmentContextPrimitives = {
-  id: "sample-context",
-  userId: "sample",
-  type: "project",
-  name: "Platform Team",
-  roleOrLabel: "Senior Engineer",
-  status: "active",
-  isDefault: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
 
 function formatDate(d: string | null): string {
   if (!d) return "";
@@ -208,11 +134,8 @@ export default function ObjectivesView() {
   const hasLoadedWorkspace = !loading || commitments.length > 0 || contexts.length > 0;
 
   const isEmpty = commitments.length === 0;
-  const visibleContexts = useMemo(() => (isEmpty ? [sampleContext] : contexts), [contexts, isEmpty]);
-  const visibleCommitments = useMemo(
-    () => (isEmpty ? [sampleCommitment] : commitments),
-    [commitments, isEmpty]
-  );
+  const visibleContexts = contexts;
+  const visibleCommitments = commitments;
   const selected = visibleCommitments.find((item) => item.id === selectedId) ?? visibleCommitments[0] ?? null;
 
   const filteredCommitments = useMemo(() => {
@@ -661,11 +584,6 @@ export default function ObjectivesView() {
           ) : selected ? (
             /* ── Detail view ── */
             <section className="w-full">
-              {isEmpty && (
-                <div className="mb-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
-                  {t("sampleNotice")}
-                </div>
-              )}
 
               {/* Header card */}
               <div className="rounded-xl border border-emerald-200/10 bg-[linear-gradient(135deg,rgba(16,185,129,0.10),rgba(255,255,255,0.025)_42%,rgba(245,158,11,0.06))] p-6">
