@@ -4,6 +4,7 @@
 
 - Prompt builders and system instructions: `src/modules/work-journal/infrastructure/services/work-journal-prompts.ts`
 - Model-call controller: `src/modules/work-journal/infrastructure/services/gemini-journal-ai.service.ts`
+- Frontend clipboard prompt copy: `src/features/work-journal/api/work-journal-prompt.ts`
 
 ## Current prompts
 
@@ -36,8 +37,12 @@ It asks the model to return:
 1. The user chooses a context, date/range, optional topic, and "Help me write it".
 2. The API validates the context belongs to the user.
 3. `draftWorkJournalEntry` calls Gemini with the entry drafting prompt.
-4. The API returns `final_text` as an editable preview.
+4. The API returns `finalText` as an editable preview.
 5. The user saves the entry manually after review.
+
+The UI also supports copying a plain-text version of the same prompt family to
+the clipboard. That frontend helper mirrors the clipboard branch of the module
+prompt builder without importing module internals into client code.
 
 ## Maintenance notes
 

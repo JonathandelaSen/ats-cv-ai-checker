@@ -7,6 +7,11 @@ import {
   parseCreateWorkJournalEntryRequest,
   parseListWorkJournalEntriesRequest,
 } from "../validation";
+import {
+  toWorkJournalEntryResponse,
+  type CreateWorkJournalEntryResponse,
+  type ListWorkJournalEntriesResponse,
+} from "./responses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,7 +29,11 @@ export async function GET(req: NextRequest) {
     ]);
     const contextsById = new Map(contexts.map((context) => [context.id, context]));
     return ok(
-      entries.map((entry) => presentWorkJournalEntry(entry, contextsById.get(entry.contextId)))
+      entries.map((entry) =>
+        toWorkJournalEntryResponse(
+          presentWorkJournalEntry(entry, contextsById.get(entry.contextId))
+        )
+      ) satisfies ListWorkJournalEntriesResponse
     );
   } catch (error: unknown) {
     return handleApiError(error);
@@ -50,7 +59,11 @@ export async function POST(req: NextRequest) {
 
     const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
-    return created(presentWorkJournalEntry(entry, context));
+    return created(
+      toWorkJournalEntryResponse(
+        presentWorkJournalEntry(entry, context)
+      ) satisfies CreateWorkJournalEntryResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

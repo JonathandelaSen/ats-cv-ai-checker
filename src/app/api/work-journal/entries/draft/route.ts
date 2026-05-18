@@ -3,6 +3,7 @@ import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-c
 import { workJournalModule } from "@/lib/container";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseDraftWorkJournalEntryRequest } from "../../validation";
+import type { DraftWorkJournalEntryResponse } from "./responses";
 
 export const maxDuration = 60;
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       notes: parsed.value.notes,
     });
 
-    return ok({ final_text: finalText });
+    return ok({ finalText } satisfies DraftWorkJournalEntryResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }

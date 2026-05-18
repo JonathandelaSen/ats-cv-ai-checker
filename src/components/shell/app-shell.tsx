@@ -10,7 +10,7 @@ import CVLibrary from "@/components/cv-library/cv-library";
 import TemplatesView from "@/components/cv-library/templates-view";
 import CVEditorView from "@/components/cv-library/cv-editor-view";
 import InterviewQuestionsView from "@/components/selection-process/interview-questions-view";
-import WorkJournalView from "@/components/work-journal/work-journal-view";
+import { WorkJournalView } from "@/features/work-journal";
 import ObjectivesView from "@/components/commitments/objectives-view";
 import { FeedbackNotesView } from "@/features/feedback-notes";
 import { ReceivedFeedbackView } from "@/features/received-feedback";
@@ -32,6 +32,25 @@ import type {
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
 import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
 import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
+
+let userEmailRequest: Promise<string | null> | null = null;
+let adminStatusRequest: Promise<boolean> | null = null;
+
+function loadUserEmail() {
+  userEmailRequest ??= createClient()
+    .auth.getUser()
+    .then(({ data }) => data.user?.email ?? null)
+    .catch(() => null);
+  return userEmailRequest;
+}
+
+function loadAdminStatus() {
+  adminStatusRequest ??= fetch("/api/admin/me")
+    .then((res) => (res.ok ? res.json() : { isAdmin: false }))
+    .then((data) => Boolean(data.isAdmin))
+    .catch(() => false);
+  return adminStatusRequest;
+}
 
 type ViewTab = "extraction" | "analysis";
 type AppView =
@@ -130,6 +149,13 @@ export default function AppShell({
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const lastFeedbackNotesHrefRef = useRef("/feedback-notes");
   const lastReceivedFeedbackHrefRef = useRef("/received-feedback");
+  const lastWorkJournalHrefRef = useRef("/work-journal");
+  const hasLoadedAnalysesRef = useRef(false);
+  const hasLoadedCVsRef = useRef(false);
+  const hasLoadedInterviewQuestionsRef = useRef(false);
+  const analysesRequestRef = useRef<Promise<void> | null>(null);
+  const cvsRequestRef = useRef<Promise<void> | null>(null);
+  const interviewQuestionsRequestRef = useRef<Promise<void> | null>(null);
 
   // Fetch analyses list
   const fetchAnalyses = useCallback(async () => {
@@ -149,6 +175,7 @@ export default function AppShell({
             b.created_at.localeCompare(a.created_at),
           ),
         );
+        hasLoadedAnalysesRef.current = true;
       }
     } catch {
       // silent
@@ -163,6 +190,7 @@ export default function AppShell({
       if (res.ok) {
         const data = await res.json();
         setCVs(data);
+        hasLoadedCVsRef.current = true;
       }
     } catch {
       // silent
@@ -175,31 +203,79 @@ export default function AppShell({
       if (res.ok) {
         const data = await res.json();
         setInterviewQuestions(data);
+        hasLoadedInterviewQuestionsRef.current = true;
       }
     } catch {
       // silent
     }
   }, []);
 
-  useEffect(() => {
-    void Promise.resolve().then(() =>
-      Promise.all([fetchAnalyses(), fetchCVs(), fetchInterviewQuestions()]),
-    );
-  }, [fetchAnalyses, fetchCVs, fetchInterviewQuestions]);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null);
+  const ensureAnalyses = useCallback(async () => {
+    if (hasLoadedAnalysesRef.current) return;
+    analysesRequestRef.current ??= fetchAnalyses().finally(() => {
+      analysesRequestRef.current = null;
     });
-  }, []);
+    await analysesRequestRef.current;
+  }, [fetchAnalyses]);
+
+  const ensureCVs = useCallback(async () => {
+    if (hasLoadedCVsRef.current) return;
+    cvsRequestRef.current ??= fetchCVs().finally(() => {
+      cvsRequestRef.current = null;
+    });
+    await cvsRequestRef.current;
+  }, [fetchCVs]);
+
+  const ensureInterviewQuestions = useCallback(async () => {
+    if (hasLoadedInterviewQuestionsRef.current) return;
+    interviewQuestionsRequestRef.current ??= fetchInterviewQuestions().finally(() => {
+      interviewQuestionsRequestRef.current = null;
+    });
+    await interviewQuestionsRequestRef.current;
+  }, [fetchInterviewQuestions]);
 
   useEffect(() => {
-    fetch("/api/admin/me")
-      .then((res) => (res.ok ? res.json() : { isAdmin: false }))
-      .then((data) => setIsAdmin(Boolean(data.isAdmin)))
-      .catch(() => setIsAdmin(false));
-  }, []);
+    if (activeView === "new" || activeView === "templates" || activeView === "editor") {
+      void ensureCVs();
+      return;
+    }
+
+    if (activeView === "analysis" || activeView === "cv-analyses" || activeView === "job-analyses") {
+      void ensureAnalyses();
+      return;
+    }
+
+    if (activeView === "cvs") {
+      void Promise.all([ensureCVs(), ensureAnalyses(), ensureInterviewQuestions()]);
+      return;
+    }
+
+    if (activeView === "questions") {
+      void Promise.all([ensureInterviewQuestions(), ensureCVs(), ensureAnalyses()]);
+    }
+  }, [activeView, ensureAnalyses, ensureCVs, ensureInterviewQuestions]);
+
+  useEffect(() => {
+    if (initialUserEmail) return;
+    let cancelled = false;
+    loadUserEmail().then((email) => {
+      if (!cancelled) setUserEmail(email);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialUserEmail]);
+
+  useEffect(() => {
+    if (initialIsAdmin) return;
+    let cancelled = false;
+    loadAdminStatus().then((admin) => {
+      if (!cancelled) setIsAdmin(admin);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialIsAdmin]);
 
   useEffect(() => {
     const syncGeminiApiKey = () => setGeminiApiKey(getStoredGeminiApiKey());
@@ -219,6 +295,12 @@ export default function AppShell({
   const rememberReceivedFeedbackLocation = useCallback(() => {
     if (window.location.pathname.startsWith("/received-feedback")) {
       lastReceivedFeedbackHrefRef.current = `${window.location.pathname}${window.location.search}`;
+    }
+  }, []);
+
+  const rememberWorkJournalLocation = useCallback(() => {
+    if (window.location.pathname.startsWith("/work-journal")) {
+      lastWorkJournalHrefRef.current = `${window.location.pathname}${window.location.search}`;
     }
   }, []);
 
@@ -295,6 +377,10 @@ export default function AppShell({
       });
     } else if (view === "journal") {
       queueMicrotask(() => {
+        router.replace("/work-journal");
+      });
+    } else if (window.location.pathname.startsWith("/work-journal")) {
+      queueMicrotask(() => {
         setActiveView("journal");
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
@@ -354,6 +440,7 @@ export default function AppShell({
 
   // Handle selecting an analysis
   const handleSelect = (id: string) => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveAnalysisId(id);
@@ -368,6 +455,7 @@ export default function AppShell({
 
   // Handle new analysis
   const handleNewAnalysis = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("new");
@@ -377,6 +465,7 @@ export default function AppShell({
   };
 
   const handleOpenCVs = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("cvs");
@@ -387,6 +476,7 @@ export default function AppShell({
   };
 
   const handleOpenTemplates = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("templates");
@@ -397,6 +487,7 @@ export default function AppShell({
   };
 
   const handleOpenEditor = (cvId?: string | null) => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     const targetCvId = cvId !== undefined ? cvId : null;
@@ -413,6 +504,7 @@ export default function AppShell({
     cvId?: string | null;
     analysisId?: string | null;
   }) => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     const cvId = options?.cvId ?? null;
@@ -435,10 +527,11 @@ export default function AppShell({
     setActiveView("journal");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
-    window.history.replaceState(null, "", "/?view=journal");
+    router.push(lastWorkJournalHrefRef.current);
   };
 
   const handleOpenObjectives = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("objectives");
@@ -448,6 +541,7 @@ export default function AppShell({
   };
 
   const handleOpenFeedbackNotes = () => {
+    rememberWorkJournalLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("feedback-notes");
     setActiveAnalysisId(null);
@@ -456,6 +550,7 @@ export default function AppShell({
   };
 
   const handleOpenReceivedFeedback = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     setActiveView("received-feedback");
     setActiveAnalysisId(null);
@@ -464,6 +559,7 @@ export default function AppShell({
   };
 
   const handleOpenCVAnalyses = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("cv-analyses");
@@ -473,6 +569,7 @@ export default function AppShell({
   };
 
   const handleOpenJobAnalyses = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("job-analyses");
@@ -482,6 +579,7 @@ export default function AppShell({
   };
 
   const handleOpenSettings = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("settings");
@@ -491,6 +589,7 @@ export default function AppShell({
   };
 
   const handleOpenAdmin = () => {
+    rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("admin");

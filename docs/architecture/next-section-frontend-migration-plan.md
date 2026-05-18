@@ -51,17 +51,19 @@ If the section does not have a detail resource, use:
 /<section>?<tab-or-filter-query>=<value>
 ```
 
-### Current Migration Decision: Received Feedback
+### Current Migration Decision: Work Journal
 
 ```txt
-Section label: Received feedback
-Route segment: /received-feedback
-Primary detail resource: none; this section is a list plus create/edit inline form
+Section label: Work Journal
+Route segment: /work-journal
+Primary detail resource: none; this section is a timeline plus create/edit inline form
 Query params: none
-Existing legacy entry point: src/components/received-feedback/
-Existing API routes: /api/received-feedback, /api/received-feedback/[id], /api/activity-contexts
+Existing legacy entry point: src/components/work-journal/
+Existing API routes: /api/work-journal/contexts, /api/work-journal/contexts/[id], /api/work-journal/contexts/suggestions, /api/work-journal/entries, /api/work-journal/entries/[id], /api/work-journal/entries/draft
 Backend mutations: yes; existing module use cases record platform actions
-AI prompt impact: none
+AI prompt impact: yes; draft generation response shape and frontend copy-prompt source are documented in docs/prompts/diario-trabajo/prompt.md
+Server state owned by TanStack Query: contexts, context suggestions, and entries
+Local UI state owned by React: draft form, search/filter controls, inline edit id, copy modal state, context creation fields, loading/error indicators
 ```
 
 ## Target File Structure

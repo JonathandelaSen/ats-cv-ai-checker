@@ -7,6 +7,12 @@ import {
 } from "@/modules/work-journal";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateWorkJournalContextRequest } from "../validation";
+import {
+  toWorkJournalContextResponse,
+  toWorkJournalContextSuggestionResponse,
+  type CreateWorkJournalContextResponse,
+  type ListWorkJournalContextsResponse,
+} from "./responses";
 
 export async function GET() {
   try {
@@ -22,9 +28,15 @@ export async function GET() {
     ]);
 
     return ok({
-      contexts: contexts.map(presentWorkJournalContext),
-      suggestions: suggestions.map(presentWorkJournalContextSuggestion),
-    });
+      contexts: contexts.map((context) =>
+        toWorkJournalContextResponse(presentWorkJournalContext(context))
+      ),
+      suggestions: suggestions.map((suggestion) =>
+        toWorkJournalContextSuggestionResponse(
+          presentWorkJournalContextSuggestion(suggestion)
+        )
+      ),
+    } satisfies ListWorkJournalContextsResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -48,7 +60,11 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
     });
 
-    return created(presentWorkJournalContext(context));
+    return created(
+      toWorkJournalContextResponse(
+        presentWorkJournalContext(context)
+      ) satisfies CreateWorkJournalContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

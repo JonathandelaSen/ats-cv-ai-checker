@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import {
   BriefcaseBusiness,
+  Clipboard,
   CalendarDays,
   Check,
   FilePenLine,
@@ -20,17 +22,34 @@ import {
   X,
 } from "lucide-react";
 import type {
-  WorkJournalContext,
-  WorkJournalContextSuggestion,
-  ContextType as WorkJournalContextType,
-  WorkJournalEntry,
-  EntryInputMode as WorkJournalEntryInputMode,
-} from "@/modules/work-journal";
-import { buildWorkJournalEntryDraftPrompt } from "@/modules/work-journal/client";
+  WorkJournalContextLegacy as WorkJournalContext,
+  WorkJournalContextSuggestionLegacy as WorkJournalContextSuggestion,
+  WorkJournalContextType,
+  WorkJournalEntryInputMode,
+  WorkJournalEntryLegacy as WorkJournalEntry,
+} from "../api/work-journal-types";
+import {
+  createWorkJournalContext,
+  createWorkJournalEntry,
+  deleteWorkJournalEntry,
+  draftWorkJournalEntry,
+  handleWorkJournalSuggestion,
+  updateWorkJournalEntry,
+} from "../api/work-journal-api";
+import {
+  useWorkJournalContexts,
+  useWorkJournalEntries,
+} from "../hooks/use-work-journal-queries";
+import { workJournalQueryKeys } from "../api/work-journal-query-keys";
+import {
+  addWorkJournalEntryToCache,
+  removeWorkJournalEntryFromCache,
+  replaceWorkJournalEntryInCache,
+} from "../api/work-journal-entry-cache";
+import { buildWorkJournalEntryDraftClipboardPrompt } from "../api/work-journal-prompt";
 import { getErrorMessage } from "@/lib/errors";
 import { CopyPromptModal } from "@/components/shared/copy-prompt-modal";
 import { WorkJournalSkeleton } from "./work-journal-skeleton";
-import { Clipboard } from "lucide-react";
 
 interface WorkJournalViewProps {
   geminiApiKey: string;
@@ -61,16 +80,15 @@ export default function WorkJournalView({
 }: WorkJournalViewProps) {
   const t = useTranslations("workJournal");
   const common = useTranslations("common.actions");
-  const [contexts, setContexts] = useState<WorkJournalContext[]>([]);
-  const [suggestions, setSuggestions] = useState<WorkJournalContextSuggestion[]>([]);
-  const [entries, setEntries] = useState<WorkJournalEntry[]>([]);
+  const queryClient = useQueryClient();
+  const contextsQuery = useWorkJournalContexts();
+  const entriesQuery = useWorkJournalEntries();
   const [draft, setDraft] = useState(emptyEntryDraft);
   const [newContextName, setNewContextName] = useState("");
   const [newContextType, setNewContextType] =
     useState<WorkJournalContextType>("employment");
   const [search, setSearch] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -78,6 +96,16 @@ export default function WorkJournalView({
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [copiedPromptContent, setCopiedPromptContent] = useState("");
 
+  const contexts = contextsQuery.data?.contexts ?? [];
+  const suggestions = contextsQuery.data?.suggestions ?? [];
+  const entries = entriesQuery.data ?? [];
+  const loading = contextsQuery.isLoading || entriesQuery.isLoading;
+  const queryError = contextsQuery.error
+    ? getErrorMessage(contextsQuery.error)
+    : entriesQuery.error
+      ? getErrorMessage(entriesQuery.error)
+      : null;
+  const visibleError = error ?? queryError;
   const activeContexts = contexts.filter((context) => context.status === "active");
 
   const filteredEntries = useMemo(() => {
@@ -91,87 +119,56 @@ export default function WorkJournalView({
     });
   }, [contextFilter, entries, search]);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [contextRes, entriesRes] = await Promise.all([
-        fetch("/api/work-journal/contexts"),
-        fetch("/api/work-journal/entries"),
-      ]);
-      const contextData = await contextRes.json();
-      const entriesData = await entriesRes.json();
-      if (!contextRes.ok) {
-        throw new Error(contextData.error || t("errors.loadContexts"));
-      }
-      if (!entriesRes.ok) {
-        throw new Error(entriesData.error || t("errors.loadEntries"));
-      }
-
-      const loadedContexts = (contextData.contexts ?? []) as WorkJournalContext[];
-      setContexts(loadedContexts);
-      setSuggestions(contextData.suggestions ?? []);
-      setEntries(entriesData);
-
-      const defaultContext =
-        loadedContexts.find(
-          (context) => context.is_default && context.status === "active"
-        ) ?? loadedContexts.find((context) => context.status === "active") ?? null;
-      if (defaultContext && !draft.context_id) {
-        setDraft((current) => ({ ...current, context_id: defaultContext.id }));
-      }
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    queueMicrotask(() => void fetchAll());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const defaultContext =
+      contexts.find(
+        (context) => context.is_default && context.status === "active"
+      ) ?? contexts.find((context) => context.status === "active") ?? null;
+    if (defaultContext && !draft.context_id) {
+      setDraft((current) => ({ ...current, context_id: defaultContext.id }));
+    }
+  }, [contexts, draft.context_id]);
 
   const createContext = async (type = newContextType, name = newContextName) => {
     if (!name.trim()) return;
     setError(null);
-    const res = await fetch("/api/work-journal/contexts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, name, is_default: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || t("errors.createContext"));
-      return;
+    try {
+      const context = await createWorkJournalContext({
+        type,
+        name,
+        is_default: true,
+      });
+      setNewContextName("");
+      await contextsQuery.refetch();
+      setDraft((current) => ({ ...current, context_id: context.id }));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t("errors.createContext"));
     }
-    setNewContextName("");
-    await fetchAll();
-    setDraft((current) => ({ ...current, context_id: data.id }));
   };
 
   const promoteSuggestion = async (suggestion: WorkJournalContextSuggestion) => {
-    const res = await fetch("/api/work-journal/contexts/suggestions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...suggestion, action: "promote", is_default: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || t("errors.useSuggestion"));
-      return;
+    try {
+      const result = await handleWorkJournalSuggestion({
+        ...suggestion,
+        action: "promote",
+        is_default: true,
+      });
+      await contextsQuery.refetch();
+      if (!("ok" in result)) {
+        setDraft((current) => ({ ...current, context_id: result.id }));
+      }
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t("errors.useSuggestion"));
     }
-    await fetchAll();
-    setDraft((current) => ({ ...current, context_id: data.id }));
   };
 
   const hideSuggestion = async (suggestion: WorkJournalContextSuggestion) => {
-    await fetch("/api/work-journal/contexts/suggestions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...suggestion, action: "hide" }),
-    });
-    await fetchAll();
+    try {
+      await handleWorkJournalSuggestion({ ...suggestion, action: "hide" });
+      await contextsQuery.refetch();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t("errors.useSuggestion"));
+    }
   };
 
   const saveEntry = async () => {
@@ -182,29 +179,64 @@ export default function WorkJournalView({
 
     const finalText =
       draft.input_mode === "manual" ? draft.raw_notes : draft.final_text || draft.raw_notes;
-    const res = await fetch("/api/work-journal/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...draft,
-        final_text: finalText,
-        date_end: draft.date_end || null,
-        topic: draft.topic || null,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || t("errors.saveEntry"));
-      return;
-    }
-
+    const previousEntries =
+      queryClient.getQueryData<WorkJournalEntry[]>(workJournalQueryKeys.entries()) ?? [];
+    const now = new Date().toISOString();
+    const optimisticEntry: WorkJournalEntry = {
+      id: `optimistic-${now}`,
+      user_id: "optimistic",
+      context_id: draft.context_id,
+      date_start: draft.date_start,
+      date_end: draft.date_end || null,
+      topic: draft.topic || null,
+      input_mode: draft.input_mode,
+      raw_notes: draft.raw_notes,
+      final_text: finalText,
+      metadata: {},
+      created_at: now,
+      updated_at: now,
+      context: contexts.find((context) => context.id === draft.context_id) ?? null,
+    };
+    queryClient.setQueryData(workJournalQueryKeys.entries(), (current) =>
+      addWorkJournalEntryToCache(current as WorkJournalEntry[] | undefined, optimisticEntry)
+    );
     setDraft((current) => ({
       ...emptyEntryDraft,
       context_id: current.context_id,
       date_start: today(),
     }));
     setShowForm(false);
-    await fetchAll();
+    try {
+      const entry = await createWorkJournalEntry({
+        ...draft,
+        final_text: finalText,
+        date_end: draft.date_end || null,
+        topic: draft.topic || null,
+      });
+      queryClient.setQueryData(
+        workJournalQueryKeys.entries(),
+        (current: WorkJournalEntry[] | undefined) =>
+          replaceWorkJournalEntryInCache(current, entry).some((item) => item.id === entry.id)
+            ? replaceWorkJournalEntryInCache(current, entry)
+            : addWorkJournalEntryToCache(
+                removeWorkJournalEntryFromCache(current, optimisticEntry.id),
+                entry
+              )
+      );
+    } catch (err: unknown) {
+      queryClient.setQueryData(workJournalQueryKeys.entries(), previousEntries);
+      setError(getErrorMessage(err) || t("errors.saveEntry"));
+      setDraft({
+        context_id: draft.context_id,
+        date_start: draft.date_start,
+        date_end: draft.date_end,
+        topic: draft.topic,
+        input_mode: draft.input_mode,
+        raw_notes: draft.raw_notes,
+        final_text: draft.final_text,
+      });
+      setShowForm(true);
+    }
   };
 
   const draftWithAI = async () => {
@@ -220,22 +252,16 @@ export default function WorkJournalView({
     setAiLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/work-journal/entries/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          geminiApiKey,
-          model: "gemini-3.1-pro-preview",
-          context_id: draft.context_id,
-          date_start: draft.date_start,
-          date_end: draft.date_end || null,
-          topic: draft.topic || null,
-          notes: draft.raw_notes,
-        }),
+      const data = await draftWorkJournalEntry({
+        geminiApiKey,
+        model: "gemini-3.1-pro-preview",
+        context_id: draft.context_id,
+        date_start: draft.date_start,
+        date_end: draft.date_end || null,
+        topic: draft.topic || null,
+        notes: draft.raw_notes,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("errors.aiDraft"));
-      setDraft((current) => ({ ...current, final_text: data.final_text }));
+      setDraft((current) => ({ ...current, final_text: data.finalText }));
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -248,7 +274,7 @@ export default function WorkJournalView({
     const selectedContext = contexts.find((c) => c.id === draft.context_id);
     if (!selectedContext) return;
 
-    const prompt = buildWorkJournalEntryDraftPrompt({
+    const prompt = buildWorkJournalEntryDraftClipboardPrompt({
       context: {
         type: selectedContext.type,
         name: selectedContext.name,
@@ -258,7 +284,7 @@ export default function WorkJournalView({
       dateEnd: draft.date_end || null,
       topic: draft.topic || null,
       notes: draft.raw_notes,
-    }, true);
+    });
 
     await navigator.clipboard.writeText(prompt);
     setCopiedPromptContent(prompt);
@@ -269,24 +295,47 @@ export default function WorkJournalView({
     entry: WorkJournalEntry,
     updates: Partial<WorkJournalEntry>
   ) => {
-    const res = await fetch(`/api/work-journal/entries/${entry.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || t("errors.updateEntry"));
-      return;
-    }
+    const previousEntries =
+      queryClient.getQueryData<WorkJournalEntry[]>(workJournalQueryKeys.entries()) ?? [];
+    queryClient.setQueryData(
+      workJournalQueryKeys.entries(),
+      (current: WorkJournalEntry[] | undefined) =>
+        replaceWorkJournalEntryInCache(current, {
+          ...entry,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+    );
     setEditingEntryId(null);
-    await fetchAll();
+    try {
+      const updatedEntry = await updateWorkJournalEntry({ id: entry.id, updates });
+      queryClient.setQueryData(
+        workJournalQueryKeys.entries(),
+        (current: WorkJournalEntry[] | undefined) =>
+          replaceWorkJournalEntryInCache(current, updatedEntry)
+      );
+    } catch (err: unknown) {
+      queryClient.setQueryData(workJournalQueryKeys.entries(), previousEntries);
+      setEditingEntryId(entry.id);
+      setError(getErrorMessage(err) || t("errors.updateEntry"));
+    }
   };
 
   const deleteEntry = async (entry: WorkJournalEntry) => {
     if (!confirm(t("errors.confirmDelete"))) return;
-    await fetch(`/api/work-journal/entries/${entry.id}`, { method: "DELETE" });
-    await fetchAll();
+    const previousEntries =
+      queryClient.getQueryData<WorkJournalEntry[]>(workJournalQueryKeys.entries()) ?? [];
+    queryClient.setQueryData(
+      workJournalQueryKeys.entries(),
+      (current: WorkJournalEntry[] | undefined) =>
+        removeWorkJournalEntryFromCache(current, entry.id)
+    );
+    try {
+      await deleteWorkJournalEntry(entry.id);
+    } catch (err: unknown) {
+      queryClient.setQueryData(workJournalQueryKeys.entries(), previousEntries);
+      setError(getErrorMessage(err));
+    }
   };
 
   return (
@@ -336,9 +385,9 @@ export default function WorkJournalView({
           </div>
         </header>
 
-        {error && (
+        {visibleError && (
           <div className="mb-8 text-sm text-rose-400 bg-rose-500/10 px-4 py-3 rounded-lg border border-rose-500/20">
-            {error}
+            {visibleError}
           </div>
         )}
 

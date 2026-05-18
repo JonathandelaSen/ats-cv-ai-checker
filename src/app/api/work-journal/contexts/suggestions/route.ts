@@ -4,6 +4,10 @@ import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalContext } from "@/modules/work-journal";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseWorkJournalSuggestionActionRequest } from "../../validation";
+import {
+  toWorkJournalContextResponse,
+  type CreateWorkJournalContextResponse,
+} from "../responses";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +28,11 @@ export async function POST(req: NextRequest) {
     });
 
     if ("ok" in result) return ok(result);
-    return created(presentWorkJournalContext(result));
+    return created(
+      toWorkJournalContextResponse(
+        presentWorkJournalContext(result)
+      ) satisfies CreateWorkJournalContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

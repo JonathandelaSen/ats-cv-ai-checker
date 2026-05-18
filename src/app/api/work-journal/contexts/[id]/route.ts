@@ -4,6 +4,10 @@ import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalContext } from "@/modules/work-journal";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateWorkJournalContextRequest } from "../../validation";
+import {
+  toWorkJournalContextResponse,
+  type UpdateWorkJournalContextResponse,
+} from "../responses";
 
 export async function PATCH(
   req: NextRequest,
@@ -21,7 +25,11 @@ export async function PATCH(
     }
     workJournalModule.bindRequest(supabase);
     const context = await workJournalModule.updateContext.execute(id, user.id, parsed.value);
-    return ok(presentWorkJournalContext(context));
+    return ok(
+      toWorkJournalContextResponse(
+        presentWorkJournalContext(context)
+      ) satisfies UpdateWorkJournalContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

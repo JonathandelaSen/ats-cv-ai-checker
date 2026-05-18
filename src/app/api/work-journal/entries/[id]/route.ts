@@ -4,6 +4,11 @@ import { workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateWorkJournalEntryRequest } from "../../validation";
+import {
+  toWorkJournalEntryResponse,
+  type DeleteWorkJournalEntryResponse,
+  type UpdateWorkJournalEntryResponse,
+} from "../responses";
 
 export async function PATCH(
   req: NextRequest,
@@ -23,7 +28,11 @@ export async function PATCH(
     const entry = await workJournalModule.updateEntry.execute(id, user.id, parsed.value);
     const contexts = await workJournalModule.listContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
-    return ok(presentWorkJournalEntry(entry, context));
+    return ok(
+      toWorkJournalEntryResponse(
+        presentWorkJournalEntry(entry, context)
+      ) satisfies UpdateWorkJournalEntryResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -40,7 +49,7 @@ export async function DELETE(
     const { id } = await params;
     workJournalModule.bindRequest(supabase);
     await workJournalModule.deleteEntry.execute(id, user.id);
-    return ok({ ok: true });
+    return ok({ ok: true } satisfies DeleteWorkJournalEntryResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
