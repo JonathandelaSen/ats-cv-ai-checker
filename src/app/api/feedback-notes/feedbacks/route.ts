@@ -7,6 +7,11 @@ import {
   parseCreateFeedbackRequest,
   parseListFeedbacksRequest,
 } from "../validation";
+import {
+  toFeedbackResponse,
+  type CreateFeedbackResponse,
+  type ListFeedbacksResponse,
+} from "./responses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +30,7 @@ export async function GET(req: NextRequest) {
         return presentFeedback(feedback, entries.length);
       })
     );
-    return ok(withCounts);
+    return ok(withCounts.map(toFeedbackResponse) satisfies ListFeedbacksResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -46,7 +51,9 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       ...parsed.value,
     });
-    return created(presentFeedback(feedback, 0));
+    return created(
+      toFeedbackResponse(presentFeedback(feedback, 0)) satisfies CreateFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { I18nProvider } from "@/components/shared/i18n-provider";
+import { FrontendQueryClientProvider } from "@/frontend/query/query-client-provider";
 import { getMessages } from "@/i18n/messages";
 import { resolveInterfaceLanguage } from "@/i18n/server";
 import "./globals.css";
@@ -29,7 +30,9 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${inter.variable} h-full antialiased dark`}>
       <body className="h-full font-sans">
-        <I18nProvider initialLocale={locale}>{children}</I18nProvider>
+        <I18nProvider initialLocale={locale}>
+          <FrontendQueryClientProvider>{children}</FrontendQueryClientProvider>
+        </I18nProvider>
       </body>
     </html>
   );

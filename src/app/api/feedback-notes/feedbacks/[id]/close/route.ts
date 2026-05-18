@@ -5,6 +5,7 @@ import {
   presentFeedback,
 } from "@/modules/feedback-notes";
 import { ok, handleApiError } from "@/modules/shared";
+import { toFeedbackResponse, type CloseFeedbackResponse } from "./responses";
 
 export async function POST(
   _req: NextRequest,
@@ -18,7 +19,9 @@ export async function POST(
     feedbackNotesModule.bindRequest(supabase);
     const feedback = await feedbackNotesModule.closeFeedback.execute(user.id, id);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return ok(presentFeedback(feedback, entries.length));
+    return ok(
+      toFeedbackResponse(presentFeedback(feedback, entries.length)) satisfies CloseFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

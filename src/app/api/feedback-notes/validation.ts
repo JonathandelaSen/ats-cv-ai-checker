@@ -65,9 +65,10 @@ export function parseCreateFeedbackRequest(
   body: unknown
 ): Result<CreateFeedbackHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const person_name = normalizeRequiredText(body.person_name);
+  const person_name = normalizeRequiredText(body.personName ?? body.person_name);
+  const rawFinalFeedback = body.finalFeedback ?? body.final_feedback;
   const final_feedback =
-    body.final_feedback === undefined ? null : normalizeOptionalText(body.final_feedback);
+    rawFinalFeedback === undefined ? null : normalizeOptionalText(rawFinalFeedback);
   if (!person_name || final_feedback === undefined) {
     return validationError("Invalid feedback payload");
   }
@@ -79,13 +80,13 @@ export function parseUpdateFeedbackRequest(
 ): Result<UpdateFeedbackHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
   const updates: UpdateFeedbackHttpInput = {};
-  if (body.person_name !== undefined) {
-    const personName = normalizeRequiredText(body.person_name);
+  if (body.personName !== undefined || body.person_name !== undefined) {
+    const personName = normalizeRequiredText(body.personName ?? body.person_name);
     if (!personName) return validationError("Person name is required");
     updates.person_name = personName;
   }
-  if (body.final_feedback !== undefined) {
-    const finalFeedback = normalizeOptionalText(body.final_feedback);
+  if (body.finalFeedback !== undefined || body.final_feedback !== undefined) {
+    const finalFeedback = normalizeOptionalText(body.finalFeedback ?? body.final_feedback);
     if (finalFeedback === undefined) return validationError("Invalid final feedback");
     updates.final_feedback = finalFeedback;
   }

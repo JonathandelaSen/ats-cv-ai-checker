@@ -6,6 +6,10 @@ import {
 } from "@/modules/feedback-notes";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseGenerateFeedbackRequest } from "../../../validation";
+import {
+  toFeedbackResponse,
+  type GenerateFinalFeedbackResponse,
+} from "./responses";
 
 export const maxDuration = 60;
 
@@ -30,7 +34,9 @@ export async function POST(
     });
     const feedback = await useCase.execute(user.id, id);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return ok(presentFeedback(feedback, entries.length));
+    return ok(
+      toFeedbackResponse(presentFeedback(feedback, entries.length)) satisfies GenerateFinalFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

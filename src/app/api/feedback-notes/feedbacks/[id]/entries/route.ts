@@ -6,6 +6,11 @@ import {
 } from "@/modules/feedback-notes";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseFeedbackEntryContentRequest } from "../../../validation";
+import {
+  toFeedbackEntryResponse,
+  type CreateFeedbackEntryResponse,
+  type ListFeedbackEntriesResponse,
+} from "./responses";
 
 export async function GET(
   _req: NextRequest,
@@ -18,7 +23,9 @@ export async function GET(
     const { id } = await params;
     feedbackNotesModule.bindRequest(supabase);
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
-    return ok(entries.map(presentFeedbackEntry));
+    return ok(
+      entries.map((entry) => toFeedbackEntryResponse(presentFeedbackEntry(entry))) satisfies ListFeedbackEntriesResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -44,7 +51,9 @@ export async function POST(
       feedback_id: id,
       content: parsed.value.content,
     });
-    return created(presentFeedbackEntry(entry));
+    return created(
+      toFeedbackEntryResponse(presentFeedbackEntry(entry)) satisfies CreateFeedbackEntryResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

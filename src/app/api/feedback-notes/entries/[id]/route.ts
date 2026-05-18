@@ -6,6 +6,11 @@ import {
 } from "@/modules/feedback-notes";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseFeedbackEntryContentRequest } from "../../validation";
+import {
+  toFeedbackEntryResponse,
+  type DeleteFeedbackEntryResponse,
+  type UpdateFeedbackEntryResponse,
+} from "./responses";
 
 export async function PATCH(
   req: NextRequest,
@@ -23,7 +28,9 @@ export async function PATCH(
     }
     feedbackNotesModule.bindRequest(supabase);
     const entry = await feedbackNotesModule.updateEntry.execute(user.id, id, parsed.value.content);
-    return ok(presentFeedbackEntry(entry));
+    return ok(
+      toFeedbackEntryResponse(presentFeedbackEntry(entry)) satisfies UpdateFeedbackEntryResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -40,7 +47,7 @@ export async function DELETE(
     const { id } = await params;
     feedbackNotesModule.bindRequest(supabase);
     await feedbackNotesModule.deleteEntry.execute(user.id, id);
-    return ok({ ok: true });
+    return ok({ ok: true } satisfies DeleteFeedbackEntryResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
