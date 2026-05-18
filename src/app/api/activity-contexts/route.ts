@@ -4,6 +4,11 @@ import { activityContextsModule } from "@/lib/container";
 import { presentActivityContext } from "@/modules/activity";
 import { created, errorResponse, handleApiError, ok } from "@/modules/shared";
 import { parseCreateActivityContextRequest } from "./validation";
+import {
+  toActivityContextResponse,
+  type CreateActivityContextResponse,
+  type ListActivityContextsResponse,
+} from "./responses";
 
 export async function GET() {
   try {
@@ -13,7 +18,11 @@ export async function GET() {
 
     activityContextsModule.bindRequest(supabase);
     const contexts = await activityContextsModule.listActivityContexts.execute(user.id);
-    return ok({ contexts: contexts.map(presentActivityContext) });
+    return ok({
+      contexts: contexts.map((context) =>
+        toActivityContextResponse(presentActivityContext(context))
+      ),
+    } satisfies ListActivityContextsResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -34,7 +43,11 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       ...parsed.value,
     });
-    return created(presentActivityContext(context));
+    return created(
+      toActivityContextResponse(
+        presentActivityContext(context)
+      ) satisfies CreateActivityContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

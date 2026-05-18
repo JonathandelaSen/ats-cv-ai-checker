@@ -8,7 +8,7 @@ export function ReceivedFeedbackSkeleton() {
           key={index}
           className="rounded-lg border border-white/10 bg-white/[0.025] p-4"
         >
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="h-3.5 w-32" />
             <Skeleton className="h-3.5 w-20" />

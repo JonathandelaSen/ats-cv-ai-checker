@@ -4,6 +4,11 @@ import { receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateReceivedFeedbackRequest } from "../validation";
+import { toReceivedFeedbackResponse } from "../responses";
+import type {
+  DeleteReceivedFeedbackResponse,
+  UpdateReceivedFeedbackResponse,
+} from "./responses";
 
 export async function PATCH(
   req: NextRequest,
@@ -28,7 +33,11 @@ export async function PATCH(
       parsed.value
     );
 
-    return ok(presentReceivedFeedback(feedback));
+    return ok(
+      toReceivedFeedbackResponse(
+        presentReceivedFeedback(feedback)
+      ) satisfies UpdateReceivedFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -47,7 +56,7 @@ export async function DELETE(
     receivedFeedbackModule.bindRequest(supabase);
     await receivedFeedbackModule.deleteReceivedFeedback.execute(user.id, id);
 
-    return ok({ ok: true });
+    return ok({ ok: true } satisfies DeleteReceivedFeedbackResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }

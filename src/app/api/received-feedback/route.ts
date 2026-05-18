@@ -4,6 +4,11 @@ import { receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateReceivedFeedbackRequest } from "./validation";
+import {
+  toReceivedFeedbackResponse,
+  type CreateReceivedFeedbackResponse,
+  type ListReceivedFeedbackResponse,
+} from "./responses";
 
 export async function GET() {
   try {
@@ -13,7 +18,11 @@ export async function GET() {
     receivedFeedbackModule.bindRequest(supabase);
     const feedback = await receivedFeedbackModule.listReceivedFeedback.execute(user.id);
 
-    return ok(feedback.map(presentReceivedFeedback));
+    return ok(
+      feedback.map((item) =>
+        toReceivedFeedbackResponse(presentReceivedFeedback(item))
+      ) satisfies ListReceivedFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -37,7 +46,11 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
     });
 
-    return created(presentReceivedFeedback(feedback));
+    return created(
+      toReceivedFeedbackResponse(
+        presentReceivedFeedback(feedback)
+      ) satisfies CreateReceivedFeedbackResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

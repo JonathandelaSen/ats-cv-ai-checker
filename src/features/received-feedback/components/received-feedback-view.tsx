@@ -1,11 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { ActivityContextPrimitives, ActivityContextType } from "@/modules/activity";
-import type { ReceivedFeedbackPrimitives } from "@/modules/received-feedback";
 import { getErrorMessage } from "@/lib/errors";
+import type {
+  ActivityContext,
+  ActivityContextType,
+  ReceivedFeedbackItem,
+} from "../api/received-feedback-api";
+import { useReceivedFeedbackMutations } from "../hooks/use-received-feedback-mutations";
+import {
+  useReceivedFeedbackContexts,
+  useReceivedFeedbackList,
+} from "../hooks/use-received-feedback-queries";
+import { useReceivedFeedbackRouteState } from "../hooks/use-received-feedback-route-state";
 import { ReceivedFeedbackSkeleton } from "./received-feedback-skeleton";
 
 const inputClass =
@@ -22,18 +39,26 @@ interface FormState {
   userNote: string;
 }
 
-const emptyForm = (): FormState => ({
-  activityContextId: "",
-  receivedDate: new Date().toISOString().slice(0, 10),
-  giverName: "",
-  feedbackText: "",
-  userNote: "",
-});
+function emptyForm(): FormState {
+  return {
+    activityContextId: "",
+    receivedDate: new Date().toISOString().slice(0, 10),
+    giverName: "",
+    feedbackText: "",
+    userNote: "",
+  };
+}
+
+function findDefaultContext(contexts: ActivityContext[]) {
+  return contexts.find((context) => context.isDefault) ?? contexts[0] ?? null;
+}
 
 export default function ReceivedFeedbackView() {
+  useReceivedFeedbackRouteState();
   const t = useTranslations("receivedFeedback");
-  const [items, setItems] = useState<ReceivedFeedbackPrimitives[]>([]);
-  const [contexts, setContexts] = useState<ActivityContextPrimitives[]>([]);
+  const feedbackQuery = useReceivedFeedbackList();
+  const contextsQuery = useReceivedFeedbackContexts();
+  const mutations = useReceivedFeedbackMutations();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [contextDraft, setContextDraft] = useState({
     name: "",
@@ -41,55 +66,47 @@ export default function ReceivedFeedbackView() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const items = feedbackQuery.data ?? [];
+  const contexts = contextsQuery.data?.contexts ?? [];
   const isEditing = editingId !== null;
-
-  const fetchItems = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [feedbackRes, contextsRes] = await Promise.all([
-        fetch("/api/received-feedback"),
-        fetch("/api/activity-contexts"),
-      ]);
-      const feedbackData = await feedbackRes.json();
-      const contextsData = await contextsRes.json();
-      if (!feedbackRes.ok) throw new Error(feedbackData.error || t("errors.loadFeedback"));
-      if (!contextsRes.ok) throw new Error(contextsData.error || t("errors.loadContexts"));
-      const loadedContexts = (contextsData.contexts ?? []) as ActivityContextPrimitives[];
-      setItems(feedbackData);
-      setContexts(loadedContexts);
-      const defaultContext =
-        loadedContexts.find((context) => context.isDefault) ?? loadedContexts[0];
-      if (defaultContext && !form.activityContextId) {
-        setForm((current) => ({ ...current, activityContextId: defaultContext.id }));
-      }
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const saving =
+    mutations.createContext.isPending ||
+    mutations.createFeedback.isPending ||
+    mutations.updateFeedback.isPending ||
+    mutations.deleteFeedback.isPending;
+  const loading = feedbackQuery.isLoading || contextsQuery.isLoading;
+  const queryError = feedbackQuery.error
+    ? getErrorMessage(feedbackQuery.error)
+    : contextsQuery.error
+      ? getErrorMessage(contextsQuery.error)
+      : null;
+  const visibleError = error ?? queryError;
 
   useEffect(() => {
-    queueMicrotask(() => void fetchItems());
-  }, []);
+    const defaultContext = findDefaultContext(contexts);
+    if (defaultContext && !form.activityContextId) {
+      setForm((current) => ({
+        ...current,
+        activityContextId: defaultContext.id,
+      }));
+    }
+  }, [contexts, form.activityContextId]);
 
   const openNewForm = () => {
-    const defaultContext = contexts.find((context) => context.isDefault) ?? contexts[0];
+    const defaultContext = findDefaultContext(contexts);
     setForm({ ...emptyForm(), activityContextId: defaultContext?.id ?? "" });
     setEditingId(null);
     setIsFormOpen(true);
     setError(null);
   };
 
-  const openEditForm = (item: ReceivedFeedbackPrimitives) => {
+  const openEditForm = (item: ReceivedFeedbackItem) => {
+    const fallbackContext = findDefaultContext(contexts);
     setForm({
-      activityContextId: item.activityContextId ?? contexts.find((context) => context.isDefault)?.id ?? contexts[0]?.id ?? "",
+      activityContextId: item.activityContextId ?? fallbackContext?.id ?? "",
       receivedDate: item.receivedDate,
       giverName: item.giverName,
       feedbackText: item.feedbackText,
@@ -108,23 +125,13 @@ export default function ReceivedFeedbackView() {
 
   const createContext = async () => {
     if (!contextDraft.name.trim()) return;
-    setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/activity-contexts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(contextDraft),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("errors.createContext"));
+      const context = await mutations.createContext.mutateAsync(contextDraft);
       setContextDraft({ name: "", type: "project" });
-      await fetchItems();
-      setForm((current) => ({ ...current, activityContextId: data.id }));
+      setForm((current) => ({ ...current, activityContextId: context.id }));
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+      setError(getErrorMessage(err) || t("errors.createContext"));
     }
   };
 
@@ -134,49 +141,39 @@ export default function ReceivedFeedbackView() {
       return;
     }
 
-    setSaving(true);
+    const payload = {
+      receivedDate: form.receivedDate,
+      activityContextId: form.activityContextId,
+      giverName: form.giverName,
+      feedbackText: form.feedbackText,
+      userNote: form.userNote || null,
+    };
+
     setError(null);
     try {
-      const res = await fetch(
-        isEditing ? `/api/received-feedback/${editingId}` : "/api/received-feedback",
-        {
-          method: isEditing ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            receivedDate: form.receivedDate,
-            activityContextId: form.activityContextId,
-            giverName: form.giverName,
-            feedbackText: form.feedbackText,
-            userNote: form.userNote,
-          }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("errors.saveFeedback"));
-      await fetchItems();
+      if (isEditing && editingId) {
+        await mutations.updateFeedback.mutateAsync({
+          id: editingId,
+          updates: payload,
+        });
+      } else {
+        await mutations.createFeedback.mutateAsync(payload);
+      }
       closeForm();
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+      setError(getErrorMessage(err) || t("errors.saveFeedback"));
     }
   };
 
-  const deleteFeedback = async (item: ReceivedFeedbackPrimitives) => {
+  const deleteFeedback = async (item: ReceivedFeedbackItem) => {
     if (!window.confirm(t("confirmDelete"))) return;
 
-    setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/received-feedback/${item.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("errors.deleteFeedback"));
-      await fetchItems();
+      await mutations.deleteFeedback.mutateAsync(item);
       if (editingId === item.id) closeForm();
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+      setError(getErrorMessage(err) || t("errors.deleteFeedback"));
     }
   };
 
@@ -199,9 +196,9 @@ export default function ReceivedFeedbackView() {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        {error && (
+        {visibleError && (
           <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-            {error}
+            {visibleError}
           </div>
         )}
 
@@ -221,11 +218,15 @@ export default function ReceivedFeedbackView() {
             </div>
             <div className="grid gap-4 md:grid-cols-[180px_1fr]">
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">{t("fields.activityContext")}</span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {t("fields.activityContext")}
+                </span>
                 <select
                   className={inputClass}
                   value={form.activityContextId}
-                  onChange={(event) => setForm({ ...form, activityContextId: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, activityContextId: event.target.value })
+                  }
                 >
                   {contexts.map((context) => (
                     <option key={context.id} value={context.id} className="bg-zinc-900">
@@ -235,45 +236,61 @@ export default function ReceivedFeedbackView() {
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium text-zinc-500">{t("fields.receivedDate")}</span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {t("fields.receivedDate")}
+                </span>
                 <input
                   type="date"
                   max={today}
                   className={inputClass}
                   value={form.receivedDate}
-                  onChange={(event) => setForm({ ...form, receivedDate: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, receivedDate: event.target.value })
+                  }
                 />
               </label>
               <label className="space-y-1.5">
-                <span className="text-xs font-medium text-zinc-500">{t("fields.from")}</span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {t("fields.from")}
+                </span>
                 <input
                   className={inputClass}
                   maxLength={120}
                   placeholder={t("placeholders.from")}
                   value={form.giverName}
-                  onChange={(event) => setForm({ ...form, giverName: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, giverName: event.target.value })
+                  }
                 />
               </label>
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">{t("fields.feedback")}</span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {t("fields.feedback")}
+                </span>
                 <textarea
                   className={textareaClass}
                   maxLength={10000}
                   rows={5}
                   placeholder={t("placeholders.feedback")}
                   value={form.feedbackText}
-                  onChange={(event) => setForm({ ...form, feedbackText: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, feedbackText: event.target.value })
+                  }
                 />
               </label>
               <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">{t("fields.privateNote")}</span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {t("fields.privateNote")}
+                </span>
                 <textarea
                   className={textareaClass}
                   maxLength={10000}
                   rows={3}
                   placeholder={t("placeholders.privateNote")}
                   value={form.userNote}
-                  onChange={(event) => setForm({ ...form, userNote: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, userNote: event.target.value })
+                  }
                 />
               </label>
               <div className="flex gap-2 md:col-span-2">
@@ -281,7 +298,9 @@ export default function ReceivedFeedbackView() {
                   className={inputClass}
                   placeholder={t("placeholders.newContext")}
                   value={contextDraft.name}
-                  onChange={(event) => setContextDraft({ ...contextDraft, name: event.target.value })}
+                  onChange={(event) =>
+                    setContextDraft({ ...contextDraft, name: event.target.value })
+                  }
                 />
                 <select
                   className={`${inputClass} max-w-36`}
@@ -293,10 +312,18 @@ export default function ReceivedFeedbackView() {
                     })
                   }
                 >
-                  <option value="project" className="bg-zinc-900">{t("contextTypes.project")}</option>
-                  <option value="employment" className="bg-zinc-900">{t("contextTypes.employment")}</option>
-                  <option value="personal" className="bg-zinc-900">{t("contextTypes.personal")}</option>
-                  <option value="other" className="bg-zinc-900">{t("contextTypes.other")}</option>
+                  <option value="project" className="bg-zinc-900">
+                    {t("contextTypes.project")}
+                  </option>
+                  <option value="employment" className="bg-zinc-900">
+                    {t("contextTypes.employment")}
+                  </option>
+                  <option value="personal" className="bg-zinc-900">
+                    {t("contextTypes.personal")}
+                  </option>
+                  <option value="other" className="bg-zinc-900">
+                    {t("contextTypes.other")}
+                  </option>
                 </select>
                 <button
                   onClick={() => void createContext()}
@@ -321,7 +348,11 @@ export default function ReceivedFeedbackView() {
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-white disabled:opacity-60"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 {t("actions.save")}
               </button>
             </div>
@@ -338,49 +369,51 @@ export default function ReceivedFeedbackView() {
           ) : (
             <div className="space-y-3">
               {items.map((item) => {
-                const contextName = contexts.find((context) => context.id === item.activityContextId)?.name;
+                const contextName = contexts.find(
+                  (context) => context.id === item.activityContextId
+                )?.name;
                 return (
-                <article
-                  key={item.id}
-                  className="rounded-lg border border-white/10 bg-white/[0.025] p-4 transition-colors hover:border-white/15"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                        <span className="inline-flex items-center gap-1">
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          {item.receivedDate}
-                        </span>
-                        <span>{t("fromPerson", { name: item.giverName })}</span>
-                        {contextName && <span>{contextName}</span>}
-                      </div>
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
-                        {item.feedbackText}
-                      </p>
-                      {item.userNote && (
-                        <p className="mt-3 whitespace-pre-wrap border-l border-white/10 pl-3 text-sm leading-6 text-zinc-400">
-                          {item.userNote}
+                  <article
+                    key={item.id}
+                    className="rounded-lg border border-white/10 bg-white/[0.025] p-4 transition-colors hover:border-white/15"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            {item.receivedDate}
+                          </span>
+                          <span>{t("fromPerson", { name: item.giverName })}</span>
+                          {contextName && <span>{contextName}</span>}
+                        </div>
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
+                          {item.feedbackText}
                         </p>
-                      )}
+                        {item.userNote && (
+                          <p className="mt-3 whitespace-pre-wrap border-l border-white/10 pl-3 text-sm leading-6 text-zinc-400">
+                            {item.userNote}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          onClick={() => openEditForm(item)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+                          disabled={saving}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => void deleteFeedback(item)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+                          disabled={saving}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => openEditForm(item)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
-                        disabled={saving}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => void deleteFeedback(item)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
-                        disabled={saving}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </article>
+                  </article>
                 );
               })}
             </div>
@@ -390,4 +423,3 @@ export default function ReceivedFeedbackView() {
     </div>
   );
 }
-
