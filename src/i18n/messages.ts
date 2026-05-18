@@ -246,6 +246,7 @@ export const messages = {
       openLinkedOffer: "Open linked offer",
       saving: "Saving...",
       selectOrCreate: "Select or create a question.",
+      selectQuestion: "Select a question.",
       errors: {
         contextRequired: "Add context to generate the answer with AI.",
         create: "The question could not be created",
@@ -1179,6 +1180,7 @@ export const messages = {
       openLinkedOffer: "Abrir oferta asociada",
       saving: "Guardando...",
       selectOrCreate: "Selecciona o crea una pregunta.",
+      selectQuestion: "Selecciona una pregunta.",
       errors: {
         contextRequired: "Añade contexto para generar la respuesta con IA.",
         create: "No se pudo crear la pregunta",

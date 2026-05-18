@@ -1,1 +1,1 @@
-export { default as InterviewQuestionsView } from "./interview-questions-view";
+export { InterviewQuestionsView } from "@/features/interview-questions";

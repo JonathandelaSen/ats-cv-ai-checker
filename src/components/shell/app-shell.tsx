@@ -9,7 +9,7 @@ import NewAnalysisFlow from "@/components/cv-library/new-analysis-flow";
 import CVLibrary from "@/components/cv-library/cv-library";
 import TemplatesView from "@/components/cv-library/templates-view";
 import CVEditorView from "@/components/cv-library/cv-editor-view";
-import InterviewQuestionsView from "@/components/selection-process/interview-questions-view";
+import { InterviewQuestionsView } from "@/features/interview-questions";
 import { WorkJournalView } from "@/features/work-journal";
 import { ObjectivesView } from "@/features/objectives";
 import { FeedbackNotesView } from "@/features/feedback-notes";
@@ -122,7 +122,6 @@ export default function AppShell({
   initialIsAdmin = false,
 }: AppShellProps) {
   const router = useRouter();
-  const common = useTranslations("common");
   const analysisFlow = useTranslations("analysisFlow.appShell");
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [analysesLoading, setAnalysesLoading] = useState(true);
@@ -137,12 +136,6 @@ export default function AppShell({
   const [viewTab, setViewTab] = useState<ViewTab>("extraction");
   const [activeView, setActiveView] = useState<AppView>(initialView);
   const [activeEditorCvId, setActiveEditorCvId] = useState<string | null>(null);
-  const [activeQuestionCvId, setActiveQuestionCvId] = useState<string | null>(
-    null,
-  );
-  const [activeQuestionAnalysisId, setActiveQuestionAnalysisId] = useState<
-    string | null
-  >(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(initialUserEmail);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
@@ -151,6 +144,7 @@ export default function AppShell({
   const lastReceivedFeedbackHrefRef = useRef("/received-feedback");
   const lastWorkJournalHrefRef = useRef("/work-journal");
   const lastObjectivesHrefRef = useRef("/objectives");
+  const lastInterviewQuestionsHrefRef = useRef("/interview-questions");
   const hasLoadedAnalysesRef = useRef(false);
   const hasLoadedCVsRef = useRef(false);
   const hasLoadedInterviewQuestionsRef = useRef(false);
@@ -252,7 +246,7 @@ export default function AppShell({
     }
 
     if (activeView === "questions") {
-      void Promise.all([ensureInterviewQuestions(), ensureCVs(), ensureAnalyses()]);
+      return;
     }
   }, [activeView, ensureAnalyses, ensureCVs, ensureInterviewQuestions]);
 
@@ -308,6 +302,12 @@ export default function AppShell({
   const rememberObjectivesLocation = useCallback(() => {
     if (window.location.pathname.startsWith("/objectives")) {
       lastObjectivesHrefRef.current = `${window.location.pathname}${window.location.search}`;
+    }
+  }, []);
+
+  const rememberInterviewQuestionsLocation = useCallback(() => {
+    if (window.location.pathname.startsWith("/interview-questions")) {
+      lastInterviewQuestionsHrefRef.current = `${window.location.pathname}${window.location.search}`;
     }
   }, []);
 
@@ -376,11 +376,19 @@ export default function AppShell({
       });
     } else if (view === "questions") {
       queueMicrotask(() => {
+        const nextParams = new URLSearchParams();
+        const cv = params.get("cv");
+        const offer = params.get("offer");
+        if (cv) nextParams.set("cv", cv);
+        if (offer) nextParams.set("offer", offer);
+        const query = nextParams.toString();
+        router.replace(query ? `/interview-questions?${query}` : "/interview-questions");
+      });
+    } else if (window.location.pathname.startsWith("/interview-questions")) {
+      queueMicrotask(() => {
         setActiveView("questions");
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
-        setActiveQuestionCvId(params.get("cv"));
-        setActiveQuestionAnalysisId(params.get("offer"));
       });
     } else if (view === "journal") {
       queueMicrotask(() => {
@@ -455,6 +463,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveAnalysisId(id);
     setActiveView("analysis");
     window.history.replaceState(
@@ -471,6 +480,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("new");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -482,6 +492,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("cvs");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -494,6 +505,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("templates");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -529,19 +541,21 @@ export default function AppShell({
     setActiveView("questions");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
-    setActiveQuestionCvId(cvId);
-    setActiveQuestionAnalysisId(analysisId);
-    const params = new URLSearchParams("view=questions");
+    const params = new URLSearchParams();
     if (cvId) params.set("cv", cvId);
     if (analysisId) params.set("offer", analysisId);
-    window.history.replaceState(null, "", `/?${params.toString()}`);
-    void fetchInterviewQuestions();
+    const query = params.toString();
+    const fallbackHref = query
+      ? `/interview-questions?${query}`
+      : lastInterviewQuestionsHrefRef.current;
+    router.push(fallbackHref);
   };
 
   const handleOpenJournal = () => {
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("journal");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -552,6 +566,7 @@ export default function AppShell({
     rememberWorkJournalLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("objectives");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -562,6 +577,7 @@ export default function AppShell({
     rememberWorkJournalLocation();
     rememberObjectivesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("feedback-notes");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -572,6 +588,7 @@ export default function AppShell({
     rememberWorkJournalLocation();
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("received-feedback");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -583,6 +600,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("cv-analyses");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -594,6 +612,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("job-analyses");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -605,6 +624,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("settings");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -616,6 +636,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
+    rememberInterviewQuestionsLocation();
     setActiveView("admin");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -823,15 +844,8 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <InterviewQuestionsView
-                key={`${activeQuestionCvId ?? "all"}:${activeQuestionAnalysisId ?? "all"}`}
-                questions={interviewQuestions}
-                cvs={cvs}
-                analyses={analyses}
                 geminiApiKey={geminiApiKey}
                 hasGeminiApiKey={geminiApiKey.length > 0}
-                initialCvId={activeQuestionCvId}
-                initialAnalysisId={activeQuestionAnalysisId}
-                onRefresh={fetchInterviewQuestions}
                 onOpenSettings={handleOpenSettings}
                 onOpenAnalysis={handleSelect}
               />

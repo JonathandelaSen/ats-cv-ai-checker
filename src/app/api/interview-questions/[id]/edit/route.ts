@@ -14,6 +14,10 @@ import {
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion } from "@/modules/selection-process";
 import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
+import {
+  toInterviewQuestionResponse,
+  type EditInterviewQuestionResponse,
+} from "../../responses";
 
 export const maxDuration = 60;
 
@@ -152,7 +156,11 @@ export async function POST(
       },
     });
 
-    return ok(updated ? presentProcessQuestion(updated) : null);
+    return ok(
+      (updated
+        ? toInterviewQuestionResponse(presentProcessQuestion(updated))
+        : null) satisfies EditInterviewQuestionResponse
+    );
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,

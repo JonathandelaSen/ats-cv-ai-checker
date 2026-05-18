@@ -22,6 +22,20 @@ The Feedback Notes migration established the target pattern and exposed several 
 - Keep `router.push` for leaving the feature or entering a different app section.
 - Remember the last visited feature URL in `AppShell` before leaving the section, so returning from the global sidebar restores the same item/tab rather than falling back to the first item.
 - Frontend files in `src/features/**` must not import from `@/modules/**` or API `route.ts` files. They may import response types from API `responses.ts`.
+- Do not keep section-specific option data in `AppShell` after migration. If a migrated section needs lightweight dropdown options from another domain, expose a section-owned API endpoint such as `/api/<section>/options` and load it from the feature with TanStack Query. Do not call broad legacy section endpoints such as `/api/cvs`, `/api/cv-analyses`, or `/api/job-match-analyses` from the shell just because the migrated section needs select options; those requests make opening one section load the rest of the app.
+
+## Important Lessons From Objectives
+
+The Objectives migration added stricter expectations for optimistic updates, URL-owned state, and component composition:
+
+- Optimistic updates must cover the whole user-visible flow, not just TanStack Query cache data. When a create mutation adds an item optimistically, also close the create form, clear the input draft, and select/navigate to the optimistic item immediately.
+- If an optimistic create uses a temporary ID, generate or pass that ID from the UI layer when route selection needs it. Replace the optimistic route with the server ID when the request succeeds, and clear or restore the route if it fails.
+- Delete mutations must choose the next visible item before the request finishes. Remove the deleted item from the cache, move the route/selection to the next item in the current filtered list, fall back to the previous item when deleting the last one, and clear selection only when no item remains. If the request fails, roll back the cache and restore the previous route.
+- Update mutations must update the visible detail and list rows optimistically without forcing a broad refetch that makes the UI flash or reselect stale data.
+- Child collection mutations such as action items, outcomes, notes, or generated answers must update the selected detail optimistically. Add operations should clear their input draft immediately; edit operations should exit edit mode immediately; delete operations should remove the row immediately.
+- Sidebar list state must be derived from the same URL-owned tab/filter state as the main view. Do not keep a separate local filter that can drift from `usePathname()` or `useSearchParams()`.
+- Every selectable sidebar item needs a shareable URL. The selected visual state must follow the URL, and the URL must change immediately on click via History API for in-feature navigation.
+- Large UI files must be split during migration. The top-level `<section>-view.tsx` should orchestrate route/query/mutation state, while sidebar, list item, detail, forms, child sections, generated content panels, and skeletons live in focused sibling components.
 
 ## Pre-Migration Decisions
 
@@ -51,20 +65,21 @@ If the section does not have a detail resource, use:
 /<section>?<tab-or-filter-query>=<value>
 ```
 
-### Current Migration Decision: Objectives
+### Current Migration Decision: Interview Questions
 
 ```txt
-Section label: Objectives
-Route segment: /objectives
-Primary detail resource: commitment objective, via /objectives/[objectiveId]
-Query params: none
-Existing legacy entry point: src/components/commitments/
-Existing API routes: /api/commitments, /api/commitments/[id], /api/commitments/[id]/items, /api/commitments/[id]/outcomes, /api/commitments/items/[id], /api/commitments/outcomes/[id], /api/commitments/contexts, /api/commitments/contexts/[id]
-Backend mutations: yes; verify the commitments module use cases record platform actions for create, update, delete, item, outcome, and context changes
-AI prompt impact: none found in the legacy objectives UI; no prompt docs update is expected unless the migration changes model input, prompt copy, or generated content behavior
-Server state owned by TanStack Query: commitments workspace, commitment contexts, selected objective detail, objective items, and outcomes
-Local UI state owned by React: selected objective draft fields, search/filter controls, inline edit ids, create-context fields, saving/error indicators, and delete confirmation state
-Why this section next: Work Journal is already under src/features/work-journal and src/app/work-journal. Objectives is the smallest remaining legacy job-section candidate: a single legacy component folder with no AI prompt flow and no CV editor/template surface area.
+Section label: Interview Questions
+Route segment: /interview-questions
+Primary detail resource: interview question, via /interview-questions/[questionId]
+Query params: use URL-owned list state if needed, for example cv=<cvId> or status=answered|unanswered|all; do not keep list filters as component-only state once migrated
+Existing legacy entry point: src/components/selection-process/interview-questions-view.tsx
+Existing API routes: /api/interview-questions, /api/interview-questions/[id], /api/interview-questions/[id]/generate, /api/interview-questions/[id]/edit
+Backend mutations: yes; verify create, update, delete, generate, and edit operations keep platform observability events
+AI prompt impact: yes; generation/edit flows use the interview question AI prompt family documented at docs/prompts/preguntas-entrevista/prompt.md. Update that prompt doc in the same change if model input data, response shape, prompt text, or controller behavior changes.
+Server state owned by TanStack Query: interview question list, selected interview question detail, generated answer state, and mutation results
+Local UI state owned by React: draft question text, answer edit draft, generation/edit mode controls, selected local form values, saving/error indicators, and delete confirmation state
+Navigation style: follow Feedback Notes and Objectives. Every selected question must have a URL, tab/filter state must be in the query string when present, and back/forward must restore the selected question and current list state without waiting for a server navigation.
+Why this section next: Objectives has now been migrated to src/features/objectives and real /objectives routes. Interview Questions is the next contained legacy app section: it has one primary legacy view, a small API surface, and an important AI flow that should move behind explicit frontend response contracts before larger CV/editor surfaces are migrated.
 ```
 
 ## Target File Structure
@@ -348,7 +363,7 @@ export function use<Entity>Detail(id: string | null) {
 
 Expected: no direct fetch calls remain in React components.
 
-- [ ] **Step 2: Wrap mutations and invalidation**
+- [ ] **Step 2: Wrap mutations with optimistic cache updates**
 
 Use this pattern:
 
@@ -359,45 +374,126 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { create<Entity>, update<Entity>, delete<Entity> } from "../api/<section>-api";
 import { <sectionCamel>QueryKeys } from "../api/<section>-query-keys";
 
+interface OptimisticContext<TList> {
+  previousList?: TList;
+}
+
 export function use<Section>Mutations() {
   const queryClient = useQueryClient();
+  const listKey = <sectionCamel>QueryKeys.list();
 
-  const invalidate<Entity> = async (id?: string | null) => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: <sectionCamel>QueryKeys.lists() }),
-      id
-        ? queryClient.invalidateQueries({ queryKey: <sectionCamel>QueryKeys.detail(id) })
-        : Promise.resolve(),
-    ]);
+  const startOptimisticUpdate = async () => {
+    await queryClient.cancelQueries({ queryKey: listKey });
+    return queryClient.getQueryData<List<Entities>Response>(listKey);
+  };
+
+  const rollback = (context: OptimisticContext<List<Entities>Response> | undefined) => {
+    if (context?.previousList) {
+      queryClient.setQueryData(listKey, context.previousList);
+    }
   };
 
   return {
     create<Entity>: useMutation({
-      mutationFn: create<Entity>,
-      onSuccess: async (entity) => {
+      mutationFn: ({ input }: { input: Create<Entity>Input; optimisticId?: string }) =>
+        create<Entity>(input),
+      onMutate: async ({ input, optimisticId }) => {
+        const previousList = await startOptimisticUpdate();
+        const optimisticEntity = toOptimistic<Entity>(input, optimisticId);
+        queryClient.setQueryData(listKey, (current) =>
+          add<Entity>ToList(current, optimisticEntity)
+        );
+        queryClient.setQueryData(
+          <sectionCamel>QueryKeys.detail(optimisticEntity.id),
+          optimisticEntity
+        );
+        return { previousList, optimisticId: optimisticEntity.id };
+      },
+      onError: (_error, _variables, context) => rollback(context),
+      onSuccess: (entity, _variables, context) => {
+        queryClient.setQueryData(listKey, (current) =>
+          replace<Entity>InList(current, entity, context.optimisticId)
+        );
         queryClient.setQueryData(<sectionCamel>QueryKeys.detail(entity.id), entity);
-        await invalidate<Entity>(entity.id);
+        if (context.optimisticId !== entity.id) {
+          queryClient.removeQueries({
+            queryKey: <sectionCamel>QueryKeys.detail(context.optimisticId),
+          });
+        }
       },
     }),
     update<Entity>: useMutation({
       mutationFn: update<Entity>,
-      onSuccess: async (entity) => {
+      onMutate: async ({ id, updates }) => {
+        const previousList = await startOptimisticUpdate();
+        queryClient.setQueryData(listKey, (current) =>
+          update<Entity>InList(current, id, updates)
+        );
+        queryClient.setQueryData(<sectionCamel>QueryKeys.detail(id), (current) =>
+          current ? { ...current, ...updates } : current
+        );
+        return { previousList };
+      },
+      onError: (_error, _variables, context) => rollback(context),
+      onSuccess: (entity) => {
+        queryClient.setQueryData(listKey, (current) =>
+          replace<Entity>InList(current, entity)
+        );
         queryClient.setQueryData(<sectionCamel>QueryKeys.detail(entity.id), entity);
-        await invalidate<Entity>(entity.id);
       },
     }),
     delete<Entity>: useMutation({
       mutationFn: delete<Entity>,
-      onSuccess: async (_result, id) => {
+      onMutate: async (id) => {
+        const previousList = await startOptimisticUpdate();
+        queryClient.setQueryData(listKey, (current) =>
+          remove<Entity>FromList(current, id)
+        );
         queryClient.removeQueries({ queryKey: <sectionCamel>QueryKeys.detail(id) });
-        await invalidate<Entity>(null);
+        return { previousList };
       },
+      onError: (_error, _variables, context) => rollback(context),
     }),
   };
 }
 ```
 
-Expected: mutations update caches intentionally and invalidate affected lists/details.
+Expected: create, update, and delete mutations update list/detail caches immediately. Do not rely on broad invalidation/refetch as the primary UI update mechanism.
+
+- [ ] **Step 3: Pair optimistic cache changes with local UI changes**
+
+Optimistic mutations are incomplete unless the UI state moves at the same time as the cache:
+
+```txt
+Create parent item:
+- generate/pass an optimistic ID when the route must select the new item
+- close the create form before awaiting the request
+- clear draft inputs before awaiting the request
+- select/navigate to the optimistic ID immediately
+- replace the optimistic route with the server ID on success
+- clear or restore the previous route on error
+
+Create child item:
+- clear the input draft before awaiting the request
+- add the child row to the selected detail cache immediately
+
+Update item:
+- close inline edit mode before awaiting the request
+- update visible list/detail fields immediately
+- restore edit state only if that is necessary to recover from failure
+
+Delete parent item:
+- compute next selection from the current filtered list before mutating
+- select the next visible item immediately, or previous item if deleting the last one
+- clear selection only when no item remains
+- restore the deleted item's route on failure
+
+Delete child item:
+- remove the row from the selected detail immediately
+- restore via rollback on failure
+```
+
+Expected: no operation leaves a stale form open, stale selected route, uncleared text input, or invisible selected item while the request is in flight.
 
 ## Task 5: Implement Immediate Route State
 
@@ -481,6 +577,20 @@ Use `router.push` in `AppShell` for global sidebar navigation. Do not use it for
 
 Expected: no `?_rsc=...` delay is visible for high-frequency in-feature interactions.
 
+- [ ] **Step 3: Keep tabs, filters, and selection URL-owned**
+
+Rules:
+
+```txt
+Selected item -> path segment, for example /<section>/<resourceId>
+Selected tab/filter -> query string, for example ?status=active or ?cv=<cvId>
+Sidebar selected state -> derived from pathname + query-filtered list
+Main detail selected state -> derived from pathname, with cached/list fallback only when useful
+Auto-select first item -> only when the URL has no resourceId
+```
+
+Expected: browser back/forward restores the same item and tab/filter without relying on component-local selected state.
+
 ## Task 6: Create Real Routes With Persistent Layout
 
 **Files:**
@@ -539,6 +649,8 @@ Expected: the pages exist for shareable URLs, while `AppShell` renders the secti
 - Create: `src/features/<section>/index.ts`
 - Delete after imports move: `src/components/<legacy-section>/`
 
+Do not migrate a large legacy UI file as one large new feature file. Split it as part of the migration, before considering the task complete.
+
 - [ ] **Step 1: Build the composition component**
 
 `<section>-view.tsx` owns route state, query hooks, mutation hooks, and top-level error display:
@@ -569,6 +681,23 @@ export default function <Section>View() {
 ```
 
 Expected: child components receive explicit props and do not call `fetch`.
+
+- [ ] **Step 1.5: Keep the composition component small**
+
+`<section>-view.tsx` should orchestrate, not render every UI surface. Extract obvious sibling components:
+
+```txt
+Sidebar and tabs -> <section>-sidebar.tsx
+Repeated list row -> <section>-list-item.tsx
+Main selected record -> <section>-detail.tsx
+Create/edit form -> <section>-form-panel.tsx
+Generated AI answer/editor -> generated-answer-panel.tsx or equivalent
+Child collection -> <child-collection>-section.tsx
+Empty/loading states -> <section>-skeleton.tsx or focused empty-state component
+Shared local UI constants/types -> <section>-ui.ts when needed
+```
+
+Expected: no migrated UI file becomes a monolith. If a component grows because it contains multiple visible regions or unrelated draft states, split it before moving on.
 
 - [ ] **Step 2: Auto-select the first item only when no resource is in the URL**
 
@@ -684,6 +813,37 @@ If the old entry point was `/?view=<section-view-key>`, update the route-reading
 ```
 
 Expected: old URLs still land in the new route segment.
+
+- [ ] **Step 5: Remove migrated section data preloads from the shell**
+
+After the feature owns its server state, the shell must not preload the migrated section's list/detail data or broad supporting data when `activeView === "<section-view-key>"`.
+
+Bad:
+
+```ts
+if (activeView === "<section-view-key>") {
+  void Promise.all([ensure<Section>(), ensureCVs(), ensureAnalyses()]);
+}
+```
+
+Good:
+
+```ts
+if (activeView === "<section-view-key>") {
+  return;
+}
+```
+
+If the migrated feature needs related select options, add a feature-owned API contract and query:
+
+```txt
+src/app/api/<section>/options/route.ts
+src/app/api/<section>/responses.ts
+src/features/<section>/api/<section>-api.ts
+src/features/<section>/hooks/use-<section>-queries.ts
+```
+
+Expected: opening `/section` does not trigger unrelated section requests such as `/api/cvs`, `/api/cv-analyses`, or `/api/job-match-analyses`. Only the migrated section's own endpoints should appear, for example `/api/<section>` and `/api/<section>/options`.
 
 ## Task 9: Remove Legacy Frontend Imports
 
@@ -801,6 +961,11 @@ With DevTools Network throttled to 3G:
 8. Leave via global sidebar.
 9. Return via global sidebar.
 10. Confirm the exact previous /<section>/<id>?query URL is restored.
+11. Create a parent item and confirm the form closes, draft clears, sidebar row appears, URL selects the optimistic item, and the URL swaps to the server ID on success.
+12. Create a child item and confirm the input clears and the child row appears before the request finishes.
+13. Edit an item and confirm edit mode closes and visible fields update before the request finishes.
+14. Delete the selected parent item and confirm the sidebar removes it and selection immediately moves to the next/previous visible item before the request finishes.
+15. Use browser back/forward after item and tab changes and confirm the UI follows the URL.
 ```
 
 Expected: no visible “click ignored” delay and no jump to the first item unless the URL intentionally has no selected resource.
@@ -833,9 +998,14 @@ Expected: global shell API calls do not repeat when switching detail resources i
 - [ ] Frontend code imports response types from `responses.ts`, never `route.ts`.
 - [ ] Frontend code does not import from `@/modules/**`.
 - [ ] TanStack Query owns server state.
+- [ ] Create, update, and delete mutations use optimistic cache updates instead of waiting for broad refetches.
+- [ ] Optimistic creates close forms, clear inputs, and select/navigate to the optimistic item immediately.
+- [ ] Optimistic deletes move selection to the next/previous visible item immediately.
 - [ ] Local drafts stay local.
 - [ ] Intra-feature item/tab clicks update URL and UI immediately with History API.
+- [ ] Every selectable list/sidebar item has a shareable route, and tab/filter state is encoded in query params when present.
 - [ ] Sidebar return restores the last section URL.
+- [ ] Large UI files are split into focused components before completion.
 - [ ] Legacy `src/components/<legacy-section>/` files are removed or reduced to a temporary shim that is deleted before completion.
 - [ ] `npm run ddd:check` passes.
 - [ ] `npm run build` passes.

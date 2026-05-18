@@ -14,6 +14,12 @@ import {
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion, presentProcessQuestions } from "@/modules/selection-process";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
+import {
+  toInterviewQuestionResponse,
+  toInterviewQuestionResponses,
+  type ListInterviewQuestionsResponse,
+  type SaveInterviewQuestionResponse,
+} from "./responses";
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,7 +38,11 @@ export async function GET(req: NextRequest) {
       ...parsed.value,
     });
 
-    return ok(presentProcessQuestions(questions));
+    return ok(
+      toInterviewQuestionResponses(
+        presentProcessQuestions(questions)
+      ) satisfies ListInterviewQuestionsResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -146,7 +156,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return created(response);
+    return created(
+      toInterviewQuestionResponse(response) satisfies SaveInterviewQuestionResponse
+    );
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,

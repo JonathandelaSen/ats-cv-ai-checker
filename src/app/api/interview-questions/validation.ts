@@ -110,8 +110,8 @@ export function parseCreateInterviewQuestionRequest(
   if (!question) return validationError("Question is required");
   const context = body.context === undefined ? null : normalizeOptionalText(body.context);
   const answer = body.answer === undefined ? null : normalizeOptionalText(body.answer);
-  const cv_id = normalizeOptionalLink(body.cv_id);
-  const analysis_id = normalizeOptionalLink(body.analysis_id);
+  const cv_id = normalizeOptionalLink(body.cvId ?? body.cv_id);
+  const analysis_id = normalizeOptionalLink(body.analysisId ?? body.analysis_id);
   if (context === undefined || answer === undefined || cv_id === undefined || analysis_id === undefined) {
     return validationError("Invalid payload");
   }
@@ -128,9 +128,20 @@ export function parseUpdateInterviewQuestionRequest(
     if (!question) return validationError("Question is required");
     updates.question = question;
   }
-  for (const key of ["context", "answer", "cv_id", "analysis_id"] as const) {
-    if (body[key] === undefined) continue;
-    const normalized = normalizeOptionalText(body[key]);
+  const optionalFields = [
+    { source: "context", target: "context" },
+    { source: "answer", target: "answer" },
+    { source: "cv_id", camelSource: "cvId", target: "cv_id" },
+    { source: "analysis_id", camelSource: "analysisId", target: "analysis_id" },
+  ] as const;
+  for (const field of optionalFields) {
+    const raw =
+      "camelSource" in field && body[field.camelSource] !== undefined
+        ? body[field.camelSource]
+        : body[field.source];
+    if (raw === undefined) continue;
+    const normalized = normalizeOptionalText(raw);
+    const key = field.target;
     if (normalized === undefined) return validationError(`Invalid ${key}`);
     if (key === "cv_id") updates.legacyCvId = normalized;
     else if (key === "analysis_id") updates.sourceJobMatchAnalysisId = normalized;
@@ -148,8 +159,10 @@ export function parseGenerateInterviewQuestionRequest(
   const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
   const model = normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
   const context = normalizeOptionalText(body.context) ?? existing.context;
-  const cv_id = body.cv_id === undefined ? existing.cv_id : normalizeOptionalText(body.cv_id);
-  const analysis_id = body.analysis_id === undefined ? existing.analysis_id : normalizeOptionalText(body.analysis_id);
+  const bodyCvId = body.cvId ?? body.cv_id;
+  const bodyAnalysisId = body.analysisId ?? body.analysis_id;
+  const cv_id = bodyCvId === undefined ? existing.cv_id : normalizeOptionalText(bodyCvId);
+  const analysis_id = bodyAnalysisId === undefined ? existing.analysis_id : normalizeOptionalText(bodyAnalysisId);
   if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de generar respuestas.");
   if (!context?.trim()) return validationError("Context is required for AI generation");
   if (cv_id === undefined || analysis_id === undefined) return validationError("Invalid links");

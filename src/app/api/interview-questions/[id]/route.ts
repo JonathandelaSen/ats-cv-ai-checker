@@ -7,6 +7,12 @@ import {
 import { selectionProcessModule } from "@/lib/container";
 import { presentProcessQuestion } from "@/modules/selection-process";
 import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
+import {
+  toInterviewQuestionResponse,
+  type DeleteInterviewQuestionResponse,
+  type GetInterviewQuestionResponse,
+  type SaveInterviewQuestionResponse,
+} from "../responses";
 
 export async function GET(
   _req: NextRequest,
@@ -25,7 +31,11 @@ export async function GET(
       throw notFound("Question not found");
     }
 
-    return ok(presentProcessQuestion(question));
+    return ok(
+      toInterviewQuestionResponse(
+        presentProcessQuestion(question)
+      ) satisfies GetInterviewQuestionResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -80,7 +90,11 @@ export async function PATCH(
       throw notFound("Question not found");
     }
 
-    return ok(presentProcessQuestion(updated));
+    return ok(
+      toInterviewQuestionResponse(
+        presentProcessQuestion(updated)
+      ) satisfies SaveInterviewQuestionResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -103,7 +117,7 @@ export async function DELETE(
       throw notFound("Question not found");
     }
 
-    return ok({ success: true });
+    return ok({ ok: true } satisfies DeleteInterviewQuestionResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }
