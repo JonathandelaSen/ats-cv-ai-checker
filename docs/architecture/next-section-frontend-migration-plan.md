@@ -51,19 +51,20 @@ If the section does not have a detail resource, use:
 /<section>?<tab-or-filter-query>=<value>
 ```
 
-### Current Migration Decision: Work Journal
+### Current Migration Decision: Objectives
 
 ```txt
-Section label: Work Journal
-Route segment: /work-journal
-Primary detail resource: none; this section is a timeline plus create/edit inline form
+Section label: Objectives
+Route segment: /objectives
+Primary detail resource: commitment objective, via /objectives/[objectiveId]
 Query params: none
-Existing legacy entry point: src/components/work-journal/
-Existing API routes: /api/work-journal/contexts, /api/work-journal/contexts/[id], /api/work-journal/contexts/suggestions, /api/work-journal/entries, /api/work-journal/entries/[id], /api/work-journal/entries/draft
-Backend mutations: yes; existing module use cases record platform actions
-AI prompt impact: yes; draft generation response shape and frontend copy-prompt source are documented in docs/prompts/diario-trabajo/prompt.md
-Server state owned by TanStack Query: contexts, context suggestions, and entries
-Local UI state owned by React: draft form, search/filter controls, inline edit id, copy modal state, context creation fields, loading/error indicators
+Existing legacy entry point: src/components/commitments/
+Existing API routes: /api/commitments, /api/commitments/[id], /api/commitments/[id]/items, /api/commitments/[id]/outcomes, /api/commitments/items/[id], /api/commitments/outcomes/[id], /api/commitments/contexts, /api/commitments/contexts/[id]
+Backend mutations: yes; verify the commitments module use cases record platform actions for create, update, delete, item, outcome, and context changes
+AI prompt impact: none found in the legacy objectives UI; no prompt docs update is expected unless the migration changes model input, prompt copy, or generated content behavior
+Server state owned by TanStack Query: commitments workspace, commitment contexts, selected objective detail, objective items, and outcomes
+Local UI state owned by React: selected objective draft fields, search/filter controls, inline edit ids, create-context fields, saving/error indicators, and delete confirmation state
+Why this section next: Work Journal is already under src/features/work-journal and src/app/work-journal. Objectives is the smallest remaining legacy job-section candidate: a single legacy component folder with no AI prompt flow and no CV editor/template surface area.
 ```
 
 ## Target File Structure

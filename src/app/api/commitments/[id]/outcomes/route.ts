@@ -4,6 +4,10 @@ import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentOutcome } from "@/modules/commitments";
 import { created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateCommitmentOutcomeRequest } from "../../validation";
+import {
+  toCommitmentOutcomeResponse,
+  type CommitmentOutcomeResponse,
+} from "../../responses";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +26,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       commitmentId: id,
       ...parsed.value,
     });
-    return created(presentCommitmentOutcome(outcome));
+    return created(
+      toCommitmentOutcomeResponse(
+        presentCommitmentOutcome(outcome)
+      ) satisfies CommitmentOutcomeResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

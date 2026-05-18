@@ -11,7 +11,7 @@ import TemplatesView from "@/components/cv-library/templates-view";
 import CVEditorView from "@/components/cv-library/cv-editor-view";
 import InterviewQuestionsView from "@/components/selection-process/interview-questions-view";
 import { WorkJournalView } from "@/features/work-journal";
-import ObjectivesView from "@/components/commitments/objectives-view";
+import { ObjectivesView } from "@/features/objectives";
 import { FeedbackNotesView } from "@/features/feedback-notes";
 import { ReceivedFeedbackView } from "@/features/received-feedback";
 import ExtractionView from "@/components/cv-analysis/extraction-view";
@@ -150,6 +150,7 @@ export default function AppShell({
   const lastFeedbackNotesHrefRef = useRef("/feedback-notes");
   const lastReceivedFeedbackHrefRef = useRef("/received-feedback");
   const lastWorkJournalHrefRef = useRef("/work-journal");
+  const lastObjectivesHrefRef = useRef("/objectives");
   const hasLoadedAnalysesRef = useRef(false);
   const hasLoadedCVsRef = useRef(false);
   const hasLoadedInterviewQuestionsRef = useRef(false);
@@ -304,6 +305,12 @@ export default function AppShell({
     }
   }, []);
 
+  const rememberObjectivesLocation = useCallback(() => {
+    if (window.location.pathname.startsWith("/objectives")) {
+      lastObjectivesHrefRef.current = `${window.location.pathname}${window.location.search}`;
+    }
+  }, []);
+
   // Fetch single analysis detail
   const fetchAnalysisDetail = useCallback(async (id: string) => {
     setLoadingDetail(true);
@@ -387,6 +394,10 @@ export default function AppShell({
       });
     } else if (view === "objectives") {
       queueMicrotask(() => {
+        router.replace("/objectives");
+      });
+    } else if (window.location.pathname.startsWith("/objectives")) {
+      queueMicrotask(() => {
         setActiveView("objectives");
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
@@ -441,6 +452,7 @@ export default function AppShell({
   // Handle selecting an analysis
   const handleSelect = (id: string) => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveAnalysisId(id);
@@ -456,6 +468,7 @@ export default function AppShell({
   // Handle new analysis
   const handleNewAnalysis = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("new");
@@ -466,6 +479,7 @@ export default function AppShell({
 
   const handleOpenCVs = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("cvs");
@@ -477,6 +491,7 @@ export default function AppShell({
 
   const handleOpenTemplates = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("templates");
@@ -488,6 +503,7 @@ export default function AppShell({
 
   const handleOpenEditor = (cvId?: string | null) => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     const targetCvId = cvId !== undefined ? cvId : null;
@@ -505,6 +521,7 @@ export default function AppShell({
     analysisId?: string | null;
   }) => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     const cvId = options?.cvId ?? null;
@@ -522,6 +539,7 @@ export default function AppShell({
   };
 
   const handleOpenJournal = () => {
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("journal");
@@ -537,11 +555,12 @@ export default function AppShell({
     setActiveView("objectives");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
-    window.history.replaceState(null, "", "/?view=objectives");
+    router.push(lastObjectivesHrefRef.current);
   };
 
   const handleOpenFeedbackNotes = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("feedback-notes");
     setActiveAnalysisId(null);
@@ -551,6 +570,7 @@ export default function AppShell({
 
   const handleOpenReceivedFeedback = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     setActiveView("received-feedback");
     setActiveAnalysisId(null);
@@ -560,6 +580,7 @@ export default function AppShell({
 
   const handleOpenCVAnalyses = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("cv-analyses");
@@ -570,6 +591,7 @@ export default function AppShell({
 
   const handleOpenJobAnalyses = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("job-analyses");
@@ -580,6 +602,7 @@ export default function AppShell({
 
   const handleOpenSettings = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("settings");
@@ -590,6 +613,7 @@ export default function AppShell({
 
   const handleOpenAdmin = () => {
     rememberWorkJournalLocation();
+    rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     setActiveView("admin");

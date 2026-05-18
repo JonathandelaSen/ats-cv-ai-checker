@@ -5,6 +5,12 @@ import { presentCommitment,
   presentCommitmentsWorkspace } from "@/modules/commitments";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateCommitmentRequest } from "./validation";
+import {
+  toCommitmentResponse,
+  toCommitmentsWorkspaceResponse,
+  type CommitmentResponse,
+  type CommitmentsWorkspaceResponse,
+} from "./responses";
 
 export async function GET() {
   try {
@@ -13,7 +19,11 @@ export async function GET() {
     const { supabase, user } = authContext;
     commitmentsModule.bindRequest(supabase);
     const workspace = await commitmentsModule.listWorkspace.execute(user.id);
-    return ok(presentCommitmentsWorkspace(workspace));
+    return ok(
+      toCommitmentsWorkspaceResponse(
+        presentCommitmentsWorkspace(workspace)
+      ) satisfies CommitmentsWorkspaceResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -35,7 +45,9 @@ export async function POST(req: NextRequest) {
       ...parsed.value,
       startDate: parsed.value.startDate ?? undefined,
     });
-    return created(presentCommitment(commitment));
+    return created(
+      toCommitmentResponse(presentCommitment(commitment)) satisfies CommitmentResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

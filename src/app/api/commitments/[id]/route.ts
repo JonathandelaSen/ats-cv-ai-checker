@@ -4,6 +4,11 @@ import { commitmentsModule } from "@/lib/container";
 import { presentCommitment } from "@/modules/commitments";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateCommitmentRequest } from "../validation";
+import {
+  toCommitmentResponse,
+  type CommitmentResponse,
+  type DeleteCommitmentResponse,
+} from "../responses";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +27,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       id,
       ...parsed.value,
     });
-    return ok(presentCommitment(commitment));
+    return ok(
+      toCommitmentResponse(presentCommitment(commitment)) satisfies CommitmentResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -36,7 +43,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     commitmentsModule.bindRequest(supabase);
     await commitmentsModule.deleteCommitment.execute({ userId: user.id, id });
-    return ok({ ok: true });
+    return ok({ ok: true } satisfies DeleteCommitmentResponse);
   } catch (error: unknown) {
     return handleApiError(error);
   }

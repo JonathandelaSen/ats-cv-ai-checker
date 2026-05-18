@@ -4,6 +4,10 @@ import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentContext } from "@/modules/commitments";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateCommitmentContextRequest } from "../../validation";
+import {
+  toCommitmentContextResponse,
+  type CommitmentContextResponse,
+} from "../../responses";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +26,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       id,
       ...parsed.value,
     });
-    return ok(presentCommitmentContext(context));
+    return ok(
+      toCommitmentContextResponse(
+        presentCommitmentContext(context)
+      ) satisfies CommitmentContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

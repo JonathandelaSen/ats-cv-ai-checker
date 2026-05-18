@@ -4,6 +4,10 @@ import { commitmentsModule } from "@/lib/container";
 import { presentCommitmentContext } from "@/modules/commitments";
 import { created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateCommitmentContextRequest } from "../validation";
+import {
+  toCommitmentContextResponse,
+  type CommitmentContextResponse,
+} from "../responses";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +21,11 @@ export async function POST(req: NextRequest) {
     }
     commitmentsModule.bindRequest(supabase);
     const context = await commitmentsModule.createContext.execute({ userId: user.id, ...parsed.value });
-    return created(presentCommitmentContext(context));
+    return created(
+      toCommitmentContextResponse(
+        presentCommitmentContext(context)
+      ) satisfies CommitmentContextResponse
+    );
   } catch (error: unknown) {
     return handleApiError(error);
   }

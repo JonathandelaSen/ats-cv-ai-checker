@@ -34,6 +34,8 @@ src/modules/<module>/application presenters
 
 TanStack Query owns data loaded from the backend, mutation state, invalidation, refetching, and optimistic updates. React local state owns UI-only state such as form drafts, inline edit IDs, modal open state, copied indicators, and selected local control values.
 
+Feature views should not become monolithic UI files. Keep `*-view.tsx` components focused on orchestration: route state, query/mutation hooks, top-level draft state, and high-level conditional rendering. Extract substantial UI regions into sibling components inside the same feature folder, including sidebars, detail panels, create/edit forms, inline editors, repeated rows, modals, and domain-specific sections. If a view is approaching 250-300 lines or contains several independent UI regions, split it as part of the same change.
+
 Do not copy query data into local state unless it is intentionally becoming an editable draft.
 
 ## Routing
