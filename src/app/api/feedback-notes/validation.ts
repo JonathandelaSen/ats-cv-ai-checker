@@ -1,4 +1,5 @@
 import type { FeedbackStatus } from "@/modules/feedback-notes";
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
 
 type Result<TValue, TError> =
   | { ok: true; value: TValue }
@@ -23,10 +24,7 @@ export interface FeedbackEntryContentHttpInput {
   content: string;
 }
 
-export interface GenerateFeedbackHttpInput {
-  geminiApiKey: string;
-  model: string;
-}
+export interface GenerateFeedbackHttpInput extends AIRequestConfig {}
 
 function validationError(message: string): Result<never, HttpValidationError> {
   return { ok: false, error: { message, status: 400 } };
@@ -106,10 +104,7 @@ export function parseGenerateFeedbackRequest(
   body: unknown
 ): Result<GenerateFeedbackHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = normalizeRequiredText(body.geminiApiKey);
-  const model = normalizeRequiredText(body.model) ?? "gemini-3.1-pro-preview";
-  if (!geminiApiKey) {
-    return validationError("Configura tu API key de Gemini antes de generar feedback.");
-  }
-  return { ok: true, value: { geminiApiKey, model } };
+  const ai = parseAIRequestConfig(body);
+  if (!ai.ok) return validationError(ai.message);
+  return { ok: true, value: ai.value };
 }

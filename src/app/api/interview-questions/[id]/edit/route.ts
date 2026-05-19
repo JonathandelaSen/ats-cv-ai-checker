@@ -82,7 +82,7 @@ export async function POST(
       });
       return errorResponse(parsed.error);
     }
-    const { geminiApiKey, model, context, instruction } = parsed.value;
+    const { provider, apiKey, model, context, instruction } = parsed.value;
     if (!existing.answer?.trim()) {
       await recordProcessingEvent({
         userId,
@@ -131,7 +131,8 @@ export async function POST(
       .editQuestionAnswer.execute({
       id,
       userId: user.id,
-      apiKey: geminiApiKey,
+      provider,
+      apiKey,
       model,
       context,
       instruction,

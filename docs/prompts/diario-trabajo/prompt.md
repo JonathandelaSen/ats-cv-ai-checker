@@ -36,7 +36,7 @@ It asks the model to return:
 
 1. The user chooses a context, date/range, optional topic, and "Help me write it".
 2. The API validates the context belongs to the user.
-3. `draftWorkJournalEntry` calls Gemini with the entry drafting prompt.
+3. `draftWorkJournalEntry` calls the selected AI provider with the entry drafting prompt.
 4. The API returns `finalText` as an editable preview.
 5. The user saves the entry manually after review.
 

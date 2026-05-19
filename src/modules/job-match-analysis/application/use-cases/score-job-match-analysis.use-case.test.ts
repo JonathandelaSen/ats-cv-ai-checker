@@ -81,6 +81,7 @@ describe("ScoreJobMatchAnalysisUseCase", () => {
     }).execute({
       id: "analysis-1",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       jobDescription: "Looking for a frontend dev",
@@ -88,6 +89,7 @@ describe("ScoreJobMatchAnalysisUseCase", () => {
     });
 
     expect(factory.create).toHaveBeenCalledWith({
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
     });
@@ -119,6 +121,7 @@ describe("ScoreJobMatchAnalysisUseCase", () => {
     }).execute({
       id: "missing",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "model",
       jobDescription: "desc",
@@ -155,6 +158,7 @@ describe("ScoreJobMatchAnalysisUseCase", () => {
       }).execute({
         id: "analysis-1",
         userId: "user-1",
+        provider: "mock",
         apiKey: "key",
         model: "model",
         jobDescription: "desc",

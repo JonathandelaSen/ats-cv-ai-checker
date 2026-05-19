@@ -1,16 +1,22 @@
 import type { Analysis, CVRecord } from "@/lib/analysis-types";
-import { Timestamp, UserId, type EventTracker } from "@/modules/shared";
+import {
+  Timestamp,
+  UserId,
+  type AIProvider,
+  type EventTracker,
+} from "@/modules/shared";
 import type {
   ProcessQuestionReadModel,
   ProcessQuestionRepository,
 } from "../../domain/repositories/process-question.repository";
-import type { InterviewQuestionAIService } from "../../domain/repositories/interview-question-ai.service";
+import type { InterviewQuestionAIServiceFactory } from "../../domain/repositories/interview-question-ai.service";
 import { ProcessQuestionId } from "../../domain/value-objects/process-question-id.value-object";
 
 export interface GenerateQuestionAnswerInput {
   id: string;
   userId: string;
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   context: string;
   legacyCvId?: string | null;
@@ -25,7 +31,7 @@ export class GenerateQuestionAnswerUseCase {
   constructor(
     private readonly deps: {
       questionRepo: ProcessQuestionRepository;
-      aiService: InterviewQuestionAIService;
+      aiFactory: InterviewQuestionAIServiceFactory;
       tracker: EventTracker;
     },
   ) {}
@@ -40,9 +46,12 @@ export class GenerateQuestionAnswerUseCase {
 
     const question = existing.question.toPrimitives();
 
-    const answer = await this.deps.aiService.generateAnswer({
+    const aiService = this.deps.aiFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
+    });
+    const answer = await aiService.generateAnswer({
       question: question.question,
       context: input.context,
       cv: input.cv,
@@ -71,7 +80,11 @@ export class GenerateQuestionAnswerUseCase {
       cvId: saved.question.toPrimitives().legacyCvId,
       analysisId: saved.question.toPrimitives().sourceJobMatchAnalysisId,
       textLength: answer.length,
-      metadata: { questionId: saved.question.id, model: input.model },
+      metadata: {
+        questionId: saved.question.id,
+        model: input.model,
+        provider: input.provider,
+      },
     });
 
     return saved;

@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import type {
   JobMatchScoringAIInput,
   JobMatchScoringAIResult,
   JobMatchScoringAIService,
-  JobMatchScoringAIServiceFactory,
 } from "../../domain/repositories/job-match-scoring-ai.service";
 import { buildJobMatchScoringPrompt } from "./job-match-scoring-prompts";
 
@@ -74,12 +74,15 @@ class GeminiJobMatchScoringAIService implements JobMatchScoringAIService {
 }
 
 export class GeminiJobMatchScoringAIServiceFactory
-  implements JobMatchScoringAIServiceFactory
 {
   create(config: {
-    apiKey: string;
+    apiKey?: string;
     model: string;
   }): JobMatchScoringAIService {
-    return new GeminiJobMatchScoringAIService(config);
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiJobMatchScoringAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

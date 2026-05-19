@@ -8,7 +8,7 @@ import type { InterviewQuestion } from "../api/interview-questions-api";
 interface InterviewQuestionAIPanelProps {
   question: InterviewQuestion;
   model: string;
-  hasGeminiApiKey: boolean;
+  hasAIApiKey: boolean;
   loadingMode: "generate" | "edit" | null;
   onModelChange: (model: string) => void;
   onRunAI: (mode: "generate" | "edit", instruction: string) => void;
@@ -18,7 +18,7 @@ interface InterviewQuestionAIPanelProps {
 export function InterviewQuestionAIPanel({
   question,
   model,
-  hasGeminiApiKey,
+  hasAIApiKey,
   loadingMode,
   onModelChange,
   onRunAI,
@@ -84,7 +84,7 @@ export function InterviewQuestionAIPanel({
           {t("editWithAI")}
         </button>
       </div>
-      {!hasGeminiApiKey && (
+      {!hasAIApiKey && (
         <button
           type="button"
           onClick={onOpenSettings}

@@ -1,4 +1,5 @@
 import type { PublicCVSettingsRequest } from "@/modules/cv-library";
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
 
 type Result<TValue, TError> =
   | { ok: true; value: TValue }
@@ -27,19 +28,14 @@ export interface SaveTemplateAsCVHttpInput {
 export interface TemplateCVRequestHttpInput {
   templateId: string;
   locale: string;
-  geminiApiKey?: string;
-  model: string;
+  ai: AIRequestConfig | null;
 }
 
-export interface StructureCVProfileHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface StructureCVProfileHttpInput extends AIRequestConfig {
   force: boolean;
 }
 
-export interface EditCVProfileHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface EditCVProfileHttpInput extends AIRequestConfig {
   instruction: string;
   templateId?: string;
   locale?: string;
@@ -87,13 +83,16 @@ export function parseTemplateCVRequest(
   body: unknown
 ): Result<TemplateCVRequestHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
+  const hasAIConfig =
+    body.provider !== undefined || body.apiKey !== undefined || body.model !== undefined;
+  const ai = hasAIConfig ? parseAIRequestConfig(body) : null;
+  if (ai && !ai.ok) return validationError(ai.message);
   return {
     ok: true,
     value: {
       templateId: text(body.templateId),
       locale: text(body.locale) || "es",
-      geminiApiKey: text(body.geminiApiKey) || undefined,
-      model: text(body.model) || "gemini-3.1-pro-preview",
+      ai: ai?.value ?? null,
     },
   };
 }
@@ -102,15 +101,12 @@ export function parseStructureCVProfileRequest(
   body: unknown
 ): Result<StructureCVProfileHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = text(body.geminiApiKey);
-  if (!geminiApiKey) {
-    return validationError("Configura tu API key de Gemini en Configuración antes de estructurar el CV.");
-  }
+  const ai = parseAIRequestConfig(body);
+  if (!ai.ok) return validationError(ai.message);
   return {
     ok: true,
     value: {
-      geminiApiKey,
-      model: text(body.model) || "gemini-3.1-pro-preview",
+      ...ai.value,
       force: body.force === true,
     },
   };
@@ -120,15 +116,14 @@ export function parseEditCVProfileRequest(
   body: unknown
 ): Result<EditCVProfileHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = text(body.geminiApiKey);
+  const ai = parseAIRequestConfig(body);
   const instruction = text(body.instruction);
-  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de editar el CV.");
+  if (!ai.ok) return validationError(ai.message);
   if (!instruction) return validationError("Escribe una instrucción para editar el CV.");
   return {
     ok: true,
     value: {
-      geminiApiKey,
-      model: text(body.model) || "gemini-3.1-pro-preview",
+      ...ai.value,
       instruction,
       templateId: text(body.templateId) || undefined,
       locale: text(body.locale) || undefined,

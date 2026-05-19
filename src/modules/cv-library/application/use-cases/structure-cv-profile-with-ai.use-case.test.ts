@@ -26,13 +26,14 @@ describe("StructureCVProfileWithAIUseCase", () => {
     const result = await new StructureCVProfileWithAIUseCase({
       aiFactory: factory,
     }).execute({
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       text: "Ada Lovelace",
     });
 
     expect(calls).toEqual([
-      { apiKey: "key", model: "gemini-test" },
+      { provider: "mock", apiKey: "key", model: "gemini-test" },
       { text: "Ada Lovelace" },
     ]);
     expect(result.profile.basics?.name).toBe("Ada");

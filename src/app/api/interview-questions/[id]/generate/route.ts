@@ -82,7 +82,7 @@ export async function POST(
       });
       return errorResponse(parsed.error);
     }
-    const { geminiApiKey, model, context, cv_id, analysis_id } = parsed.value;
+    const { provider, apiKey, model, context, cv_id, analysis_id } = parsed.value;
 
     const links = await validateQuestionLinks(supabase, user.id, {
       cv_id,
@@ -117,7 +117,8 @@ export async function POST(
       .generateQuestionAnswer.execute({
       id,
       userId: user.id,
-      apiKey: geminiApiKey,
+      provider,
+      apiKey,
       model,
       context,
       legacyCvId: cv_id,

@@ -19,12 +19,10 @@ export async function POST(req: NextRequest) {
       return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
-    const draftUseCase = workJournalModule.createDraftEntryUseCase({
-      apiKey: parsed.value.geminiApiKey,
+    const finalText = await workJournalModule.draftEntry.execute(user.id, parsed.value.contextId, {
+      provider: parsed.value.provider,
+      apiKey: parsed.value.apiKey,
       model: parsed.value.model,
-    });
-
-    const finalText = await draftUseCase.execute(user.id, parsed.value.contextId, {
       dateStart: parsed.value.dateStart,
       dateEnd: parsed.value.dateEnd,
       topic: parsed.value.topic,

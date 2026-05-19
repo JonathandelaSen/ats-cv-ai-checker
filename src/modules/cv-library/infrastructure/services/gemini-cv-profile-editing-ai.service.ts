@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import {
   normalizeStandardCVProfile,
   type StandardCVProfile,
@@ -6,7 +7,6 @@ import {
 import type { CVTemplateId, CVTemplateLocale } from "../../domain/cv-templates";
 import type {
   CVProfileEditingAIService,
-  CVProfileEditingAIServiceFactory,
 } from "../../domain/repositories/cv-profile-ai.service";
 import { SYSTEM_PROMPT } from "./cv-profile-editing-prompts";
 
@@ -77,9 +77,12 @@ class GeminiCVProfileEditingAIService implements CVProfileEditingAIService {
 }
 
 export class GeminiCVProfileEditingAIServiceFactory
-  implements CVProfileEditingAIServiceFactory
 {
-  create(config: { apiKey: string; model: string }): CVProfileEditingAIService {
-    return new GeminiCVProfileEditingAIService(config);
+  create(config: { apiKey?: string; model: string }): CVProfileEditingAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiCVProfileEditingAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

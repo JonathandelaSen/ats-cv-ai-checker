@@ -1,4 +1,5 @@
 import type { AIContext } from "@/lib/analysis-types";
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
 
 type Result<TValue, TError> =
   | { ok: true; value: TValue }
@@ -16,9 +17,7 @@ export interface CreateCVAnalysisHttpInput {
   model: string;
 }
 
-export interface ScoreCVAnalysisHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface ScoreCVAnalysisHttpInput extends AIRequestConfig {
   additionalContext: string | null;
 }
 
@@ -53,13 +52,10 @@ export function parseScoreCVAnalysisRequest(
   body: unknown
 ): Result<ScoreCVAnalysisHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = text(body.geminiApiKey);
-  const model = text(body.model) || "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const additionalContext = typeof body.additionalContext === "string"
     ? body.additionalContext.trim() || null
     : null;
-  if (!geminiApiKey) {
-    return validationError("Configura tu API key de Gemini en Configuración antes de lanzar el análisis.");
-  }
-  return { ok: true, value: { geminiApiKey, model, additionalContext } };
+  if (!ai.ok) return validationError(ai.message);
+  return { ok: true, value: { ...ai.value, additionalContext } };
 }

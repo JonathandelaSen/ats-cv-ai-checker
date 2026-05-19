@@ -1,16 +1,22 @@
 import type { Analysis, CVRecord } from "@/lib/analysis-types";
-import { Timestamp, UserId, type EventTracker } from "@/modules/shared";
+import {
+  Timestamp,
+  UserId,
+  type AIProvider,
+  type EventTracker,
+} from "@/modules/shared";
 import type {
   ProcessQuestionReadModel,
   ProcessQuestionRepository,
 } from "../../domain/repositories/process-question.repository";
-import type { InterviewQuestionAIService } from "../../domain/repositories/interview-question-ai.service";
+import type { InterviewQuestionAIServiceFactory } from "../../domain/repositories/interview-question-ai.service";
 import { ProcessQuestionId } from "../../domain/value-objects/process-question-id.value-object";
 
 export interface EditQuestionAnswerInput {
   id: string;
   userId: string;
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   context: string;
   instruction: string;
@@ -24,7 +30,7 @@ export class EditQuestionAnswerUseCase {
   constructor(
     private readonly deps: {
       questionRepo: ProcessQuestionRepository;
-      aiService: InterviewQuestionAIService;
+      aiFactory: InterviewQuestionAIServiceFactory;
       tracker: EventTracker;
     },
   ) {}
@@ -39,9 +45,12 @@ export class EditQuestionAnswerUseCase {
 
     const question = existing.question.toPrimitives();
 
-    const answer = await this.deps.aiService.editAnswer({
+    const aiService = this.deps.aiFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
+    });
+    const answer = await aiService.editAnswer({
       question: question.question,
       context: input.context,
       currentAnswer: question.answer,
@@ -70,7 +79,11 @@ export class EditQuestionAnswerUseCase {
       cvId: saved.question.toPrimitives().legacyCvId,
       analysisId: saved.question.toPrimitives().sourceJobMatchAnalysisId,
       textLength: answer.length,
-      metadata: { questionId: saved.question.id, model: input.model },
+      metadata: {
+        questionId: saved.question.id,
+        model: input.model,
+        provider: input.provider,
+      },
     });
 
     return saved;

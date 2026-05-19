@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Analysis, CVRecord } from "@/lib/analysis-types";
+import { badRequest } from "@/modules/shared";
 import {
   OFFER_CHAT_SYSTEM_PROMPT,
   buildOfferChatPrompt,
@@ -11,6 +12,8 @@ import type {
 } from "../../domain/repositories/analysis-chat-ai-service.repository";
 
 export class GeminiAnalysisChatAIService implements AnalysisChatAIService {
+  constructor(private readonly config: { apiKey: string; model: string }) {}
+
   async generateAnswer(input: AnalysisChatAIInput): Promise<string> {
     const promptInput = {
       message: input.message,
@@ -23,9 +26,9 @@ export class GeminiAnalysisChatAIService implements AnalysisChatAIService {
       })) satisfies OfferChatHistoryMessage[],
     };
 
-    const googleAI = new GoogleGenAI({ apiKey: input.apiKey });
+    const googleAI = new GoogleGenAI({ apiKey: this.config.apiKey });
     const response = await googleAI.models.generateContent({
-      model: input.model,
+      model: this.config.model,
       contents: [
         {
           role: "user",
@@ -51,5 +54,15 @@ export class GeminiAnalysisChatAIService implements AnalysisChatAIService {
     }
 
     return answer;
+  }
+}
+
+export class GeminiAnalysisChatAIServiceFactory {
+  create(config: { apiKey?: string; model: string }): AnalysisChatAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiAnalysisChatAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

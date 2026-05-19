@@ -1,9 +1,11 @@
+import type { AIProvider } from "@/modules/shared";
 import type { StandardCVProfile } from "../../domain/cv-profile";
 import type { CVTemplateId, CVTemplateLocale } from "../../domain/cv-templates";
 import type { CVProfileEditingAIServiceFactory } from "../../domain/repositories/cv-profile-ai.service";
 
 export interface EditCVProfileWithAIInput {
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   profile: StandardCVProfile;
   instruction: string;
@@ -21,6 +23,7 @@ export class EditCVProfileWithAIUseCase {
 
   async execute(input: EditCVProfileWithAIInput): Promise<StandardCVProfile> {
     const service = this.deps.aiFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
     });

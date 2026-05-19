@@ -1,3 +1,5 @@
+import type { AIProvider } from "@/modules/shared";
+
 export interface CVScoringAIResult {
   score: number;
   feedback: string;
@@ -15,5 +17,9 @@ export interface CVScoringAIService {
 }
 
 export interface CVScoringAIServiceFactory {
-  create(config: { apiKey: string; model: string }): CVScoringAIService;
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): CVScoringAIService;
 }

@@ -17,7 +17,7 @@ import { ReceivedFeedbackView } from "@/features/received-feedback";
 import ExtractionView from "@/components/cv-analysis/extraction-view";
 import AIAnalysisView from "@/components/cv-analysis/analysis-view";
 import CVAnalysesListView from "@/components/cv-analysis/cv-analyses-list-view";
-import JobAnalysesListView from "@/components/job-match-analysis/job-analyses-list-view";
+import { JobMatchAnalysisView } from "@/features/job-match-analysis";
 import SettingsView from "@/components/settings/settings-view";
 import AdminObservabilityDashboard from "@/components/observability/admin-observability-dashboard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,8 +30,13 @@ import type {
   OfferStatus,
 } from "@/lib/analysis-types";
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
-import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
-import { getStoredGeminiApiKey } from "@/lib/browser-preferences";
+import type { InterviewQuestionResponse as InterviewQuestionSummary } from "@/app/api/interview-questions/responses";
+import {
+  getStoredAIApiKey,
+  getStoredAIModel,
+  getStoredAIProvider,
+  type StoredAIProvider,
+} from "@/lib/browser-preferences";
 
 let userEmailRequest: Promise<string | null> | null = null;
 let adminStatusRequest: Promise<boolean> | null = null;
@@ -139,12 +144,15 @@ export default function AppShell({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(initialUserEmail);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
-  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [aiProvider, setAIProvider] = useState<StoredAIProvider>("gemini");
+  const [aiApiKey, setAIApiKey] = useState("");
+  const [aiModel, setAIModel] = useState("gemini-3.1-pro-preview");
   const lastFeedbackNotesHrefRef = useRef("/feedback-notes");
   const lastReceivedFeedbackHrefRef = useRef("/received-feedback");
   const lastWorkJournalHrefRef = useRef("/work-journal");
   const lastObjectivesHrefRef = useRef("/objectives");
   const lastInterviewQuestionsHrefRef = useRef("/interview-questions");
+  const lastJobAnalysesHrefRef = useRef("/job-analyses");
   const hasLoadedAnalysesRef = useRef(false);
   const hasLoadedCVsRef = useRef(false);
   const hasLoadedInterviewQuestionsRef = useRef(false);
@@ -235,8 +243,13 @@ export default function AppShell({
       return;
     }
 
-    if (activeView === "analysis" || activeView === "cv-analyses" || activeView === "job-analyses") {
+    if (activeView === "analysis" || activeView === "cv-analyses") {
       void ensureAnalyses();
+      return;
+    }
+
+    if (activeView === "job-analyses") {
+      void ensureInterviewQuestions();
       return;
     }
 
@@ -273,12 +286,16 @@ export default function AppShell({
   }, [initialIsAdmin]);
 
   useEffect(() => {
-    const syncGeminiApiKey = () => setGeminiApiKey(getStoredGeminiApiKey());
+    const syncAISettings = () => {
+      setAIProvider(getStoredAIProvider());
+      setAIApiKey(getStoredAIApiKey());
+      setAIModel(getStoredAIModel());
+    };
 
-    syncGeminiApiKey();
-    window.addEventListener("storage", syncGeminiApiKey);
+    syncAISettings();
+    window.addEventListener("storage", syncAISettings);
 
-    return () => window.removeEventListener("storage", syncGeminiApiKey);
+    return () => window.removeEventListener("storage", syncAISettings);
   }, []);
 
   const rememberFeedbackNotesLocation = useCallback(() => {
@@ -308,6 +325,12 @@ export default function AppShell({
   const rememberInterviewQuestionsLocation = useCallback(() => {
     if (window.location.pathname.startsWith("/interview-questions")) {
       lastInterviewQuestionsHrefRef.current = `${window.location.pathname}${window.location.search}`;
+    }
+  }, []);
+
+  const rememberJobAnalysesLocation = useCallback(() => {
+    if (window.location.pathname.startsWith("/job-analyses")) {
+      lastJobAnalysesHrefRef.current = `${window.location.pathname}${window.location.search}`;
     }
   }, []);
 
@@ -428,6 +451,10 @@ export default function AppShell({
       });
     } else if (view === "job-analyses") {
       queueMicrotask(() => {
+        router.replace("/job-analyses");
+      });
+    } else if (window.location.pathname.startsWith("/job-analyses")) {
+      queueMicrotask(() => {
         setActiveView("job-analyses");
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
@@ -464,6 +491,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveAnalysisId(id);
     setActiveView("analysis");
     window.history.replaceState(
@@ -481,6 +509,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("new");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -493,6 +522,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("cvs");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -506,6 +536,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("templates");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -556,6 +587,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("journal");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -567,6 +599,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("objectives");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -578,6 +611,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("feedback-notes");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -589,6 +623,7 @@ export default function AppShell({
     rememberObjectivesLocation();
     rememberFeedbackNotesLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("received-feedback");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -601,6 +636,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("cv-analyses");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -616,7 +652,7 @@ export default function AppShell({
     setActiveView("job-analyses");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
-    window.history.replaceState(null, "", "/?view=job-analyses");
+    router.push(lastJobAnalysesHrefRef.current);
   };
 
   const handleOpenSettings = () => {
@@ -625,6 +661,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("settings");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -637,6 +674,7 @@ export default function AppShell({
     rememberFeedbackNotesLocation();
     rememberReceivedFeedbackLocation();
     rememberInterviewQuestionsLocation();
+    rememberJobAnalysesLocation();
     setActiveView("admin");
     setActiveAnalysisId(null);
     setActiveAnalysis(null);
@@ -770,12 +808,16 @@ export default function AppShell({
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
-              <JobAnalysesListView
-                analyses={analyses.filter((a) => a.analysis_mode === "job_match")}
-                isLoading={analysesLoading && analyses.length === 0}
-                onSelect={handleSelect}
+              <JobMatchAnalysisView
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
+                onOpenSettings={handleOpenSettings}
                 onNewAnalysis={handleNewAnalysis}
-                onDelete={handleDelete}
+                onOpenQuestions={(options) => handleOpenQuestions(options)}
+                interviewQuestions={interviewQuestions}
+                onInterviewQuestionCreated={fetchInterviewQuestions}
               />
             </motion.div>
           ) : activeView === "cvs" ? (
@@ -806,8 +848,10 @@ export default function AppShell({
             >
               <TemplatesView
                 cvs={cvs}
-                geminiApiKey={geminiApiKey}
-                hasGeminiApiKey={geminiApiKey.length > 0}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
                 onOpenEditor={handleOpenEditor}
                 onOpenUpload={handleNewAnalysis}
@@ -826,8 +870,10 @@ export default function AppShell({
                 cvs={cvs.filter((c) => c.type === "template")}
                 hasOriginalCVs={cvs.some((c) => c.type === "uploaded")}
                 activeVersionId={activeEditorCvId}
-                geminiApiKey={geminiApiKey}
-                hasGeminiApiKey={geminiApiKey.length > 0}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                 onOpenTemplates={handleOpenTemplates}
                 onOpenSettings={handleOpenSettings}
                 onStartAnalysis={handleNewAnalysis}
@@ -844,8 +890,10 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <InterviewQuestionsView
-                geminiApiKey={geminiApiKey}
-                hasGeminiApiKey={geminiApiKey.length > 0}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
                 onOpenAnalysis={handleSelect}
               />
@@ -859,8 +907,10 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <WorkJournalView
-                geminiApiKey={geminiApiKey}
-                hasGeminiApiKey={geminiApiKey.length > 0}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
               />
             </motion.div>
@@ -883,8 +933,10 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <FeedbackNotesView
-                geminiApiKey={geminiApiKey}
-                hasGeminiApiKey={geminiApiKey.length > 0}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                 onOpenSettings={handleOpenSettings}
               />
             </motion.div>
@@ -907,8 +959,14 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <SettingsView
-                geminiApiKey={geminiApiKey}
-                onGeminiApiKeyChange={setGeminiApiKey}
+                aiProvider={aiProvider}
+                aiApiKey={aiApiKey}
+                aiModel={aiModel}
+                onAISettingsChange={(settings) => {
+                  setAIProvider(settings.provider);
+                  setAIApiKey(settings.apiKey);
+                  setAIModel(settings.model);
+                }}
                 userEmail={userEmail}
               />
             </motion.div>
@@ -988,8 +1046,10 @@ export default function AppShell({
                     <ExtractionView
                       analysis={activeAnalysis}
                       onAIAnalysisComplete={handleAIComplete}
-                      geminiApiKey={geminiApiKey}
-                      hasGeminiApiKey={geminiApiKey.length > 0}
+                      aiProvider={aiProvider}
+                      aiApiKey={aiApiKey}
+                      aiModel={aiModel}
+                      hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                       onOpenSettings={handleOpenSettings}
                     />
                   </motion.div>
@@ -1030,13 +1090,15 @@ export default function AppShell({
                         title: activeAnalysis.title,
                         filename: activeAnalysis.filename,
                       }}
-                      geminiApiKey={geminiApiKey}
-                      hasGeminiApiKey={geminiApiKey.length > 0}
+                      aiProvider={aiProvider}
+                      aiApiKey={aiApiKey}
+                      aiModel={aiModel}
+                      hasAIApiKey={aiProvider === "mock" || aiApiKey.length > 0}
                       onDelete={handleDelete}
                       onUpdate={() => fetchAnalysisDetail(activeAnalysis.id)}
                       interviewQuestions={interviewQuestions.filter(
                         (question) =>
-                          question.analysis_id === activeAnalysis.id,
+                          question.analysisId === activeAnalysis.id,
                       )}
                       onInterviewQuestionCreated={fetchInterviewQuestions}
                       onOpenQuestions={() =>

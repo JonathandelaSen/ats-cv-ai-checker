@@ -26,8 +26,9 @@ import {
   type AuthFormState,
 } from "@/app/login/actions";
 import {
-  removeStoredGeminiApiKey,
-  saveStoredGeminiApiKey,
+  removeStoredAISettings,
+  saveStoredAISettings,
+  type StoredAIProvider,
 } from "@/lib/browser-preferences";
 import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 import type { InterfaceLanguage } from "@/i18n/config";
@@ -35,20 +36,30 @@ import type { InterfaceLanguage } from "@/i18n/config";
 const INITIAL_STATE: AuthFormState = {};
 
 interface SettingsViewProps {
-  geminiApiKey: string;
-  onGeminiApiKeyChange: (apiKey: string) => void;
+  aiProvider: StoredAIProvider;
+  aiApiKey: string;
+  aiModel: string;
+  onAISettingsChange: (settings: {
+    provider: StoredAIProvider;
+    apiKey: string;
+    model: string;
+  }) => void;
   userEmail: string | null;
 }
 
 export default function SettingsView({
-  geminiApiKey,
-  onGeminiApiKeyChange,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  onAISettingsChange,
   userEmail,
 }: SettingsViewProps) {
   const t = useTranslations("settings");
   const common = useTranslations("common");
   const { locale, setInterfaceLanguage } = useInterfaceLanguage();
   const [draftValue, setDraftValue] = useState<string | null>(null);
+  const [draftProvider, setDraftProvider] = useState<StoredAIProvider>(aiProvider);
+  const [draftModel, setDraftModel] = useState(aiModel);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [languageSaved, setLanguageSaved] = useState(false);
@@ -61,13 +72,13 @@ export default function SettingsView({
     deleteAccount,
     INITIAL_STATE
   );
-  const inputValue = draftValue ?? geminiApiKey;
+  const inputValue = draftValue ?? aiApiKey;
 
   const keySummary = useMemo(() => {
-    if (!geminiApiKey) return common("states.notConfigured");
-    if (geminiApiKey.length <= 12) return common("states.configured");
-    return `${geminiApiKey.slice(0, 6)}...${geminiApiKey.slice(-4)}`;
-  }, [common, geminiApiKey]);
+    if (!aiApiKey) return common("states.notConfigured");
+    if (aiApiKey.length <= 12) return common("states.configured");
+    return `${aiApiKey.slice(0, 6)}...${aiApiKey.slice(-4)}`;
+  }, [common, aiApiKey]);
 
   const handleLanguageChange = async (nextLocale: InterfaceLanguage) => {
     setLanguageSaved(false);
@@ -82,16 +93,24 @@ export default function SettingsView({
   };
 
   const handleSave = () => {
-    const savedKey = saveStoredGeminiApiKey(inputValue);
-    onGeminiApiKeyChange(savedKey);
+    const settings = saveStoredAISettings({
+      provider: draftProvider,
+      apiKey: inputValue,
+      model: draftModel,
+    });
+    onAISettingsChange(settings);
     setDraftValue(null);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   };
 
   const handleRemove = () => {
-    removeStoredGeminiApiKey();
-    onGeminiApiKeyChange("");
+    removeStoredAISettings();
+    onAISettingsChange({
+      provider: "gemini",
+      apiKey: "",
+      model: "gemini-3.1-pro-preview",
+    });
     setDraftValue("");
     setSaved(false);
   };
@@ -190,6 +209,26 @@ export default function SettingsView({
                 <KeyRound className="h-4 w-4 text-indigo-300" />
                 {t("apiKey.fieldLabel")}
               </p>
+              <div className="mb-3 grid gap-3 sm:grid-cols-[180px_1fr]">
+                <select
+                  value={draftProvider}
+                  onChange={(event) => setDraftProvider(event.target.value as StoredAIProvider)}
+                  className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-zinc-200 outline-none transition-all focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
+                >
+                  <option value="gemini">Gemini</option>
+                  {process.env.NODE_ENV !== "production" && (
+                    <option value="mock">Mock</option>
+                  )}
+                </select>
+                <input
+                  value={draftModel}
+                  onChange={(event) => setDraftModel(event.target.value)}
+                  placeholder="gemini-3.1-pro-preview"
+                  className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-zinc-200 outline-none transition-all placeholder:text-zinc-600 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative flex-1">
                   <input
@@ -220,7 +259,7 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={!inputValue.trim()}
+                  disabled={draftProvider !== "mock" && !inputValue.trim()}
                   className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saved ? (
@@ -238,7 +277,7 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={handleRemove}
-                  disabled={!geminiApiKey && !inputValue}
+                  disabled={!aiApiKey && !inputValue}
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-5 text-sm font-semibold text-rose-300 transition-all hover:bg-rose-500/15 hover:text-rose-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Trash2 className="h-4 w-4" />

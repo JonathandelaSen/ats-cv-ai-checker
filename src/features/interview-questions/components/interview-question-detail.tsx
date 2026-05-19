@@ -20,7 +20,7 @@ interface InterviewQuestionDetailProps {
   model: string;
   isSaving: boolean;
   aiLoading: "generate" | "edit" | null;
-  hasGeminiApiKey: boolean;
+  hasAIApiKey: boolean;
   onModelChange: (model: string) => void;
   onUpdate: (updates: Partial<UpdateInterviewQuestionInput>) => void;
   onDelete: () => void;
@@ -36,7 +36,7 @@ export function InterviewQuestionDetail({
   model,
   isSaving,
   aiLoading,
-  hasGeminiApiKey,
+  hasAIApiKey,
   onModelChange,
   onUpdate,
   onDelete,
@@ -158,7 +158,7 @@ export function InterviewQuestionDetail({
       <InterviewQuestionAIPanel
         question={question}
         model={model}
-        hasGeminiApiKey={hasGeminiApiKey}
+        hasAIApiKey={hasAIApiKey}
         loadingMode={aiLoading}
         onModelChange={onModelChange}
         onRunAI={onRunAI}

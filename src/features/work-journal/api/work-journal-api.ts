@@ -108,7 +108,8 @@ export async function createWorkJournalEntry(input: SaveWorkJournalEntryInput) {
 }
 
 export async function draftWorkJournalEntry(input: {
-  geminiApiKey: string;
+  provider: "gemini" | "mock";
+  apiKey?: string;
   model: string;
   context_id: string;
   date_start: string;

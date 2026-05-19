@@ -28,8 +28,10 @@ import { Button } from "@/components/ui/button";
 
 interface TemplatesViewProps {
   cvs: CVSummary[];
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenSettings: () => void;
   onOpenEditor: (versionId: string) => void;
   onOpenUpload: () => void;
@@ -38,8 +40,10 @@ interface TemplatesViewProps {
 
 export default function TemplatesView({
   cvs,
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenSettings,
   onOpenEditor,
   onOpenUpload,
@@ -73,8 +77,9 @@ export default function TemplatesView({
         body: JSON.stringify({
           templateId: selectedTemplate.templateId,
           locale,
-          geminiApiKey,
-          model: "gemini-3.1-pro-preview", // Using the correct default
+          provider: aiProvider,
+          apiKey: aiApiKey,
+          model: aiModel,
         }),
       });
 
@@ -283,7 +288,7 @@ export default function TemplatesView({
                       </div>
                     </div>
 
-                    {!hasGeminiApiKey && selectedCvId && (
+                    {!hasAIApiKey && selectedCvId && (
                       <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                         <div className="flex gap-3">
                           <KeyRound className="h-5 w-5 shrink-0 text-amber-400" />

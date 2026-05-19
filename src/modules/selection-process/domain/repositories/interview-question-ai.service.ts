@@ -1,8 +1,7 @@
 import type { Analysis, CVRecord } from "@/lib/analysis-types";
+import type { AIProvider } from "@/modules/shared";
 
 export interface InterviewQuestionAIInput {
-  apiKey: string;
-  model: string;
   question: string;
   context: string;
   currentAnswer?: string | null;
@@ -15,4 +14,12 @@ export interface InterviewQuestionAIInput {
 export interface InterviewQuestionAIService {
   generateAnswer(input: InterviewQuestionAIInput): Promise<string>;
   editAnswer(input: InterviewQuestionAIInput): Promise<string>;
+}
+
+export interface InterviewQuestionAIServiceFactory {
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): InterviewQuestionAIService;
 }

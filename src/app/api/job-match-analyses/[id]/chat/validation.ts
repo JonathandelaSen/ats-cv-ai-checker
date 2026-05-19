@@ -1,3 +1,5 @@
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
+
 type Result<TValue, TError> =
   | { ok: true; value: TValue }
   | { ok: false; error: TError };
@@ -11,13 +13,11 @@ export type OfferChatPostInput =
   | { action: "create_conversation"; title: string }
   | { action: "rename_conversation"; conversationId: string; title: string }
   | { action: "delete_conversation"; conversationId: string }
-  | {
+  | ({
       action: "message";
       conversationId: string;
       message: string;
-      geminiApiKey: string;
-      model: string;
-    };
+    } & AIRequestConfig);
 
 function validationError(message: string): Result<never, HttpValidationError> {
   return { ok: false, error: { message, status: 400 } };
@@ -59,11 +59,10 @@ export function parseOfferChatPostRequest(
   }
 
   const message = text(body.message);
-  const geminiApiKey = text(body.geminiApiKey);
-  const model = text(body.model) ?? "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const conversationId = text(body.conversationId);
   if (!message) return validationError("Message is required");
-  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de chatear con la IA.");
+  if (!ai.ok) return validationError(ai.message);
   if (!conversationId) return validationError("conversationId is required");
-  return { ok: true, value: { action: "message", conversationId, message, geminiApiKey, model } };
+  return { ok: true, value: { action: "message", conversationId, message, ...ai.value } };
 }

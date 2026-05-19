@@ -75,7 +75,8 @@ export async function POST(
     const structured = await cvLibraryModule
       .bindRequest(supabase)
       .structureCVProfileWithAI.execute({
-        apiKey: parsed.value.geminiApiKey,
+        provider: parsed.value.provider,
+        apiKey: parsed.value.apiKey,
         model: parsed.value.model,
         text,
       });

@@ -67,12 +67,14 @@ describe("ScoreCVAnalysisUseCase", () => {
     }).execute({
       id: "analysis-1",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       additionalContext: "I am a senior dev",
     });
 
     expect(factory.create).toHaveBeenCalledWith({
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
     });
@@ -100,6 +102,7 @@ describe("ScoreCVAnalysisUseCase", () => {
     }).execute({
       id: "missing",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "model",
     });
@@ -134,6 +137,7 @@ describe("ScoreCVAnalysisUseCase", () => {
       }).execute({
         id: "analysis-1",
         userId: "user-1",
+        provider: "mock",
         apiKey: "key",
         model: "model",
       }),

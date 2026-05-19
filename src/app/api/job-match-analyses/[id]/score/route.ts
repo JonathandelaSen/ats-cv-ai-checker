@@ -9,6 +9,7 @@ import {
 import { jobMatchAnalysisModule } from "@/lib/container";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { parseScoreJobMatchAnalysisRequest } from "../../validation";
+import { toJobMatchAnalysisDetailResponse } from "../../responses";
 import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export const maxDuration = 60;
@@ -38,7 +39,8 @@ export async function POST(
       .scoreJobMatchAnalysis.execute({
         id: analysisId,
         userId: user.id,
-        apiKey: parsed.value.geminiApiKey,
+        provider: parsed.value.provider,
+        apiKey: parsed.value.apiKey,
         model: parsed.value.model,
         jobDescription: parsed.value.jobDescription,
         jobUrl: parsed.value.jobUrl,
@@ -48,7 +50,7 @@ export async function POST(
       throw notFound("Analysis not found");
     }
 
-    return ok(presentJobMatchAnalysis(updated));
+    return ok(toJobMatchAnalysisDetailResponse(presentJobMatchAnalysis(updated)));
   } catch (error: unknown) {
     await recordProcessingEvent({
       userId,

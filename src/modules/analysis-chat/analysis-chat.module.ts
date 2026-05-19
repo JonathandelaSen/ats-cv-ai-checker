@@ -13,11 +13,16 @@ import { SendMessageUseCase } from "./application/use-cases/send-message.use-cas
 import { AnalysisChatContextRepository } from "./infrastructure/repositories/analysis-chat-context.repository";
 import { SupabaseChatMessageRepository } from "./infrastructure/repositories/supabase-chat-message.repository";
 import { SupabaseConversationRepository } from "./infrastructure/repositories/supabase-conversation.repository";
-import { GeminiAnalysisChatAIService } from "./infrastructure/services/gemini-analysis-chat-ai.service";
+import { GeminiAnalysisChatAIServiceFactory } from "./infrastructure/services/gemini-analysis-chat-ai.service";
+import { MockAnalysisChatAIServiceFactory } from "./infrastructure/services/mock-analysis-chat-ai.service";
+import { ProviderAnalysisChatAIServiceFactory } from "./infrastructure/services/provider-analysis-chat-ai-service.factory";
 
 const conversationRepo = new SupabaseConversationRepository();
 const messageRepo = new SupabaseChatMessageRepository();
-const aiService = new GeminiAnalysisChatAIService();
+const aiFactory = new ProviderAnalysisChatAIServiceFactory({
+  geminiFactory: new GeminiAnalysisChatAIServiceFactory(),
+  mockFactory: new MockAnalysisChatAIServiceFactory(),
+});
 const tracker: EventTracker = new SupabaseEventTracker();
 
 function createUseCases(
@@ -42,7 +47,7 @@ function createUseCases(
     sendMessage: new SendMessageUseCase({
       conversationRepo,
       messageRepo,
-      aiService,
+      aiFactory,
       queryBus,
       tracker,
     }),

@@ -1,4 +1,5 @@
 import type { FeedbackEntryPrimitives } from "../entities/feedback-entry.entity";
+import type { AIProvider } from "@/modules/shared";
 
 export interface GenerateFinalFeedbackInput {
   personName: string;
@@ -7,4 +8,12 @@ export interface GenerateFinalFeedbackInput {
 
 export interface FeedbackAIService {
   generateFinalFeedback(input: GenerateFinalFeedbackInput): Promise<string>;
+}
+
+export interface FeedbackAIServiceFactory {
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): FeedbackAIService;
 }

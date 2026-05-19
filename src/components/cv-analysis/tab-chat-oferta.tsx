@@ -34,8 +34,10 @@ import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface TabChatOfertaProps {
   analysisId: string;
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
 }
 
 function ChatMarkdown({ content }: { content: string }) {
@@ -215,8 +217,10 @@ function ConversationList({
 
 export default function TabChatOferta({
   analysisId,
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
 }: TabChatOfertaProps) {
   const t = useTranslations("analysisDetail.chat");
   const { locale } = useInterfaceLanguage();
@@ -373,7 +377,7 @@ export default function TabChatOferta({
     event.preventDefault();
     const message = draft.trim();
     if (!message || isSending) return;
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       setError(t("missingApiKey"));
       return;
     }
@@ -410,8 +414,9 @@ export default function TabChatOferta({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message,
-          model,
-          geminiApiKey,
+          provider: aiProvider,
+          apiKey: aiApiKey,
+          model: model || aiModel,
           conversationId,
         }),
       });

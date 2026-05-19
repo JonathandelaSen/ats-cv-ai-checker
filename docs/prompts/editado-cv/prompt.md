@@ -4,7 +4,7 @@
 - Prompt source file: `src/modules/cv-library/infrastructure/services/cv-profile-editing-prompts.ts`
 - System prompt constant: `SYSTEM_PROMPT`
 - Use case: `EditCVProfileWithAIUseCase` in `src/modules/cv-library/application/use-cases/edit-cv-profile-with-ai.use-case.ts`
-- Model controller: `GeminiCVProfileEditingAIServiceFactory` in `src/modules/cv-library/infrastructure/services/gemini-cv-profile-editing-ai.service.ts`
+- Model controller: provider-aware `ProviderCVProfileEditingAIServiceFactory` selects mock or Gemini and delegates Gemini calls to `src/modules/cv-library/infrastructure/services/gemini-cv-profile-editing-ai.service.ts`
 - Response parser: `parseEditedCVProfile`
 
 ## Current Prompt
@@ -34,9 +34,9 @@ Critical rules:
 - The controller always restores the original `presentation` object after parsing.
 
 ## Runtime Flow
-1. `EditCVProfileWithAIUseCase` creates the configured Gemini editing service for the request.
+1. `EditCVProfileWithAIUseCase` creates the configured provider-selected editing service for the request.
 2. The service builds a user message from the instruction, template context, recommendations, and profile JSON.
-3. Gemini receives the fixed `SYSTEM_PROMPT` as `systemInstruction`.
+3. the selected provider receives the fixed `SYSTEM_PROMPT` as `systemInstruction`.
 4. `parseEditedCVProfile` normalizes and validates the returned profile.
 5. The original presentation metadata is preserved before returning.
 

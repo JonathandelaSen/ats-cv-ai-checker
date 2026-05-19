@@ -1,4 +1,9 @@
-import { Timestamp, UserId, type QueryBus } from "@/modules/shared";
+import {
+  Timestamp,
+  UserId,
+  type AIProvider,
+  type QueryBus,
+} from "@/modules/shared";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { AnalysisContextNotFoundError } from "../../domain/errors/analysis-context-not-found.error";
 import { ConversationNotFoundError } from "../../domain/errors/conversation-not-found.error";
@@ -6,7 +11,7 @@ import { ChatMessage } from "../../domain/entities/chat-message.entity";
 import type { ChatMessageRepository } from "../../domain/repositories/chat-message.repository";
 import type { ConversationRepository } from "../../domain/repositories/conversation.repository";
 import type {
-  AnalysisChatAIService,
+  AnalysisChatAIServiceFactory,
   AnalysisChatContext,
 } from "../../domain/repositories/analysis-chat-ai-service.repository";
 import { AnalysisChatContent } from "../../domain/value-objects/analysis-chat-content.value-object";
@@ -35,7 +40,8 @@ export interface SendMessageInput {
   analysisId: string;
   conversationId: string;
   message: string;
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   requestId: string;
   startedAt?: number;
@@ -51,7 +57,7 @@ export class SendMessageUseCase {
     private readonly deps: {
       conversationRepo: ConversationRepository;
       messageRepo: ChatMessageRepository;
-      aiService: AnalysisChatAIService;
+      aiFactory: AnalysisChatAIServiceFactory;
       queryBus: QueryBus;
       tracker: EventTracker;
     },
@@ -108,6 +114,7 @@ export class SendMessageUseCase {
       textLength: input.message.length,
       metadata: {
         model: input.model,
+        provider: input.provider,
         conversationId: input.conversationId,
         historyLength: history.length,
         userMessageId: userMessage.id,
@@ -116,9 +123,12 @@ export class SendMessageUseCase {
 
     let answer: string;
     try {
-      answer = await this.deps.aiService.generateAnswer({
+      const aiService = this.deps.aiFactory.create({
+        provider: input.provider,
         apiKey: input.apiKey,
         model: input.model,
+      });
+      answer = await aiService.generateAnswer({
         message: input.message,
         context,
         history: history.map((message) => message.toPrimitives()),
@@ -134,7 +144,11 @@ export class SendMessageUseCase {
         source: "api_analysis_chat",
         errorCode: getErrorCode(error),
         errorMessage: sanitizeErrorMessage(error),
-        metadata: { model: input.model, conversationId: input.conversationId },
+        metadata: {
+          model: input.model,
+          provider: input.provider,
+          conversationId: input.conversationId,
+        },
       });
       throw error;
     }
@@ -167,6 +181,7 @@ export class SendMessageUseCase {
       textLength: answer.length,
       metadata: {
         model: input.model,
+        provider: input.provider,
         conversationId: input.conversationId,
         userMessageId: userMessage.id,
         assistantMessageId: assistantMessage.id,

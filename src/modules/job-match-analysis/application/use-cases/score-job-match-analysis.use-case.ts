@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { UserId, type AIProvider } from "@/modules/shared";
 import { JobMatchAnalysis } from "../../domain/entities/job-match-analysis.entity";
 import type { JobMatchAnalysisRepository } from "../../domain/repositories/job-match-analysis.repository";
 import type { JobMatchScoringAIServiceFactory } from "../../domain/repositories/job-match-scoring-ai.service";
@@ -7,7 +7,8 @@ import { JobMatchAnalysisId } from "../../domain/value-objects/job-match-analysi
 export interface ScoreJobMatchAnalysisInput {
   id: string;
   userId: string;
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   jobDescription: string;
   jobUrl: string | null;
@@ -39,6 +40,7 @@ export class ScoreJobMatchAnalysisUseCase {
     }
 
     const aiService = this.deps.aiServiceFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
     });

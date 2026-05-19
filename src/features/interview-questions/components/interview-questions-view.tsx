@@ -20,15 +20,19 @@ import { InterviewQuestionsSidebar } from "./interview-questions-sidebar";
 import { InterviewQuestionsSkeleton } from "./interview-questions-skeleton";
 
 interface InterviewQuestionsViewProps {
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenSettings: () => void;
   onOpenAnalysis: (id: string) => void;
 }
 
 export default function InterviewQuestionsView({
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenSettings,
   onOpenAnalysis,
 }: InterviewQuestionsViewProps) {
@@ -101,7 +105,7 @@ export default function InterviewQuestionsView({
 
   const runAI = async (mode: "generate" | "edit", instruction: string) => {
     if (!selected) return;
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       onOpenSettings();
       return;
     }
@@ -111,8 +115,9 @@ export default function InterviewQuestionsView({
         ? mutations.generateAnswer.mutateAsync({
             id: selected.id,
             input: {
-              geminiApiKey,
-              model,
+              provider: aiProvider,
+              apiKey: aiApiKey,
+              model: aiModel,
               context: selected.context,
               cvId: selected.cvId,
               analysisId: selected.analysisId,
@@ -121,8 +126,9 @@ export default function InterviewQuestionsView({
         : mutations.editAnswer.mutateAsync({
             id: selected.id,
             input: {
-              geminiApiKey,
-              model,
+              provider: aiProvider,
+              apiKey: aiApiKey,
+              model: aiModel,
               context: selected.context,
               instruction,
               cvId: selected.cvId,
@@ -172,7 +178,7 @@ export default function InterviewQuestionsView({
               model={model}
               isSaving={isSaving}
               aiLoading={aiLoading}
-              hasGeminiApiKey={hasGeminiApiKey}
+              hasAIApiKey={hasAIApiKey}
               onModelChange={setModel}
               onUpdate={updateQuestion}
               onDelete={deleteQuestion}

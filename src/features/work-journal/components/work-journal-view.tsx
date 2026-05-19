@@ -52,8 +52,10 @@ import { CopyPromptModal } from "@/components/shared/copy-prompt-modal";
 import { WorkJournalSkeleton } from "./work-journal-skeleton";
 
 interface WorkJournalViewProps {
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenSettings: () => void;
 }
 
@@ -74,8 +76,10 @@ const inputClass =
 const labelClass = "text-xs font-medium text-zinc-500 mb-1 block";
 
 export default function WorkJournalView({
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenSettings,
 }: WorkJournalViewProps) {
   const t = useTranslations("workJournal");
@@ -240,7 +244,7 @@ export default function WorkJournalView({
   };
 
   const draftWithAI = async () => {
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       onOpenSettings();
       return;
     }
@@ -253,8 +257,9 @@ export default function WorkJournalView({
     setError(null);
     try {
       const data = await draftWorkJournalEntry({
-        geminiApiKey,
-        model: "gemini-3.1-pro-preview",
+        provider: aiProvider,
+        apiKey: aiApiKey,
+        model: aiModel,
         context_id: draft.context_id,
         date_start: draft.date_start,
         date_end: draft.date_end || null,

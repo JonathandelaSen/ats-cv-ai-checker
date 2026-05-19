@@ -27,11 +27,12 @@ describe("EditQuestionAnswerUseCase", () => {
     const repo = processQuestionRepo({ findById: async () => existing });
     const result = await new EditQuestionAnswerUseCase({
       questionRepo: repo,
-      aiService: ai,
+      aiFactory: { create: vi.fn(() => ai) },
       tracker: tracker(),
     }).execute({
       id: "question-1",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       context: "My context",
@@ -54,13 +55,15 @@ describe("EditQuestionAnswerUseCase", () => {
 
   it("returns null when question does not exist", async () => {
     const repo = processQuestionRepo({ findById: async () => null });
+    const ai = aiService();
     const result = await new EditQuestionAnswerUseCase({
       questionRepo: repo,
-      aiService: aiService(),
+      aiFactory: { create: vi.fn(() => ai) },
       tracker: tracker(),
     }).execute({
       id: "missing",
       userId: "user-1",
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       context: "ctx",

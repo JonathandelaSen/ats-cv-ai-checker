@@ -1,3 +1,5 @@
+import type { AIProvider } from "@/modules/shared";
+
 export interface JobMatchScoringAIResult {
   score: number;
   feedback: string;
@@ -21,5 +23,9 @@ export interface JobMatchScoringAIService {
 }
 
 export interface JobMatchScoringAIServiceFactory {
-  create(config: { apiKey: string; model: string }): JobMatchScoringAIService;
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): JobMatchScoringAIService;
 }

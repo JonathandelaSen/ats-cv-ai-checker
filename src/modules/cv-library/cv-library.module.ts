@@ -22,6 +22,10 @@ import { SupabaseCVStructuredProfileRepository } from "./infrastructure/reposito
 import { PdfTextExtractor } from "./infrastructure/services/pdf-text-extractor.service";
 import { GeminiCVProfileEditingAIServiceFactory } from "./infrastructure/services/gemini-cv-profile-editing-ai.service";
 import { GeminiCVProfileStructuringAIServiceFactory } from "./infrastructure/services/gemini-cv-profile-structuring-ai.service";
+import { MockCVProfileEditingAIServiceFactory } from "./infrastructure/services/mock-cv-profile-editing-ai.service";
+import { MockCVProfileStructuringAIServiceFactory } from "./infrastructure/services/mock-cv-profile-structuring-ai.service";
+import { ProviderCVProfileEditingAIServiceFactory } from "./infrastructure/services/provider-cv-profile-editing-ai-service.factory";
+import { ProviderCVProfileStructuringAIServiceFactory } from "./infrastructure/services/provider-cv-profile-structuring-ai-service.factory";
 import { SupabaseCVPdfStorage } from "./infrastructure/services/supabase-cv-pdf-storage.service";
 import { TemplateCVPdfRenderer } from "./infrastructure/services/template-cv-pdf-renderer.service";
 
@@ -30,8 +34,14 @@ const profileRepo = new SupabaseCVStructuredProfileRepository();
 const pdfStorage = new SupabaseCVPdfStorage();
 const textExtractor = new PdfTextExtractor();
 const templateRenderer = new TemplateCVPdfRenderer();
-const profileStructuringAI = new GeminiCVProfileStructuringAIServiceFactory();
-const profileEditingAI = new GeminiCVProfileEditingAIServiceFactory();
+const profileStructuringAI = new ProviderCVProfileStructuringAIServiceFactory({
+  geminiFactory: new GeminiCVProfileStructuringAIServiceFactory(),
+  mockFactory: new MockCVProfileStructuringAIServiceFactory(),
+});
+const profileEditingAI = new ProviderCVProfileEditingAIServiceFactory({
+  geminiFactory: new GeminiCVProfileEditingAIServiceFactory(),
+  mockFactory: new MockCVProfileEditingAIServiceFactory(),
+});
 const tracker: EventTracker = new SupabaseEventTracker();
 
 function createUseCases(queryBus: QueryBus) {

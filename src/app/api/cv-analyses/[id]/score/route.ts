@@ -38,7 +38,8 @@ export async function POST(
       .scoreCVAnalysis.execute({
         id: analysisId,
         userId: user.id,
-        apiKey: parsed.value.geminiApiKey,
+        provider: parsed.value.provider,
+        apiKey: parsed.value.apiKey,
         model: parsed.value.model,
         additionalContext: parsed.value.additionalContext,
       });

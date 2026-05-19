@@ -14,11 +14,17 @@ import { UpdateEntryUseCase } from "./application/use-cases/update-entry.use-cas
 import { UpdateFeedbackUseCase } from "./application/use-cases/update-feedback.use-case";
 import { SupabaseFeedbackEntryRepository } from "./infrastructure/repositories/supabase-feedback-entry.repository";
 import { SupabaseFeedbackRepository } from "./infrastructure/repositories/supabase-feedback.repository";
-import { GeminiFeedbackAIService } from "./infrastructure/services/gemini-feedback-ai.service";
+import { GeminiFeedbackAIServiceFactory } from "./infrastructure/services/gemini-feedback-ai.service";
+import { MockFeedbackAIServiceFactory } from "./infrastructure/services/mock-feedback-ai.service";
+import { ProviderFeedbackAIServiceFactory } from "./infrastructure/services/provider-feedback-ai-service.factory";
 
 const feedbackRepo = new SupabaseFeedbackRepository();
 const entryRepo = new SupabaseFeedbackEntryRepository();
 const tracker: EventTracker = new SupabaseEventTracker();
+const aiFactory = new ProviderFeedbackAIServiceFactory({
+  geminiFactory: new GeminiFeedbackAIServiceFactory(),
+  mockFactory: new MockFeedbackAIServiceFactory(),
+});
 
 function createUseCases() {
   return {
@@ -32,16 +38,12 @@ function createUseCases() {
     createEntry: new CreateEntryUseCase({ feedbackRepo, entryRepo, tracker }),
     updateEntry: new UpdateEntryUseCase({ feedbackRepo, entryRepo, tracker }),
     deleteEntry: new DeleteEntryUseCase({ feedbackRepo, entryRepo, tracker }),
-    createGenerateFinalFeedbackUseCase: (aiConfig: {
-      apiKey: string;
-      model: string;
-    }) =>
-      new GenerateFinalFeedbackUseCase({
-        feedbackRepo,
-        entryRepo,
-        aiService: new GeminiFeedbackAIService(aiConfig),
-        tracker,
-      }),
+    generateFinalFeedback: new GenerateFinalFeedbackUseCase({
+      feedbackRepo,
+      entryRepo,
+      aiFactory,
+      tracker,
+    }),
   };
 }
 

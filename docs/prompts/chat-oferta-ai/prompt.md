@@ -64,7 +64,7 @@ Answer the user using only this context.
 - Output parser: `parseOfferChatAIResponse`, expecting `{ "answer": string }`.
 
 ## Runtime Flow
-1. `POST /api/analyses/[id]/chat` validates ownership, `job_match` mode, message, and Gemini API key.
+1. `POST /api/analyses/[id]/chat` validates ownership, `job_match` mode, message, provider, model, and API key when required.
 2. The user message is persisted with role `user`.
 3. `generateOfferChatAnswer` sends `OFFER_CHAT_SYSTEM_PROMPT` plus the built user prompt.
 4. The AI answer is persisted with role `assistant`.

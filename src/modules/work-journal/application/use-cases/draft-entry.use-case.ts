@@ -1,8 +1,8 @@
-import { UserId } from "@/modules/shared";
+import { UserId, type AIProvider } from "@/modules/shared";
 import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type {
   DraftEntryInput,
-  JournalAIService,
+  JournalAIServiceFactory,
 } from "../../domain/repositories/journal-ai-service.repository";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
@@ -13,7 +13,7 @@ export class DraftEntryUseCase {
   constructor(
     private readonly deps: {
       contextRepo: WorkJournalContextRepository;
-      aiService: JournalAIService;
+      aiFactory: JournalAIServiceFactory;
       tracker: EventTracker;
     }
   ) {}
@@ -21,7 +21,11 @@ export class DraftEntryUseCase {
   async execute(
     userId: string,
     contextId: string,
-    input: Omit<DraftEntryInput, "context">
+    input: Omit<DraftEntryInput, "context"> & {
+      provider: AIProvider;
+      apiKey?: string;
+      model: string;
+    }
   ): Promise<string> {
     const context = await this.deps.contextRepo.findById(
       WorkJournalContextId.fromPrimitives(contextId),
@@ -35,12 +39,18 @@ export class DraftEntryUseCase {
       requestId,
       stage: "work_journal_entry_draft",
       status: "started",
-      metadata: { contextId },
+      metadata: { contextId, provider: input.provider, model: input.model },
     });
 
-    const finalText = await this.deps.aiService.draftEntry({
+    const { provider, apiKey, model, ...draftInput } = input;
+    const aiService = this.deps.aiFactory.create({
+      provider,
+      apiKey,
+      model,
+    });
+    const finalText = await aiService.draftEntry({
       context,
-      ...input,
+      ...draftInput,
     });
 
     await this.deps.tracker.record({
@@ -48,7 +58,7 @@ export class DraftEntryUseCase {
       requestId,
       stage: "work_journal_entry_draft",
       status: "success",
-      metadata: { contextId },
+      metadata: { contextId, provider: input.provider, model: input.model },
     });
 
     return finalText;

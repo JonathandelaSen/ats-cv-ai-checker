@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import {
   jobMatchAnalysisModule,
@@ -6,6 +6,7 @@ import {
 } from "@/lib/container";
 import { presentJobMatchAnalysis } from "@/modules/job-match-analysis";
 import { parseUpdateJobMatchAnalysisRequest } from "../validation";
+import { toJobMatchAnalysisDetailResponse } from "../responses";
 import { ok, errorResponse, notFound, handleApiError } from "@/modules/shared";
 
 export async function GET(
@@ -24,7 +25,7 @@ export async function GET(
     if (!analysis) {
       throw notFound("Job match analysis not found");
     }
-    return ok(presentJobMatchAnalysis(analysis));
+    return ok(toJobMatchAnalysisDetailResponse(presentJobMatchAnalysis(analysis)));
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -69,7 +70,6 @@ export async function PATCH(
     }
     const { allowedUpdates, followUpUpdates, includesOfferTracking } = parsed.value;
 
-    let existing = null;
     if (includesOfferTracking) {
       const followUp = await selectionProcessModule
         .bindRequest(supabase)
@@ -83,43 +83,37 @@ export async function PATCH(
       }
     }
 
-    const updated =
+    const entity =
       Object.keys(allowedUpdates).length > 0
-        ? await (async () => {
-            const entity = await jobMatchAnalysisModule
-              .bindRequest(supabase)
-              .updateJobMatchAnalysisJobUrl.execute({
-                id,
-                userId: user.id,
-                jobUrl: allowedUpdates.job_url ?? null,
-              });
-            return entity ? presentJobMatchAnalysis(entity) : null;
-          })()
-        : await (async () => {
-            const entity = await jobMatchAnalysisModule
-              .bindRequest(supabase)
-              .getJobMatchAnalysisById.execute({ id, userId: user.id });
-            return entity ? presentJobMatchAnalysis(entity) : null;
-          })();
+        ? await jobMatchAnalysisModule
+            .bindRequest(supabase)
+            .updateJobMatchAnalysisJobUrl.execute({
+              id,
+              userId: user.id,
+              jobUrl: allowedUpdates.job_url ?? null,
+            })
+        : await jobMatchAnalysisModule
+            .bindRequest(supabase)
+            .getJobMatchAnalysisById.execute({ id, userId: user.id });
 
-    existing = updated;
-    if (!existing) {
+    if (!entity) {
       throw notFound("Analysis not found or update failed");
     }
 
-    return NextResponse.json({
-      ...existing,
+    const response = toJobMatchAnalysisDetailResponse(presentJobMatchAnalysis(entity));
+    return ok({
+      ...response,
       ...(followUpUpdates.status !== undefined
-        ? { offer_status: followUpUpdates.status }
+        ? { offerStatus: followUpUpdates.status }
         : {}),
       ...(followUpUpdates.notes !== undefined
-        ? { offer_notes: followUpUpdates.notes }
+        ? { offerNotes: followUpUpdates.notes }
         : {}),
       ...(followUpUpdates.nextAction !== undefined
-        ? { offer_next_action: followUpUpdates.nextAction }
+        ? { offerNextAction: followUpUpdates.nextAction }
         : {}),
       ...(followUpUpdates.nextActionAt !== undefined
-        ? { offer_next_action_at: followUpUpdates.nextActionAt }
+        ? { offerNextActionAt: followUpUpdates.nextActionAt }
         : {}),
     });
   } catch (error: unknown) {

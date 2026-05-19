@@ -16,14 +16,18 @@ import { FeedbackNotesDetail } from "./feedback-notes-detail";
 import { FeedbackNotesSidebar } from "./feedback-notes-sidebar";
 
 interface FeedbackNotesViewProps {
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenSettings?: () => void;
 }
 
 export default function FeedbackNotesView({
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenSettings,
 }: FeedbackNotesViewProps) {
   const t = useTranslations("feedbackNotes");
@@ -176,7 +180,7 @@ export default function FeedbackNotesView({
             }
             onGenerate={(model) =>
               void runMutation(async () => {
-                if (!hasGeminiApiKey) {
+                if (!hasAIApiKey) {
                   onOpenSettings?.();
                   return;
                 }
@@ -192,8 +196,9 @@ export default function FeedbackNotesView({
                 }
                 await mutations.generateFinalFeedback.mutateAsync({
                   feedbackId: selectedFeedback.id,
-                  geminiApiKey,
-                  model,
+                  provider: aiProvider,
+                  apiKey: aiApiKey,
+                  model: aiModel,
                 });
               })
             }

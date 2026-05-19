@@ -20,7 +20,7 @@ interface GeneralAnalysisFormProps {
   onBack: () => void;
   loading: boolean;
   error: string | null;
-  hasGeminiApiKey: boolean;
+  hasAIApiKey: boolean;
   onOpenSettings: () => void;
 }
 
@@ -29,7 +29,7 @@ export default function GeneralAnalysisForm({
   onBack,
   loading,
   error,
-  hasGeminiApiKey,
+  hasAIApiKey,
   onOpenSettings,
 }: GeneralAnalysisFormProps) {
   const t = useTranslations("analysisFlow.forms");
@@ -119,7 +119,7 @@ export default function GeneralAnalysisForm({
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading || !hasGeminiApiKey}
+          disabled={loading || !hasAIApiKey}
           className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold text-sm bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-xl shadow-violet-900/30 transition-all active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed h-fit shrink-0 w-full sm:w-auto"
         >
           {loading ? (
@@ -137,7 +137,7 @@ export default function GeneralAnalysisForm({
         </button>
       </div>
 
-      {!hasGeminiApiKey && (
+      {!hasAIApiKey && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

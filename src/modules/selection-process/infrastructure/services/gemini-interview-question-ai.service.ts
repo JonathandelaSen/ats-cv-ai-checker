@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import type {
   InterviewQuestionAIInput,
   InterviewQuestionAIService,
@@ -22,11 +23,12 @@ function parseInterviewQuestionAIResponse(rawText: string): string {
 }
 
 async function runInterviewQuestionModel(
+  config: { apiKey: string; model: string },
   input: InterviewQuestionAIInput,
 ): Promise<string> {
-  const googleAI = new GoogleGenAI({ apiKey: input.apiKey });
+  const googleAI = new GoogleGenAI({ apiKey: config.apiKey });
   const response = await googleAI.models.generateContent({
-    model: input.model,
+    model: config.model,
     contents: [
       {
         role: "user",
@@ -45,11 +47,26 @@ async function runInterviewQuestionModel(
 export class GeminiInterviewQuestionAIService
   implements InterviewQuestionAIService
 {
+  constructor(private readonly config: { apiKey: string; model: string }) {}
+
   async generateAnswer(input: InterviewQuestionAIInput): Promise<string> {
-    return runInterviewQuestionModel(input);
+    return runInterviewQuestionModel(this.config, input);
   }
 
   async editAnswer(input: InterviewQuestionAIInput): Promise<string> {
-    return runInterviewQuestionModel(input);
+    return runInterviewQuestionModel(this.config, input);
+  }
+}
+
+export class GeminiInterviewQuestionAIServiceFactory {
+  create(config: {
+    apiKey?: string;
+    model: string;
+  }): InterviewQuestionAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiInterviewQuestionAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

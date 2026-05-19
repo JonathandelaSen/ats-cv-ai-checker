@@ -18,7 +18,7 @@ import {
   type JobKeyData,
   type OfferStatus,
 } from "@/lib/analysis-types";
-import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
+import type { InterviewQuestionResponse as InterviewQuestionSummary } from "@/app/api/interview-questions/responses";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ScoreHero from "./score-hero";
 import TabResumen from "./tab-resumen";
@@ -60,8 +60,10 @@ interface AIAnalysisViewProps {
     title: string;
     filename: string;
   };
-  geminiApiKey?: string;
-  hasGeminiApiKey?: boolean;
+  aiProvider?: "gemini" | "mock";
+  aiApiKey?: string;
+  aiModel?: string;
+  hasAIApiKey?: boolean;
   interviewQuestions?: InterviewQuestionSummary[];
   onInterviewQuestionCreated?: () => void;
   onOpenQuestions?: () => void;
@@ -99,8 +101,10 @@ function toDateTimeLocalValue(value: string | null) {
 
 export default function AIAnalysisView({
   analysis,
-  geminiApiKey = "",
-  hasGeminiApiKey = false,
+  aiProvider = "gemini",
+  aiApiKey = "",
+  aiModel = "gemini-3.1-pro-preview",
+  hasAIApiKey = false,
   interviewQuestions = [],
   onInterviewQuestionCreated,
   onOpenQuestions,
@@ -265,7 +269,7 @@ ${analysis.job_description ? `${t("export.jobDescription")}:\n${analysis.job_des
 
   const handleCreateInterviewQuestion = async (generateAfter = false) => {
     if (!quickQuestion.trim()) return;
-    if (generateAfter && !hasGeminiApiKey) {
+    if (generateAfter && !hasAIApiKey) {
       alert(t("alerts.missingApiKeyForAnswer"));
       return;
     }
@@ -297,7 +301,8 @@ ${analysis.job_description ? `${t("export.jobDescription")}:\n${analysis.job_des
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              geminiApiKey,
+              provider: aiProvider,
+              apiKey: aiApiKey,
               model: quickQuestionModel,
               context: quickQuestionContext,
               cv_id: analysis.cv_id,
@@ -457,8 +462,10 @@ ${analysis.job_description ? `${t("export.jobDescription")}:\n${analysis.job_des
                   <TabsContent value="chat">
                     <TabChatOferta
                       analysisId={analysis.id}
-                      geminiApiKey={geminiApiKey}
-                      hasGeminiApiKey={hasGeminiApiKey}
+                      aiProvider={aiProvider}
+                      aiApiKey={aiApiKey}
+                      aiModel={aiModel}
+                      hasAIApiKey={hasAIApiKey}
                     />
                   </TabsContent>
 

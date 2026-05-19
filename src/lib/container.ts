@@ -72,5 +72,12 @@ queryBus.register(
   ),
 );
 
-export const analysisChatModule = createAnalysisChatModule(queryBus);
+const _analysisChatModule = createAnalysisChatModule(queryBus);
+const originalBind = _analysisChatModule.bindRequest.bind(_analysisChatModule);
+_analysisChatModule.bindRequest = (client) => {
+  cvAnalysisModule.bindRequest(client);
+  jobMatchAnalysisModule.bindRequest(client);
+  return originalBind(client);
+};
+export const analysisChatModule = _analysisChatModule;
 registerAnalysisChatQueries(queryBus, analysisChatModule);

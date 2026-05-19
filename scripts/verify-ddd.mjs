@@ -9,6 +9,7 @@ const checks = [
   ["node", ["scripts/verify-ddd-route-imports.mjs"]],
   ["node", ["scripts/verify-ddd-barrel-exports.mjs"]],
   ["node", ["scripts/verify-frontend-boundaries.mjs"]],
+  ["node", ["scripts/verify-ai-service-di.mjs"]],
 ];
 
 function run(command, args) {

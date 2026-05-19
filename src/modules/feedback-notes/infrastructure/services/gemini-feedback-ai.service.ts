@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import type {
   FeedbackAIService,
   GenerateFinalFeedbackInput,
@@ -7,6 +8,7 @@ import {
   buildFeedbackNotesFinalPrompt,
   FEEDBACK_NOTES_FINAL_SYSTEM_PROMPT,
 } from "../../domain/services/feedback-notes-prompts";
+import { parseFinalFeedbackAIResponse } from "./feedback-ai-response-parser";
 
 export class GeminiFeedbackAIService implements FeedbackAIService {
   constructor(private readonly config: { apiKey: string; model: string }) {}
@@ -29,19 +31,16 @@ export class GeminiFeedbackAIService implements FeedbackAIService {
       },
     });
 
-    return GeminiFeedbackAIService.parseFinalAIResponse(
-      response.text || "{}"
-    );
+    return parseFinalFeedbackAIResponse(response.text || "{}");
   }
+}
 
-  static parseFinalAIResponse(rawText: string): string {
-    const parsed = JSON.parse(rawText || "{}") as Record<string, unknown>;
-    const value = parsed.final_feedback;
-    const finalFeedback =
-      typeof value === "string" && value.trim() ? value.trim() : null;
-    if (!finalFeedback) {
-      throw new Error("La IA no pudo redactar el feedback con estas notas.");
-    }
-    return finalFeedback;
+export class GeminiFeedbackAIServiceFactory {
+  create(config: { apiKey?: string; model: string }): FeedbackAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiFeedbackAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

@@ -1,5 +1,6 @@
 import type { StandardCVProfile } from "../cv-profile";
 import type { CVTemplateId, CVTemplateLocale } from "../cv-templates";
+import type { AIProvider } from "@/modules/shared";
 
 export interface StructuredCVProfileResult {
   schemaVersion: string;
@@ -12,7 +13,8 @@ export interface CVProfileStructuringAIService {
 
 export interface CVProfileStructuringAIServiceFactory {
   create(config: {
-    apiKey: string;
+    provider: AIProvider;
+    apiKey?: string;
     model: string;
   }): CVProfileStructuringAIService;
 }
@@ -28,5 +30,9 @@ export interface CVProfileEditingAIService {
 }
 
 export interface CVProfileEditingAIServiceFactory {
-  create(config: { apiKey: string; model: string }): CVProfileEditingAIService;
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): CVProfileEditingAIService;
 }

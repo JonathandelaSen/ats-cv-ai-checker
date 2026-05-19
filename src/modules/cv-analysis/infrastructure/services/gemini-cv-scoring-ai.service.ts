@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import type {
   CVScoringAIInput,
   CVScoringAIResult,
   CVScoringAIService,
-  CVScoringAIServiceFactory,
 } from "../../domain/repositories/cv-scoring-ai.service";
 import { buildGeneralScoringPrompt } from "./cv-scoring-prompts";
 
@@ -47,9 +47,12 @@ class GeminiCVScoringAIService implements CVScoringAIService {
 }
 
 export class GeminiCVScoringAIServiceFactory
-  implements CVScoringAIServiceFactory
 {
-  create(config: { apiKey: string; model: string }): CVScoringAIService {
-    return new GeminiCVScoringAIService(config);
+  create(config: { apiKey?: string; model: string }): CVScoringAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiCVScoringAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

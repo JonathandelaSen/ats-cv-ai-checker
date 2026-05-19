@@ -46,8 +46,10 @@ interface ExtractionViewProps {
     } | null;
   };
   onAIAnalysisComplete: () => void;
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenSettings: () => void;
 }
 
@@ -82,8 +84,10 @@ const PARSERS: {
 export default function ExtractionView({
   analysis,
   onAIAnalysisComplete,
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenSettings,
 }: ExtractionViewProps) {
   const t = useTranslations("analysisFlow.extraction");
@@ -142,7 +146,7 @@ export default function ExtractionView({
   };
 
   const handleGeneralAnalysis = async (context: AIContext, model: string) => {
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       setAiError(t("missingApiKey"));
       return;
     }
@@ -156,8 +160,9 @@ export default function ExtractionView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           additionalContext: context?.additionalContext ?? null,
+          provider: aiProvider,
+          apiKey: aiApiKey,
           model,
-          geminiApiKey,
         }),
       });
 
@@ -179,7 +184,7 @@ export default function ExtractionView({
     jobUrl: string,
     model: string,
   ) => {
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       setAiError(t("missingApiKey"));
       return;
     }
@@ -194,8 +199,9 @@ export default function ExtractionView({
         body: JSON.stringify({
           jobDescription,
           jobUrl,
+          provider: aiProvider,
+          apiKey: aiApiKey,
           model,
-          geminiApiKey,
         }),
       });
 
@@ -460,7 +466,7 @@ export default function ExtractionView({
                 onBack={() => setSelectedMode(null)}
                 loading={loadingAI}
                 error={aiError}
-                hasGeminiApiKey={hasGeminiApiKey}
+                hasAIApiKey={hasAIApiKey}
                 onOpenSettings={onOpenSettings}
               />
             ) : (
@@ -470,7 +476,7 @@ export default function ExtractionView({
                 onBack={() => setSelectedMode(null)}
                 loading={loadingAI}
                 error={aiError}
-                hasGeminiApiKey={hasGeminiApiKey}
+                hasAIApiKey={hasAIApiKey}
                 onOpenSettings={onOpenSettings}
               />
             )}

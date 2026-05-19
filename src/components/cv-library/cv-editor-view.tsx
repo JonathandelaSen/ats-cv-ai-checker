@@ -53,8 +53,10 @@ interface CVEditorViewProps {
   cvs: CVSummary[];
   hasOriginalCVs: boolean;
   activeVersionId: string | null;
-  geminiApiKey: string;
-  hasGeminiApiKey: boolean;
+  aiProvider: "gemini" | "mock";
+  aiApiKey: string;
+  aiModel: string;
+  hasAIApiKey: boolean;
   onOpenTemplates: () => void;
   onOpenSettings: () => void;
   onStartAnalysis: () => void;
@@ -81,8 +83,10 @@ export default function CVEditorView({
   cvs,
   hasOriginalCVs,
   activeVersionId,
-  geminiApiKey,
-  hasGeminiApiKey,
+  aiProvider,
+  aiApiKey,
+  aiModel,
+  hasAIApiKey,
   onOpenTemplates,
   onOpenSettings,
   onStartAnalysis,
@@ -345,7 +349,7 @@ export default function CVEditorView({
 
   const applyInstruction = async (instruction = editInstruction) => {
     if (!currentVersion?.id) return;
-    if (!hasGeminiApiKey) {
+    if (!hasAIApiKey) {
       setError(t("errors.missingApiKey"));
       return;
     }
@@ -360,7 +364,8 @@ export default function CVEditorView({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          geminiApiKey,
+          provider: aiProvider,
+          apiKey: aiApiKey,
           model: selectedModel,
           instruction: instruction.trim(),
         }),
@@ -717,7 +722,7 @@ export default function CVEditorView({
                             disabled={
                               !editInstruction.trim() ||
                               editingProfile ||
-                              !hasGeminiApiKey
+                              !hasAIApiKey
                             }
                             onClick={() => applyInstruction()}
                             className="absolute bottom-3 right-3 h-8 rounded-lg bg-teal-500 px-3 text-xs font-bold text-black hover:bg-teal-400 disabled:opacity-30"
@@ -975,7 +980,7 @@ export default function CVEditorView({
                     </div>
                   </section>
 
-                  {!hasGeminiApiKey && (
+                  {!hasAIApiKey && (
                     <Button
                       variant="secondary"
                       onClick={onOpenSettings}

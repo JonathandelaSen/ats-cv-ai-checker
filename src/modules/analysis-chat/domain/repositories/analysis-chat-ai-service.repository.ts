@@ -1,4 +1,5 @@
 import type { ChatMessagePrimitives } from "../entities/chat-message.entity";
+import type { AIProvider } from "@/modules/shared";
 
 export interface AnalysisChatContext {
   analysisId: string;
@@ -10,8 +11,6 @@ export interface AnalysisChatContext {
 }
 
 export interface AnalysisChatAIInput {
-  apiKey: string;
-  model: string;
   message: string;
   context: AnalysisChatContext;
   history: ChatMessagePrimitives[];
@@ -19,4 +18,12 @@ export interface AnalysisChatAIInput {
 
 export interface AnalysisChatAIService {
   generateAnswer(input: AnalysisChatAIInput): Promise<string>;
+}
+
+export interface AnalysisChatAIServiceFactory {
+  create(config: {
+    provider: AIProvider;
+    apiKey?: string;
+    model: string;
+  }): AnalysisChatAIService;
 }

@@ -118,7 +118,8 @@ export async function deleteEntry(entryId: string) {
 
 export async function generateFinalFeedback(
   feedbackId: string,
-  input: { geminiApiKey: string; model: string }
+  input: { provider: "gemini" | "mock";
+  apiKey?: string; model: string }
 ) {
   const res = await fetch(`/api/feedback-notes/feedbacks/${feedbackId}/generate`, {
     method: "POST",

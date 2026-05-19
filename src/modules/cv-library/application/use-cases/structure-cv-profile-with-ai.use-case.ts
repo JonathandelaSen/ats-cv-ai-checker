@@ -1,8 +1,10 @@
+import type { AIProvider } from "@/modules/shared";
 import type { StandardCVProfile } from "../../domain/cv-profile";
 import type { CVProfileStructuringAIServiceFactory } from "../../domain/repositories/cv-profile-ai.service";
 
 export interface StructureCVProfileWithAIInput {
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   text: string;
 }
@@ -23,6 +25,7 @@ export class StructureCVProfileWithAIUseCase {
     input: StructureCVProfileWithAIInput,
   ): Promise<StructureCVProfileWithAIResult> {
     const service = this.deps.aiFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
     });

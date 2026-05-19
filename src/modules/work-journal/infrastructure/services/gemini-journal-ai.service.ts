@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import type {
   DraftEntryInput,
   JournalAIService,
@@ -40,5 +41,15 @@ export class GeminiJournalAIService implements JournalAIService {
       throw new Error("La IA no pudo redactar la entrada con estas notas.");
     }
     return finalText;
+  }
+}
+
+export class GeminiJournalAIServiceFactory {
+  create(config: { apiKey?: string; model: string }): JournalAIService {
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiJournalAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

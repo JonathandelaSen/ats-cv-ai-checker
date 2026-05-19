@@ -8,10 +8,15 @@ import { ScoreJobMatchAnalysisUseCase } from "./application/use-cases/score-job-
 import { UpdateJobMatchAnalysisAIResultUseCase } from "./application/use-cases/update-job-match-analysis-ai-result.use-case";
 import { UpdateJobMatchAnalysisJobUrlUseCase } from "./application/use-cases/update-job-match-analysis-job-url.use-case";
 import { GeminiJobMatchScoringAIServiceFactory } from "./infrastructure/services/gemini-job-match-scoring-ai.service";
+import { MockJobMatchScoringAIServiceFactory } from "./infrastructure/services/mock-job-match-scoring-ai.service";
+import { ProviderJobMatchScoringAIServiceFactory } from "./infrastructure/services/provider-job-match-scoring-ai-service.factory";
 import { SupabaseJobMatchAnalysisRepository } from "./infrastructure/repositories/supabase-job-match-analysis.repository";
 
 const repo = new SupabaseJobMatchAnalysisRepository();
-const aiServiceFactory = new GeminiJobMatchScoringAIServiceFactory();
+const aiServiceFactory = new ProviderJobMatchScoringAIServiceFactory({
+  geminiFactory: new GeminiJobMatchScoringAIServiceFactory(),
+  mockFactory: new MockJobMatchScoringAIServiceFactory(),
+});
 
 function createUseCases() {
   return {

@@ -28,11 +28,13 @@ describe("DraftEntryUseCase", () => {
     };
     const useCase = new DraftEntryUseCase({
       contextRepo,
-      aiService,
+      aiFactory: { create: vi.fn(() => aiService) },
       tracker: createMockTracker(),
     });
 
     const result = await useCase.execute(user.id, context.id, {
+      provider: "mock",
+      model: "mock-model",
       dateStart: "2026-08-01",
       dateEnd: "2026-08-02",
       topic: "Launch",
@@ -62,12 +64,14 @@ describe("DraftEntryUseCase", () => {
     };
     const useCase = new DraftEntryUseCase({
       contextRepo,
-      aiService,
+      aiFactory: { create: vi.fn(() => aiService) },
       tracker: createMockTracker(),
     });
 
     await expect(
       useCase.execute(user.id, crypto.randomUUID(), {
+        provider: "mock",
+        model: "mock-model",
         dateStart: "2026-08-01",
         dateEnd: null,
         topic: null,

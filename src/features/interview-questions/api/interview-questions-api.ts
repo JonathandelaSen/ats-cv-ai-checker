@@ -19,7 +19,8 @@ export interface UpdateInterviewQuestionInput {
 }
 
 export interface RunInterviewQuestionAIInput {
-  geminiApiKey: string;
+  provider: "gemini" | "mock";
+  apiKey?: string;
   model: string;
   context: string | null;
   instruction?: string;

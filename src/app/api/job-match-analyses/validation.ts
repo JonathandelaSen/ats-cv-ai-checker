@@ -1,4 +1,5 @@
 import { OFFER_STATUSES, type OfferStatus } from "@/lib/analysis-types";
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
 
 type Result<TValue, TError> =
   | { ok: true; value: TValue }
@@ -17,9 +18,7 @@ export interface CreateJobMatchAnalysisHttpInput {
   model: string;
 }
 
-export interface ScoreJobMatchAnalysisHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface ScoreJobMatchAnalysisHttpInput extends AIRequestConfig {
   jobDescription: string;
   jobUrl: string | null;
 }
@@ -79,15 +78,12 @@ export function parseScoreJobMatchAnalysisRequest(
   body: unknown
 ): Result<ScoreJobMatchAnalysisHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = text(body.geminiApiKey);
-  const model = text(body.model) || "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const jobDescription = text(body.jobDescription);
   const jobUrl = text(body.jobUrl) || null;
-  if (!geminiApiKey) {
-    return validationError("Configura tu API key de Gemini en Configuración antes de lanzar el análisis.");
-  }
+  if (!ai.ok) return validationError(ai.message);
   if (!jobDescription) return validationError("Job description is required for job match analysis");
-  return { ok: true, value: { geminiApiKey, model, jobDescription, jobUrl } };
+  return { ok: true, value: { ...ai.value, jobDescription, jobUrl } };
 }
 
 export function parseUpdateJobMatchAnalysisRequest(

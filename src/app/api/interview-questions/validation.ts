@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Analysis } from "@/lib/analysis-types";
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";
 import {
   cvAnalysisModule,
   cvLibraryModule,
@@ -42,17 +43,13 @@ export interface UpdateInterviewQuestionHttpInput {
   sourceJobMatchAnalysisId?: string | null;
 }
 
-export interface GenerateInterviewQuestionHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface GenerateInterviewQuestionHttpInput extends AIRequestConfig {
   context: string;
   cv_id: string | null;
   analysis_id: string | null;
 }
 
-export interface EditInterviewQuestionHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface EditInterviewQuestionHttpInput extends AIRequestConfig {
   context: string;
   instruction: string;
 }
@@ -156,17 +153,16 @@ export function parseGenerateInterviewQuestionRequest(
   existing: { context: string | null; cv_id: string | null; analysis_id: string | null }
 ): Result<GenerateInterviewQuestionHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
-  const model = normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const context = normalizeOptionalText(body.context) ?? existing.context;
   const bodyCvId = body.cvId ?? body.cv_id;
   const bodyAnalysisId = body.analysisId ?? body.analysis_id;
   const cv_id = bodyCvId === undefined ? existing.cv_id : normalizeOptionalText(bodyCvId);
   const analysis_id = bodyAnalysisId === undefined ? existing.analysis_id : normalizeOptionalText(bodyAnalysisId);
-  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de generar respuestas.");
+  if (!ai.ok) return validationError(ai.message);
   if (!context?.trim()) return validationError("Context is required for AI generation");
   if (cv_id === undefined || analysis_id === undefined) return validationError("Invalid links");
-  return { ok: true, value: { geminiApiKey, model, context, cv_id, analysis_id } };
+  return { ok: true, value: { ...ai.value, context, cv_id, analysis_id } };
 }
 
 export function parseEditInterviewQuestionRequest(
@@ -174,14 +170,13 @@ export function parseEditInterviewQuestionRequest(
   existingContext: string | null
 ): Result<EditInterviewQuestionHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
-  const geminiApiKey = normalizeOptionalText(body.geminiApiKey);
-  const model = normalizeOptionalText(body.model) ?? "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const instruction = normalizeRequiredText(body.instruction);
   const context = normalizeOptionalText(body.context) ?? existingContext;
-  if (!geminiApiKey) return validationError("Configura tu API key de Gemini antes de editar respuestas.");
+  if (!ai.ok) return validationError(ai.message);
   if (!instruction) return validationError("Instruction is required");
   if (!context?.trim()) return validationError("Context is required for AI editing");
-  return { ok: true, value: { geminiApiKey, model, context, instruction } };
+  return { ok: true, value: { ...ai.value, context, instruction } };
 }
 
 async function getAnalysisById(

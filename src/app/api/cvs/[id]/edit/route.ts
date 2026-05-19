@@ -68,7 +68,8 @@ export async function POST(
     const editedProfile = await cvLibraryModule
       .bindRequest(supabase)
       .editCVProfileWithAI.execute({
-        apiKey: parsed.value.geminiApiKey,
+        provider: parsed.value.provider,
+        apiKey: parsed.value.apiKey,
         model: parsed.value.model,
         profile: cv.profile,
         instruction: parsed.value.instruction,

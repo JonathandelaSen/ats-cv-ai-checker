@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
+import type { InterviewQuestionResponse as InterviewQuestionSummary } from "@/app/api/interview-questions/responses";
 
 interface TabEntrevistaProps {
   interviewQuestions: InterviewQuestionSummary[];

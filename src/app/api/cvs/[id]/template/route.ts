@@ -25,7 +25,7 @@ export async function POST(
     if (!parsed.ok) {
       return errorResponse(parsed.error);
     }
-    const { templateId, locale, geminiApiKey, model } = parsed.value;
+    const { templateId, locale, ai } = parsed.value;
 
     const template = templateId ? getCVTemplate(templateId) : null;
     if (!template) {
@@ -68,9 +68,9 @@ export async function POST(
     }
 
     if (!profile) {
-      if (!geminiApiKey?.trim()) {
+      if (!ai) {
         throw badRequest(
-          "Configura tu API key de Gemini antes de preparar este CV para plantillas.",
+          "Configura tu proveedor de IA antes de preparar este CV para plantillas.",
         );
       }
 
@@ -82,8 +82,9 @@ export async function POST(
       const structured = await cvLibraryModule
         .bindRequest(supabase)
         .structureCVProfileWithAI.execute({
-          apiKey: geminiApiKey.trim(),
-          model,
+          provider: ai.provider,
+          apiKey: ai.apiKey,
+          model: ai.model,
           text,
         });
       const savedProfile = await cvLibraryModule
@@ -93,7 +94,7 @@ export async function POST(
         cvDocumentId: id,
         schemaVersion: structured.schemaVersion,
         sourceTextHash: getCVSourceTextHash(text),
-        aiModel: model,
+        aiModel: ai.model,
         profile: structured.profile,
         requestId: `cv-template-profile-${id}`,
       });

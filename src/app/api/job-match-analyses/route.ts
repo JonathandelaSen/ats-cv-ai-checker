@@ -12,6 +12,10 @@ import {
   presentJobMatchAnalysisSummary,
 } from "@/modules/job-match-analysis";
 import { parseCreateJobMatchAnalysisRequest } from "./validation";
+import {
+  toJobMatchAnalysisSummaryResponse,
+  toJobMatchAnalysisDetailResponse,
+} from "./responses";
 import { ok, errorResponse, notFound, badRequest, handleApiError } from "@/modules/shared";
 
 const ROUTE_SOURCE = "api_job_match_analyses";
@@ -25,7 +29,7 @@ export async function GET() {
     const analyses = await jobMatchAnalysisModule
       .bindRequest(supabase)
       .listJobMatchAnalyses.execute({ userId: user.id });
-    return ok(analyses.map(presentJobMatchAnalysisSummary));
+    return ok(analyses.map((a) => toJobMatchAnalysisSummaryResponse(presentJobMatchAnalysisSummary(a))));
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const analysis = presentJobMatchAnalysis(
+    const analysisLegacy = presentJobMatchAnalysis(
       await jobMatchAnalysisModule
         .bindRequest(supabase)
         .createJobMatchAnalysis.execute({
@@ -112,6 +116,7 @@ export async function POST(req: NextRequest) {
           jobUrl,
         }),
     );
+    const analysis = toJobMatchAnalysisDetailResponse(analysisLegacy);
 
     await recordProcessingEvent({
       userId,
@@ -125,7 +130,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         mode: "job_match",
         model,
-        score: analysis.ai_score,
+        score: analysis.aiScore,
       },
     });
 

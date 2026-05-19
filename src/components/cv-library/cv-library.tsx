@@ -22,7 +22,7 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import type { AnalysisSummary } from "@/lib/analysis-types";
 import type { CVDocumentSummaryResponse as CVSummary } from "@/modules/cv-library/client";
-import type { ProcessQuestionResponse as InterviewQuestionSummary } from "@/modules/selection-process";
+import type { InterviewQuestionResponse as InterviewQuestionSummary } from "@/app/api/interview-questions/responses";
 import { useInterfaceLanguage } from "@/components/shared/i18n-provider";
 
 interface CVLibraryProps {
@@ -81,7 +81,7 @@ export default function CVLibrary({
     () =>
       selected
         ? interviewQuestions.filter(
-            (question) => question.cv_id === selected.id,
+            (question) => question.cvId === selected.id,
           )
         : [],
     [interviewQuestions, selected],

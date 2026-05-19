@@ -1,11 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
+import { badRequest } from "@/modules/shared";
 import {
   CV_PROFILE_SCHEMA_VERSION,
   normalizeStandardCVProfile,
 } from "../../domain/cv-profile";
 import type {
   CVProfileStructuringAIService,
-  CVProfileStructuringAIServiceFactory,
   StructuredCVProfileResult,
 } from "../../domain/repositories/cv-profile-ai.service";
 import { SYSTEM_PROMPT } from "./cv-profile-structuring-prompts";
@@ -37,11 +37,14 @@ class GeminiCVProfileStructuringAIService
 }
 
 export class GeminiCVProfileStructuringAIServiceFactory
-  implements CVProfileStructuringAIServiceFactory
 {
   create(
-    config: { apiKey: string; model: string },
+    config: { apiKey?: string; model: string },
   ): CVProfileStructuringAIService {
-    return new GeminiCVProfileStructuringAIService(config);
+    if (!config.apiKey) throw badRequest("API key is required for Gemini.");
+    return new GeminiCVProfileStructuringAIService({
+      apiKey: config.apiKey,
+      model: config.model,
+    });
   }
 }

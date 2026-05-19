@@ -107,13 +107,15 @@ export function useFeedbackNotesMutations(status: FeedbackFilter) {
     generateFinalFeedback: useMutation({
       mutationFn: ({
         feedbackId,
-        geminiApiKey,
+        provider,
+        apiKey,
         model,
       }: {
         feedbackId: string;
-        geminiApiKey: string;
+        provider: "gemini" | "mock";
+        apiKey?: string;
         model: string;
-      }) => generateFinalFeedback(feedbackId, { geminiApiKey, model }),
+      }) => generateFinalFeedback(feedbackId, { provider, apiKey, model }),
       onSuccess: async (feedback) => {
         queryClient.setQueryData(feedbackNotesQueryKeys.detail(feedback.id), feedback);
         await invalidateFeedbacks(feedback.id);

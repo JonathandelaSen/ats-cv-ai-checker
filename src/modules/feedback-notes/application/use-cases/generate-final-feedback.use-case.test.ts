@@ -22,9 +22,9 @@ describe("GenerateFinalFeedbackUseCase", () => {
     const updated = await new GenerateFinalFeedbackUseCase({
       feedbackRepo,
       entryRepo,
-      aiService,
-      tracker,
-    }).execute(user.id, feedback.id);
+      aiFactory: { create: vi.fn(() => aiService) },
+        tracker,
+    }).execute(user.id, feedback.id, { provider: "mock", model: "mock-model" });
 
     expect(aiService.generateFinalFeedback).toHaveBeenCalledWith({
       personName: "Jon",
@@ -48,9 +48,9 @@ describe("GenerateFinalFeedbackUseCase", () => {
       new GenerateFinalFeedbackUseCase({
         feedbackRepo,
         entryRepo,
-        aiService: { generateFinalFeedback: vi.fn() },
+        aiFactory: { create: vi.fn(() => ({ generateFinalFeedback: vi.fn() })) },
         tracker,
-      }).execute(user.id, feedback.id)
+      }).execute(user.id, feedback.id, { provider: "mock", model: "mock-model" })
     ).rejects.toBeInstanceOf(FeedbackEntriesRequiredError);
   });
 });

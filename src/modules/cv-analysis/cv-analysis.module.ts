@@ -7,10 +7,15 @@ import { ListCVAnalysisUsageByDocumentUseCase } from "./application/use-cases/li
 import { ScoreCVAnalysisUseCase } from "./application/use-cases/score-cv-analysis.use-case";
 import { UpdateCVAnalysisAIResultUseCase } from "./application/use-cases/update-cv-analysis-ai-result.use-case";
 import { GeminiCVScoringAIServiceFactory } from "./infrastructure/services/gemini-cv-scoring-ai.service";
+import { MockCVScoringAIServiceFactory } from "./infrastructure/services/mock-cv-scoring-ai.service";
+import { ProviderCVScoringAIServiceFactory } from "./infrastructure/services/provider-cv-scoring-ai-service.factory";
 import { SupabaseCVAnalysisRepository } from "./infrastructure/repositories/supabase-cv-analysis.repository";
 
 const repo = new SupabaseCVAnalysisRepository();
-const aiServiceFactory = new GeminiCVScoringAIServiceFactory();
+const aiServiceFactory = new ProviderCVScoringAIServiceFactory({
+  geminiFactory: new GeminiCVScoringAIServiceFactory(),
+  mockFactory: new MockCVScoringAIServiceFactory(),
+});
 
 function createUseCases() {
   return {

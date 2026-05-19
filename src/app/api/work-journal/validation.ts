@@ -63,9 +63,7 @@ export interface UpdateWorkJournalEntryHttpInput {
   final_text?: string;
 }
 
-export interface DraftWorkJournalEntryHttpInput {
-  geminiApiKey: string;
-  model: string;
+export interface DraftWorkJournalEntryHttpInput extends AIRequestConfig {
   contextId: string;
   dateStart: string;
   dateEnd: string | null;
@@ -278,19 +276,17 @@ export function parseDraftWorkJournalEntryRequest(
 ): Result<DraftWorkJournalEntryHttpInput, HttpValidationError> {
   if (!isRecord(body)) return validationError("Request body must be a JSON object");
 
-  const geminiApiKey = normalizeRequiredText(body.geminiApiKey);
-  const model = normalizeRequiredText(body.model) ?? "gemini-3.1-pro-preview";
+  const ai = parseAIRequestConfig(body);
   const contextId = normalizeRequiredText(body.context_id);
   const dateStart = normalizeRequiredDate(body.date_start);
   const dateEnd = normalizeOptionalDate(body.date_end);
   const topic = normalizeOptionalText(body.topic);
   const notes = normalizeRequiredText(body.notes);
-  if (!geminiApiKey) {
-    return validationError("Configura tu API key de Gemini antes de redactar con IA.");
-  }
+  if (!ai.ok) return validationError(ai.message);
   if (!contextId || !dateStart || dateEnd === undefined || topic === undefined || !notes) {
     return validationError("Invalid draft payload");
   }
 
-  return { ok: true, value: { geminiApiKey, model, contextId, dateStart, dateEnd, topic, notes } };
+  return { ok: true, value: { ...ai.value, contextId, dateStart, dateEnd, topic, notes } };
 }
+import { parseAIRequestConfig, type AIRequestConfig } from "@/app/api/_shared/ai-request";

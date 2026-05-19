@@ -31,6 +31,7 @@ describe("EditCVProfileWithAIUseCase", () => {
     const result = await new EditCVProfileWithAIUseCase({
       aiFactory: factory,
     }).execute({
+      provider: "mock",
       apiKey: "key",
       model: "gemini-test",
       profile: original,
@@ -41,7 +42,7 @@ describe("EditCVProfileWithAIUseCase", () => {
     });
 
     expect(calls).toEqual([
-      { apiKey: "key", model: "gemini-test" },
+      { provider: "mock", apiKey: "key", model: "gemini-test" },
       {
         profile: original,
         instruction: "Make it concise",

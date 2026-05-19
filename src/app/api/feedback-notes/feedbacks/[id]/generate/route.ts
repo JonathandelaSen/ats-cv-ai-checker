@@ -28,11 +28,15 @@ export async function POST(
       return errorResponse(parsed.error);
     }
     feedbackNotesModule.bindRequest(supabase);
-    const useCase = feedbackNotesModule.createGenerateFinalFeedbackUseCase({
-      apiKey: parsed.value.geminiApiKey,
-      model: parsed.value.model,
-    });
-    const feedback = await useCase.execute(user.id, id);
+    const feedback = await feedbackNotesModule.generateFinalFeedback.execute(
+      user.id,
+      id,
+      {
+        provider: parsed.value.provider,
+        apiKey: parsed.value.apiKey,
+        model: parsed.value.model,
+      },
+    );
     const entries = await feedbackNotesModule.listEntries.execute(user.id, id);
     return ok(
       toFeedbackResponse(presentFeedback(feedback, entries.length)) satisfies GenerateFinalFeedbackResponse

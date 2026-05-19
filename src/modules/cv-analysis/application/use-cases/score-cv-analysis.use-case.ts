@@ -1,4 +1,4 @@
-import { UserId } from "@/modules/shared";
+import { UserId, type AIProvider } from "@/modules/shared";
 import { CVAnalysis } from "../../domain/entities/cv-analysis.entity";
 import type { CVAnalysisRepository } from "../../domain/repositories/cv-analysis.repository";
 import type { CVScoringAIServiceFactory } from "../../domain/repositories/cv-scoring-ai.service";
@@ -7,7 +7,8 @@ import { CVAnalysisId } from "../../domain/value-objects/cv-analysis-id.value-ob
 export interface ScoreCVAnalysisInput {
   id: string;
   userId: string;
-  apiKey: string;
+  provider: AIProvider;
+  apiKey?: string;
   model: string;
   additionalContext?: string | null;
 }
@@ -36,6 +37,7 @@ export class ScoreCVAnalysisUseCase {
     }
 
     const aiService = this.deps.aiServiceFactory.create({
+      provider: input.provider,
       apiKey: input.apiKey,
       model: input.model,
     });

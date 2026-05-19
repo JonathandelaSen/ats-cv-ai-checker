@@ -10,12 +10,17 @@ import { UpdateFollowUpByAnalysisUseCase } from "./application/use-cases/update-
 import { UpdateProcessQuestionUseCase } from "./application/use-cases/update-process-question.use-case";
 import { SupabaseFollowUpRepository } from "./infrastructure/repositories/supabase-follow-up.repository";
 import { SupabaseProcessQuestionRepository } from "./infrastructure/repositories/supabase-process-question.repository";
-import { GeminiInterviewQuestionAIService } from "./infrastructure/services/gemini-interview-question-ai.service";
+import { GeminiInterviewQuestionAIServiceFactory } from "./infrastructure/services/gemini-interview-question-ai.service";
+import { MockInterviewQuestionAIServiceFactory } from "./infrastructure/services/mock-interview-question-ai.service";
+import { ProviderInterviewQuestionAIServiceFactory } from "./infrastructure/services/provider-interview-question-ai-service.factory";
 
 const questionRepo = new SupabaseProcessQuestionRepository();
 const followUpRepo = new SupabaseFollowUpRepository();
 const tracker: EventTracker = new SupabaseEventTracker();
-const aiService = new GeminiInterviewQuestionAIService();
+const aiFactory = new ProviderInterviewQuestionAIServiceFactory({
+  geminiFactory: new GeminiInterviewQuestionAIServiceFactory(),
+  mockFactory: new MockInterviewQuestionAIServiceFactory(),
+});
 
 function createUseCases() {
   return {
@@ -31,12 +36,12 @@ function createUseCases() {
     }),
     generateQuestionAnswer: new GenerateQuestionAnswerUseCase({
       questionRepo,
-      aiService,
+      aiFactory,
       tracker,
     }),
     editQuestionAnswer: new EditQuestionAnswerUseCase({
       questionRepo,
-      aiService,
+      aiFactory,
       tracker,
     }),
     updateFollowUpByAnalysis: new UpdateFollowUpByAnalysisUseCase({

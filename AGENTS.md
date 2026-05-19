@@ -14,6 +14,19 @@ Keep prompts and model-call logic/controllers in separate files. La lógica/cont
 
 Every AI prompt family must have documentation under `docs/prompts/<prompt-type>/prompt.md`. The document must include the current prompt, the source file link/path, how it is fed with data, the runtime flow, and maintenance notes. When changing a prompt, prompt builder, model input data, response shape, or controller behavior that affects a prompt, actualizar la documentación del prompt en el mismo cambio.
 
+## AI service dependency injection
+
+AI model calls must follow the provider-aware factory pattern documented in `docs/architecture/ai-service-dependency-injection.md`.
+
+- Use cases must depend on domain-layer AI service factory ports, not concrete Gemini/OpenAI/mock services.
+- AI service factory `create(...)` contracts must include an explicit `provider`, a required `model`, and an `apiKey` that is required for real providers and optional for `mock`.
+- Module composition roots (`*.module.ts`) must inject provider-aware factories, not provider-specific factories such as `Gemini*AIServiceFactory`.
+- Provider-aware factories live in infrastructure, receive provider-specific factories by constructor injection, call `assertAIProviderAllowedForRuntime(provider)`, and then delegate to the matching provider-specific factory.
+- In automated tests, only `provider: "mock"` is allowed. Requesting any real provider must throw. In production, `provider: "mock"` must throw. In development, both mock and real providers are allowed.
+- Official mock AI implementations should be deterministic, clearly marked as mock output, and usable for local/dev/test flows without real AI API calls.
+- Frontend and API contracts must use provider-agnostic names: `provider`, `apiKey`, and `model`. Do not introduce or preserve new `geminiApiKey` fallbacks when migrating AI routes.
+- Observability for AI-backed backend actions must include `provider` and `model` metadata.
+
 ## Git main branch
 
 Never push to `main`. Commit locally or push to a non-main branch if requested, but leave `main` pushes to the user unless they explicitly instruct otherwise in the same turn.
@@ -383,3 +396,19 @@ Frontend boundary checks should be automated alongside the existing DDD checks. 
 ## Agent Workflow Preferences
 
 - **Commits:** Do not make commits automatically. Always leave any changes uncommitted so the user can review them manually before committing.
+
+## Agent Test User
+
+Use the following credentials when a test user is required for automated or manual agent actions:
+- **Email:** `agent-test@example.com`
+- **Password:** `agent-test-password`
+
+To seed the local database with a complete set of mock entities specifically for this user (CVs, Analyses, Opportunities, Work Journal, Feedback Notes, Objectives, etc.), run the following command:
+```bash
+npm run supabase:seed-agent
+```
+Running this command is completely idempotent: it automatically finds or creates the user and cleans up any existing mock records under their ID before inserting a fresh set of beautiful, high-quality mock data.
+
+## Avoid Real AI API Usage
+
+Do **not** use the real AI provider API keys to perform actual AI analysis during tasks, in order to avoid incurring unnecessary costs. Use mocks, stubs, or bypass the actual AI call if you need to test the workflow.
