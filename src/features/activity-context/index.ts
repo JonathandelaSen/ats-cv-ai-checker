@@ -10,6 +10,9 @@ export {
 } from "./api/activity-context-api";
 export { activityContextQueryKeys } from "./api/activity-context-query-keys";
 export {
-  useActivityContextMutations,
   useActivityContexts,
+  useCreateActivityContext,
+  useUpdateActivityContext,
+  useDeleteActivityContext,
+  useHandleActivityContextSuggestion,
 } from "./hooks/use-activity-contexts";

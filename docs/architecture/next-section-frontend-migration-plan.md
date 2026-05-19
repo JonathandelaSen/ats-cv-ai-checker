@@ -65,21 +65,26 @@ If the section does not have a detail resource, use:
 /<section>?<tab-or-filter-query>=<value>
 ```
 
-### Current Migration Decision: Interview Questions
+### Current Migration Decision: CV Library
+
+Previous decision note: Interview Questions has already been migrated to
+`src/features/interview-questions` with real `/interview-questions` routes, so
+the next target should move forward to the largest remaining legacy app section
+that still lives under `src/components/`.
 
 ```txt
-Section label: Interview Questions
-Route segment: /interview-questions
-Primary detail resource: interview question, via /interview-questions/[questionId]
-Query params: use URL-owned list state if needed, for example cv=<cvId> or status=answered|unanswered|all; do not keep list filters as component-only state once migrated
-Existing legacy entry point: src/components/selection-process/interview-questions-view.tsx
-Existing API routes: /api/interview-questions, /api/interview-questions/[id], /api/interview-questions/[id]/generate, /api/interview-questions/[id]/edit
-Backend mutations: yes; verify create, update, delete, generate, and edit operations keep platform observability events
-AI prompt impact: yes; generation/edit flows use the interview question AI prompt family documented at docs/prompts/preguntas-entrevista/prompt.md. Update that prompt doc in the same change if model input data, response shape, prompt text, or controller behavior changes.
-Server state owned by TanStack Query: interview question list, selected interview question detail, generated answer state, and mutation results
-Local UI state owned by React: draft question text, answer edit draft, generation/edit mode controls, selected local form values, saving/error indicators, and delete confirmation state
-Navigation style: follow Feedback Notes and Objectives. Every selected question must have a URL, tab/filter state must be in the query string when present, and back/forward must restore the selected question and current list state without waiting for a server navigation.
-Why this section next: Objectives has now been migrated to src/features/objectives and real /objectives routes. Interview Questions is the next contained legacy app section: it has one primary legacy view, a small API surface, and an important AI flow that should move behind explicit frontend response contracts before larger CV/editor surfaces are migrated.
+Section label: CV Library
+Route segment: /cvs
+Primary detail resource: CV document/version, via /cvs/[cvId]
+Query params: tab=library|templates|editor, plus optional source=<cvId> only if the editor/template flow needs to preserve an originating uploaded CV. Do not keep the active CV, template/editor tab, or selected version as shell-only state once migrated.
+Existing legacy entry points: src/components/cv-library/cv-library.tsx, src/components/cv-library/templates-view.tsx, src/components/cv-library/cv-editor-view.tsx, src/components/cv-library/new-analysis-flow.tsx, and smaller CV library helpers under src/components/cv-library/
+Existing API routes: /api/cvs, /api/cvs/[id], /api/cvs/[id]/edit, /api/cvs/[id]/recommendations, /api/cvs/[id]/save-as-cv, /api/cvs/[id]/structured-profile, /api/cvs/[id]/template, /api/cvs/[id]/template-pdf, /api/cvs/[id]/pdf, and /api/parse if upload parsing remains part of this feature
+Backend mutations: yes; verify create/upload, rename, delete, template generation, template profile edits, AI edit, public settings, and save-as-CV operations keep or add platform observability events
+AI prompt impact: yes; CV structuring/editing flows use docs/prompts/extraccion-info-cv/prompt.md and docs/prompts/editado-cv/prompt.md. Update the relevant prompt doc in the same change if model input data, response shape, prompt text, or controller behavior changes.
+Server state owned by TanStack Query: CV document list, selected CV detail, selected structured profile/template profile, recommendations/edit results, generated template state, and mutation results
+Local UI state owned by React: upload draft/progress, rename draft, template/editor form drafts, manual structured-profile edit drafts, AI instruction text, public share toggles while editing, modal open state, copied indicators, saving/error indicators, and delete confirmation state
+Navigation style: follow Feedback Notes, Objectives, and Interview Questions. Every selected CV/version must have a URL, tab state must be in the query string, and back/forward must restore the selected CV plus library/template/editor tab without waiting for a server navigation.
+Why this section next: CV Library is now the highest-impact legacy surface still rendered from src/components. It is central to the product, still uses shell-owned CV state and direct module imports from frontend components, and its three related shell views (CVs, Templates, Editor) should become one route-driven feature before migrating the remaining general CV analysis/detail screens.
 ```
 
 ## Target File Structure

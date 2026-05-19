@@ -303,7 +303,15 @@ src/components/
 
 ### Frontend component composition
 
-Do not leave large feature screens as one monolithic component. Route/view components in `src/features/<feature>/components/*-view.tsx` should orchestrate data, route state, mutations, and top-level local UI state, while substantial UI regions live in sibling components. Split obvious sections such as sidebars, detail headers, forms, lists, list rows, inline editors, modals, and repeated panels before finishing the change. As a rule of thumb, once a view component grows beyond roughly 250-300 lines or contains multiple independent UI regions, extract components in the same feature folder instead of waiting for a follow-up review.
+Do not leave large feature screens as one monolithic component. Route/view components in `src/features/<feature>/components/*-view.tsx` should orchestrate data, route state, mutations, and top-level local UI state, while substantial UI regions live in **separate sibling files** in the same `components/` directory. Split obvious sections such as sidebars, detail headers, forms, lists, list rows, inline editors, modals, and repeated panels into their own `*.tsx` file before finishing the change. As a rule of thumb, once a view component grows beyond roughly 250-300 lines or contains multiple independent UI regions, extract components into separate files in the same feature folder instead of waiting for a follow-up review.
+
+### Internationalization (i18n)
+
+All user-visible strings in React components must use `next-intl` translations via `useTranslations()`. Never hardcode UI strings (labels, descriptions, placeholders, error messages, microcopy) directly in components. Add translation keys to `src/i18n/messages.ts` under both the `en` and `es` sections. Use a feature-scoped namespace key (e.g., `activityContexts`, `feedbackNotes`) and call `const t = useTranslations("featureNamespace")` in each component. Existing features that already use translations serve as reference.
+
+### Code style: no decorative comments
+
+Do not use decorative or separator comments such as `/* ─────── section ─────── */`, `{/* Name + meta */}`, or similar ASCII art dividers. Use blank lines and clear naming to organize code. Inline JSX comments explaining what an obvious element does (e.g., `{/* Error */}`, `{/* Header */}`) are also unnecessary and should be omitted.
 
 ### Frontend API and response contracts
 
@@ -345,6 +353,8 @@ Frontend files under `src/features/**`, `src/components/**`, and `src/frontend/*
 TanStack Query is the standard owner for server state in migrated frontend features. Use it for data loaded from the backend, mutation state, invalidation, refetching, and optimistic updates.
 
 All frontend mutations in migrated features should use optimistic updates by default. Update the affected TanStack Query cache in `onMutate`, cancel in-flight queries for that cache key, roll back from the saved previous value in `onError`, and reconcile the optimistic entity with the server response in `onSuccess`. Do not refetch broad list/workspace endpoints after routine create/update/delete mutations unless the mutation response cannot provide enough data to keep the cache correct or the workflow intentionally needs server recomputation.
+
+Mutation hooks must live in `src/features/<feature>/hooks/` and encapsulate `useMutation()` calls with their `mutationFn`, `onSuccess` invalidation, and any orchestration logic. View components must not call `mutations.create.mutateAsync(...)` directly — instead, they should call purpose-named hook callbacks (e.g., `useCreateActivityContext()`, `usePromoteSuggestion()`) that internally handle the mutation, error state, and cache invalidation. This keeps view components thin and mutation logic testable and reusable.
 
 Do not copy `useQuery().data` into `useState` unless it is intentionally becoming an editable local draft.
 

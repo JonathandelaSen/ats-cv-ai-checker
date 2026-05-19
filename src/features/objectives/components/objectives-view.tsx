@@ -92,8 +92,24 @@ export default function ObjectivesView() {
 
   useEffect(() => {
     const activityContextId = searchParams.get("activityContextId");
-    if (activityContextId) {
+    if (!activityContextId) return;
+    if (form) {
       setForm((current) => (current ? { ...current, contextId: activityContextId } : current));
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      setIsCreating(true);
+      setForm({
+        contextId: activityContextId,
+        title: "",
+        description: "",
+        successCriteria: "",
+        resultNotes: "",
+        source: "self",
+        status: "active",
+        priority: "",
+        startDate: today,
+        targetDate: "",
+      });
     }
   }, [searchParams]);
 

@@ -1,41 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { ArrowLeft, Check, Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Archive,
-  ArrowLeft,
-  Check,
-  Loader2,
-  Plus,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
-import type {
-  ActivityContext,
-  ActivityContextType,
-} from "../api/activity-context-api";
-import { useActivityContextMutations, useActivityContexts } from "../hooks/use-activity-contexts";
-import { getErrorMessage } from "@/lib/errors";
+  useActivityContexts,
+  useCreateActivityContext,
+  useUpdateActivityContext,
+  useDeleteActivityContext,
+  useHandleActivityContextSuggestion,
+} from "../hooks/use-activity-contexts";
+import type { ActivityContext, ActivityContextSuggestion } from "../api/activity-context-api";
+import { CreateContextForm } from "./create-context-form";
+import { ContextRow } from "./context-row";
+import { SuggestionRow } from "./suggestion-row";
 
-const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-300 focus:ring-0";
-const typeLabels: Record<ActivityContextType, string> = {
-  employment: "Employment",
-  project: "Project",
-  personal: "Personal",
-  other: "Other",
-};
+type SourceKey = "workJournal" | "objectives" | "receivedFeedback" | "generic";
 
-function defaultReturnTo(source: string | null) {
-  if (source === "work-journal") return "/work-journal";
-  if (source === "objectives") return "/objectives";
-  if (source === "received-feedback") return "/received-feedback";
-  return "/";
+function resolveSourceKey(source: string | null): SourceKey {
+  switch (source) {
+    case "work-journal":
+      return "workJournal";
+    case "objectives":
+      return "objectives";
+    case "received-feedback":
+      return "receivedFeedback";
+    default:
+      return "generic";
+  }
 }
 
-function withSelectedContext(returnTo: string, contextId: string) {
+function buildReturnUrl(returnTo: string, contextId: string): string {
   const url = new URL(returnTo, window.location.origin);
   url.searchParams.set("activityContextId", contextId);
   return `${url.pathname}${url.search}${url.hash}`;
@@ -44,255 +42,205 @@ function withSelectedContext(returnTo: string, contextId: string) {
 export function ActivityContextView() {
   const router = useRouter();
   const params = useSearchParams();
+  const queryClient = useQueryClient();
   const source = params.get("source");
-  const returnTo = params.get("returnTo") ?? defaultReturnTo(source);
+  const returnTo = params.get("returnTo");
+  const hasReturnTo = returnTo !== null;
+
+  const t = useTranslations("activityContexts");
   const query = useActivityContexts();
-  const mutations = useActivityContextMutations();
-  const [draft, setDraft] = useState({ name: "", type: "project" as ActivityContextType });
-  const [error, setError] = useState<string | null>(null);
+  const createCtx = useCreateActivityContext();
+  const updateCtx = useUpdateActivityContext();
+  const deleteCtx = useDeleteActivityContext();
+  const suggestionCtx = useHandleActivityContextSuggestion();
+
+  const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
+
   const contexts = query.data?.contexts ?? [];
   const suggestions = query.data?.suggestions ?? [];
-  const saving =
-    mutations.create.isPending ||
-    mutations.update.isPending ||
-    mutations.delete.isPending ||
-    mutations.suggestion.isPending;
-  const visibleError = error ?? (query.error ? getErrorMessage(query.error) : null);
+
+  const visibleError =
+    createCtx.error ?? updateCtx.error ?? deleteCtx.error ?? suggestionCtx.error ?? null;
+
   const sortedContexts = useMemo(
-    () => [...contexts].sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name)),
+    () =>
+      [...contexts].sort(
+        (a, b) =>
+          Number(b.isDefault) - Number(a.isDefault) ||
+          (a.status === b.status ? 0 : a.status === "active" ? -1 : 1) ||
+          a.name.localeCompare(b.name)
+      ),
     [contexts]
   );
 
-  const createContext = async () => {
-    if (!draft.name.trim()) return;
-    setError(null);
-    try {
-      const context = await mutations.create.mutateAsync(draft);
-      router.push(withSelectedContext(returnTo, context.id));
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
-  };
-
-  const selectContext = (context: ActivityContext) => {
-    router.push(withSelectedContext(returnTo, context.id));
-  };
-
-  const archiveContext = async (context: ActivityContext) => {
-    setError(null);
-    try {
-      await mutations.update.mutateAsync({
-        id: context.id,
-        updates: { status: context.status === "active" ? "archived" : "active" },
+  const navigateBackWithContext = useCallback(
+    async (contextId: string) => {
+      if (!returnTo) return;
+      await queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            (key[0] === "work-journal" && key[1] === "contexts") ||
+            (key[0] === "received-feedback" && key[1] === "contexts") ||
+            (key[0] === "objectives" && key[1] === "workspace")
+          );
+        },
       });
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
-  };
+      router.push(buildReturnUrl(returnTo, contextId));
+    },
+    [queryClient, returnTo, router]
+  );
 
-  const deleteContext = async (context: ActivityContext) => {
-    if (context.isDefault) return;
-    setError(null);
-    try {
-      await mutations.delete.mutateAsync(context.id);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
-  };
+  const handleCreate = useCallback(
+    async (input: { name: string; type: string }) => {
+      setLastCreated(null);
+      const created = await createCtx.create(input as Parameters<typeof createCtx.create>[0]);
+      if (created && hasReturnTo) {
+        await navigateBackWithContext(created.id);
+        return;
+      }
+      if (created) {
+        setLastCreated({ id: created.id, name: created.name });
+      }
+    },
+    [createCtx, hasReturnTo, navigateBackWithContext]
+  );
+
+  const handleSelect = useCallback(
+    async (context: ActivityContext) => {
+      await navigateBackWithContext(context.id);
+    },
+    [navigateBackWithContext]
+  );
+
+  const handlePromote = useCallback(
+    async (suggestion: ActivityContextSuggestion) => {
+      setLastCreated(null);
+      const result = await suggestionCtx.promote(suggestion);
+      if (result && "id" in result && hasReturnTo) {
+        await navigateBackWithContext((result as { id: string }).id);
+        return;
+      }
+      if (result && "id" in result) {
+        setLastCreated({ id: (result as { id: string; name: string }).id, name: suggestion.name });
+      }
+    },
+    [suggestionCtx, hasReturnTo, navigateBackWithContext]
+  );
+
+  const handleHide = useCallback(
+    async (suggestion: ActivityContextSuggestion) => {
+      await suggestionCtx.hide(suggestion);
+    },
+    [suggestionCtx]
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#09090f] text-zinc-100">
       <header className="shrink-0 border-b border-white/[0.06] px-5 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => router.push(returnTo)}
-              className="mb-3 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-100"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <h1 className="text-lg font-semibold">Activity contexts</h1>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-400">
-              An activity context is the work sphere where something happened: a company,
-              role, project, client, initiative, or personal area. Use contexts to connect
-              journal entries, objectives, feedback, and achievements across the app.
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            {hasReturnTo && (
+              <button
+                type="button"
+                onClick={() => router.push(returnTo)}
+                className="mb-2 inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                {t("back")}
+              </button>
+            )}
+            <h1 className="text-lg font-semibold leading-tight">{t("title")}</h1>
+            <p className="mt-1 text-sm leading-relaxed text-zinc-500">
+              {t(`description.${resolveSourceKey(source)}`)}
             </p>
           </div>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="space-y-3">
-          {visibleError && (
-            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-              {visibleError}
-            </div>
-          )}
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="space-y-4">
+            {visibleError && (
+              <div className="rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-4 py-2.5 text-sm text-rose-200">
+                {visibleError}
+              </div>
+            )}
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-              <select
-                className={inputClass}
-                value={draft.type}
-                onChange={(event) =>
-                  setDraft({ ...draft, type: event.target.value as ActivityContextType })
-                }
-              >
-                {Object.entries(typeLabels).map(([value, label]) => (
-                  <option key={value} value={value} className="bg-zinc-900">
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <input
-                className={inputClass}
-                placeholder="Company, project, client, initiative..."
-                value={draft.name}
-                onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-              />
-              <button
-                type="button"
-                onClick={() => void createContext()}
-                disabled={saving || !draft.name.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-60"
-              >
-                {mutations.create.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Create
-              </button>
-            </div>
-          </div>
-
-          {query.isLoading ? (
-            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-8 text-sm text-zinc-400">
-              Loading contexts...
-            </div>
-          ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {sortedContexts.map((context) => (
-                <article
-                  key={context.id}
-                  className="rounded-lg border border-white/10 bg-white/[0.025] p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="truncate text-sm font-semibold text-zinc-100">
-                          {context.name}
-                        </h2>
-                        {context.isDefault && (
-                          <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-0.5 text-[11px] text-sky-200">
-                            Default
-                          </span>
-                        )}
-                        {context.status === "archived" && (
-                          <span className="rounded-full border border-zinc-500/20 bg-zinc-500/10 px-2 py-0.5 text-[11px] text-zinc-300">
-                            Archived
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-zinc-500">{typeLabels[context.type]}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      {context.status === "active" && (
-                        <button
-                          type="button"
-                          onClick={() => selectContext(context)}
-                          className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-white/5 hover:text-white"
-                          title="Select"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => void archiveContext(context)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-white/5 hover:text-white"
-                        title={context.status === "active" ? "Archive" : "Restore"}
-                      >
-                        <Archive className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteContext(context)}
-                        disabled={context.isDefault}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <aside className="space-y-3">
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-300" />
-              <h2 className="text-sm font-semibold">Suggestions from your CVs</h2>
-            </div>
-            <div className="space-y-2">
-              {suggestions.length === 0 ? (
-                <p className="text-sm leading-6 text-zinc-500">
-                  No suggestions right now. Companies and projects found in template CVs
-                  will appear here for review.
+            {lastCreated && hasReturnTo && (
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+                <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+                <p className="flex-1 text-sm text-zinc-200">
+                  {t("created", { name: lastCreated.name })}
                 </p>
-              ) : (
-                suggestions.map((suggestion) => (
-                  <div
-                    key={`${suggestion.type}:${suggestion.name}`}
-                    className="rounded-lg border border-white/10 bg-black/10 p-3"
-                  >
-                    <p className="truncate text-sm font-medium text-zinc-100">
-                      {suggestion.name}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {typeLabels[suggestion.type]}
-                      {suggestion.roleOrLabel ? ` · ${suggestion.roleOrLabel}` : ""}
-                    </p>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void mutations.suggestion.mutateAsync({
-                            ...suggestion,
-                            action: "promote",
-                          })
-                        }
-                        className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-zinc-200 hover:bg-white/5"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Create
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void mutations.suggestion.mutateAsync({
-                            ...suggestion,
-                            action: "hide",
-                          })
-                        }
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-white/5 hover:text-zinc-200"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Hide
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(buildReturnUrl(returnTo, lastCreated.id))}
+                  className="shrink-0 gap-1.5 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {t("selectAndReturn")}
+                </Button>
+              </div>
+            )}
+
+            <CreateContextForm
+              isPending={createCtx.isPending}
+              hasReturnTo={hasReturnTo}
+              onCreate={handleCreate}
+            />
+
+            {query.isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-zinc-600" />
+              </div>
+            ) : sortedContexts.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-white/[0.08] px-6 py-10 text-center">
+                <p className="text-sm text-zinc-600">{t("empty")}</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {sortedContexts.map((context) => (
+                  <ContextRow
+                    key={context.id}
+                    context={context}
+                    hasReturnTo={hasReturnTo}
+                    onSelect={handleSelect}
+                    onUpdate={updateCtx.update}
+                    onDelete={deleteCtx.remove}
+                    isUpdating={updateCtx.isPending}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <aside className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+              {t("suggestionsTitle")}
             </div>
-          </div>
-        </aside>
+            {suggestions.length === 0 ? (
+              <p className="text-xs leading-5 text-zinc-600">
+                {t("suggestionsEmpty")}
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {suggestions.map((suggestion) => (
+                  <SuggestionRow
+                    key={`${suggestion.type}:${suggestion.name}`}
+                    suggestion={suggestion}
+                    isPending={suggestionCtx.isPending}
+                    hasReturnTo={hasReturnTo}
+                    onPromote={handlePromote}
+                    onHide={handleHide}
+                  />
+                ))}
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );

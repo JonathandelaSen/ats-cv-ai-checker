@@ -218,24 +218,36 @@ export default function ReceivedFeedbackView() {
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-              <label className="space-y-1.5 md:col-span-2">
-                <span className="text-xs font-medium text-zinc-500">
-                  {t("fields.activityContext")}
-                </span>
-                <select
-                  className={inputClass}
-                  value={form.activityContextId}
-                  onChange={(event) =>
-                    setForm({ ...form, activityContextId: event.target.value })
-                  }
-                >
-                  {contexts.map((context) => (
-                    <option key={context.id} value={context.id} className="bg-zinc-900">
-                      {context.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid gap-4 md:grid-cols-[1fr_auto] md:col-span-2">
+                <label className="space-y-1.5">
+                  <span className="text-xs font-medium text-zinc-500">
+                    {t("fields.activityContext")}
+                  </span>
+                  <select
+                    className={inputClass}
+                    value={form.activityContextId}
+                    onChange={(event) =>
+                      setForm({ ...form, activityContextId: event.target.value })
+                    }
+                  >
+                    {contexts.map((context) => (
+                      <option key={context.id} value={context.id} className="bg-zinc-900">
+                        {context.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={manageContexts}
+                    className="inline-flex h-[38px] items-center gap-2 rounded-lg border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5"
+                  >
+                    <FolderKanban className="h-4 w-4" />
+                    {t("actions.manageContexts")}
+                  </button>
+                </div>
+              </div>
               <label className="space-y-1.5">
                 <span className="text-xs font-medium text-zinc-500">
                   {t("fields.receivedDate")}
@@ -294,16 +306,6 @@ export default function ReceivedFeedbackView() {
                   }
                 />
               </label>
-              <div className="md:col-span-2">
-                <button
-                  type="button"
-                  onClick={manageContexts}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5"
-                >
-                  <FolderKanban className="h-4 w-4" />
-                  {t("actions.manageContexts")}
-                </button>
-              </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
