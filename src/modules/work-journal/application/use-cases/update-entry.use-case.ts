@@ -1,10 +1,8 @@
 import { IsoDate, OptionalIsoDate, UserId } from "@/modules/shared";
 import type { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
-import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { WorkJournalEntryRepository } from "../../domain/repositories/work-journal-entry.repository";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
 import { EntryNotFoundError } from "../../domain/errors/entry-not-found.error";
-import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { createRequestId } from "@/lib/observability";
 import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
 import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
@@ -26,7 +24,6 @@ export interface UpdateEntryInput {
 export class UpdateEntryUseCase {
   constructor(
     private readonly deps: {
-      contextRepo: WorkJournalContextRepository;
       entryRepo: WorkJournalEntryRepository;
       tracker: EventTracker;
     }
@@ -34,14 +31,6 @@ export class UpdateEntryUseCase {
 
   async execute(id: string, userId: string, data: UpdateEntryInput): Promise<WorkJournalEntry> {
     const ownerId = UserId.fromPrimitives(userId);
-    if (data.context_id) {
-      const context = await this.deps.contextRepo.findById(
-        WorkJournalContextId.fromPrimitives(data.context_id),
-        ownerId
-      );
-      if (!context) throw new ContextNotFoundError(data.context_id);
-    }
-
     const entryId = WorkJournalEntryId.fromPrimitives(id);
     const entry = await this.deps.entryRepo.findById(entryId, ownerId);
     if (!entry) throw new EntryNotFoundError(id);

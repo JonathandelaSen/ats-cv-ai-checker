@@ -1,7 +1,4 @@
-import type {
-  CreateActivityContextResponse,
-  ListActivityContextsResponse,
-} from "@/app/api/activity-contexts/responses";
+import type { ListActivityContextsResponse } from "@/app/api/activity-contexts/responses";
 import type {
   CreateReceivedFeedbackResponse,
   ListReceivedFeedbackResponse,
@@ -14,7 +11,6 @@ import type {
 
 export type ReceivedFeedbackItem = ListReceivedFeedbackResponse[number];
 export type ActivityContext = ListActivityContextsResponse["contexts"][number];
-export type ActivityContextType = ActivityContext["type"];
 
 export interface SaveReceivedFeedbackInput {
   activityContextId: string;
@@ -22,11 +18,6 @@ export interface SaveReceivedFeedbackInput {
   giverName: string;
   feedbackText: string;
   userNote: string | null;
-}
-
-export interface CreateActivityContextInput {
-  name: string;
-  type: ActivityContextType;
 }
 
 async function readJsonResponse<T>(
@@ -53,18 +44,6 @@ export async function listActivityContexts() {
   return readJsonResponse<ListActivityContextsResponse>(
     res,
     "Could not load contexts."
-  );
-}
-
-export async function createActivityContext(input: CreateActivityContextInput) {
-  const res = await fetch("/api/activity-contexts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  return readJsonResponse<CreateActivityContextResponse>(
-    res,
-    "Could not create context."
   );
 }
 

@@ -18,9 +18,16 @@ export interface ActivityContextResponse {
 
 export type ListActivityContextsResponse = {
   contexts: ActivityContextResponse[];
+  suggestions?: ActivityContextSuggestionResponse[];
 };
 
 export type CreateActivityContextResponse = ActivityContextResponse;
+
+export interface ActivityContextSuggestionResponse {
+  type: ActivityContextResponseType;
+  name: string;
+  roleOrLabel: string | null;
+}
 
 interface ActivityContextPresenterOutput {
   id: string;
@@ -46,4 +53,10 @@ export function toActivityContextResponse(
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
   };
+}
+
+export function toActivityContextSuggestionResponse(
+  input: ActivityContextSuggestionResponse
+): ActivityContextSuggestionResponse {
+  return input;
 }

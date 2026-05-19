@@ -1,7 +1,7 @@
 import { InMemoryQueryBus } from "@/modules/shared";
 import {
   createActivityContextsModule,
-} from "@/modules/activity";
+} from "@/modules/activity-context";
 import {
   createAnalysisChatModule,
   registerAnalysisChatQueries,

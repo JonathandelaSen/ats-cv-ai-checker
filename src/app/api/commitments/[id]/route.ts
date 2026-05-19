@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { commitmentsModule } from "@/lib/container";
+import { activityContextsModule, commitmentsModule } from "@/lib/container";
 import { presentCommitment } from "@/modules/commitments";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateCommitmentRequest } from "../validation";
@@ -22,6 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return errorResponse(parsed.error);
     }
     commitmentsModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
     const commitment = await commitmentsModule.updateCommitment.execute({
       userId: user.id,
       id,

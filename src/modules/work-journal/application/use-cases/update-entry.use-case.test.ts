@@ -5,7 +5,6 @@ import {
   getSupabaseClient,
   testLabel,
 } from "@/modules/test-helpers/setup";
-import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
 import { EntryNotFoundError } from "../../domain/errors/entry-not-found.error";
 import { SupabaseWorkJournalContextRepository } from "../../infrastructure/repositories/supabase-work-journal-context.repository";
 import { SupabaseWorkJournalEntryRepository } from "../../infrastructure/repositories/supabase-work-journal-entry.repository";
@@ -22,7 +21,7 @@ function makeUseCase() {
   return {
     contextRepo,
     entryRepo,
-    useCase: new UpdateEntryUseCase({ contextRepo, entryRepo, tracker }),
+    useCase: new UpdateEntryUseCase({ entryRepo, tracker }),
   };
 }
 
@@ -73,8 +72,8 @@ describe("UpdateEntryUseCase", () => {
     ).rejects.toBeInstanceOf(EntryNotFoundError);
   });
 
-  it("throws ContextNotFoundError when moving to a missing context", async () => {
-    const user = await createTestUser("wj-update-entry-missing-context");
+  it("updates the context id without loading the context aggregate", async () => {
+    const user = await createTestUser("wj-update-entry-context-id");
     const { contextRepo, entryRepo, useCase } = makeUseCase();
     const context = await createContext(contextRepo, user.id);
     const entry = await entryRepo.create({
@@ -88,8 +87,10 @@ describe("UpdateEntryUseCase", () => {
       final_text: "Move text",
     });
 
-    await expect(
-      useCase.execute(entry.id, user.id, { context_id: crypto.randomUUID() })
-    ).rejects.toBeInstanceOf(ContextNotFoundError);
+    const nextContext = await createContext(contextRepo, user.id);
+    const nextContextId = nextContext.id;
+    const updated = await useCase.execute(entry.id, user.id, { context_id: nextContextId });
+
+    expect(updated.contextId).toBe(nextContextId);
   });
 });

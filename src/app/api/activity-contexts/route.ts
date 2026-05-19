@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { activityContextsModule } from "@/lib/container";
-import { presentActivityContext } from "@/modules/activity";
+import {
+  presentActivityContext,
+  presentActivityContextSuggestion,
+} from "@/modules/activity-context";
 import { created, errorResponse, handleApiError, ok } from "@/modules/shared";
 import { parseCreateActivityContextRequest } from "./validation";
 import {
@@ -17,10 +20,16 @@ export async function GET() {
     const { supabase, user } = authContext;
 
     activityContextsModule.bindRequest(supabase);
-    const contexts = await activityContextsModule.listActivityContexts.execute(user.id);
+    const [contexts, suggestions] = await Promise.all([
+      activityContextsModule.listActivityContexts.execute(user.id),
+      activityContextsModule.listActivityContextSuggestions.execute(user.id),
+    ]);
     return ok({
       contexts: contexts.map((context) =>
         toActivityContextResponse(presentActivityContext(context))
+      ),
+      suggestions: suggestions.map((suggestion) =>
+        presentActivityContextSuggestion(suggestion)
       ),
     } satisfies ListActivityContextsResponse);
   } catch (error: unknown) {

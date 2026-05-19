@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
 import { activityContextsModule } from "@/lib/container";
-import { presentActivityContext } from "@/modules/activity";
+import { presentActivityContext } from "@/modules/activity-context";
 import { errorResponse, handleApiError, ok } from "@/modules/shared";
 import { parseUpdateActivityContextRequest } from "../validation";
 

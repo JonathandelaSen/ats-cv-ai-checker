@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { workJournalModule } from "@/lib/container";
+import { activityContextsModule, workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateWorkJournalEntryRequest } from "../../validation";
@@ -25,8 +25,9 @@ export async function PATCH(
       return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
     const entry = await workJournalModule.updateEntry.execute(id, user.id, parsed.value);
-    const contexts = await workJournalModule.listContexts.execute(user.id);
+    const contexts = await activityContextsModule.listActivityContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
     return ok(
       toWorkJournalEntryResponse(

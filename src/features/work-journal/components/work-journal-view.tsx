@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
@@ -9,7 +10,6 @@ import {
   BriefcaseBusiness,
   Clipboard,
   CalendarDays,
-  Check,
   FilePenLine,
   FolderKanban,
   Loader2,
@@ -23,17 +23,13 @@ import {
 } from "lucide-react";
 import type {
   WorkJournalContextLegacy as WorkJournalContext,
-  WorkJournalContextSuggestionLegacy as WorkJournalContextSuggestion,
-  WorkJournalContextType,
   WorkJournalEntryInputMode,
   WorkJournalEntryLegacy as WorkJournalEntry,
 } from "../api/work-journal-types";
 import {
-  createWorkJournalContext,
   createWorkJournalEntry,
   deleteWorkJournalEntry,
   draftWorkJournalEntry,
-  handleWorkJournalSuggestion,
   updateWorkJournalEntry,
 } from "../api/work-journal-api";
 import {
@@ -84,13 +80,12 @@ export default function WorkJournalView({
 }: WorkJournalViewProps) {
   const t = useTranslations("workJournal");
   const common = useTranslations("common.actions");
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const contextsQuery = useWorkJournalContexts();
   const entriesQuery = useWorkJournalEntries();
   const [draft, setDraft] = useState(emptyEntryDraft);
-  const [newContextName, setNewContextName] = useState("");
-  const [newContextType, setNewContextType] =
-    useState<WorkJournalContextType>("employment");
   const [search, setSearch] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -101,7 +96,6 @@ export default function WorkJournalView({
   const [copiedPromptContent, setCopiedPromptContent] = useState("");
 
   const contexts = contextsQuery.data?.contexts ?? [];
-  const suggestions = contextsQuery.data?.suggestions ?? [];
   const entries = entriesQuery.data ?? [];
   const loading = contextsQuery.isLoading || entriesQuery.isLoading;
   const queryError = contextsQuery.error
@@ -124,6 +118,11 @@ export default function WorkJournalView({
   }, [contextFilter, entries, search]);
 
   useEffect(() => {
+    const selectedContextId = searchParams.get("activityContextId");
+    if (selectedContextId) {
+      setDraft((current) => ({ ...current, context_id: selectedContextId }));
+      return;
+    }
     const defaultContext =
       contexts.find(
         (context) => context.is_default && context.status === "active"
@@ -131,48 +130,12 @@ export default function WorkJournalView({
     if (defaultContext && !draft.context_id) {
       setDraft((current) => ({ ...current, context_id: defaultContext.id }));
     }
-  }, [contexts, draft.context_id]);
+  }, [contexts, draft.context_id, searchParams]);
 
-  const createContext = async (type = newContextType, name = newContextName) => {
-    if (!name.trim()) return;
-    setError(null);
-    try {
-      const context = await createWorkJournalContext({
-        type,
-        name,
-        is_default: true,
-      });
-      setNewContextName("");
-      await contextsQuery.refetch();
-      setDraft((current) => ({ ...current, context_id: context.id }));
-    } catch (err: unknown) {
-      setError(getErrorMessage(err) || t("errors.createContext"));
-    }
-  };
-
-  const promoteSuggestion = async (suggestion: WorkJournalContextSuggestion) => {
-    try {
-      const result = await handleWorkJournalSuggestion({
-        ...suggestion,
-        action: "promote",
-        is_default: true,
-      });
-      await contextsQuery.refetch();
-      if (!("ok" in result)) {
-        setDraft((current) => ({ ...current, context_id: result.id }));
-      }
-    } catch (err: unknown) {
-      setError(getErrorMessage(err) || t("errors.useSuggestion"));
-    }
-  };
-
-  const hideSuggestion = async (suggestion: WorkJournalContextSuggestion) => {
-    try {
-      await handleWorkJournalSuggestion({ ...suggestion, action: "hide" });
-      await contextsQuery.refetch();
-    } catch (err: unknown) {
-      setError(getErrorMessage(err) || t("errors.useSuggestion"));
-    }
+  const openActivityContextManager = () => {
+    router.push(
+      `/activity-contexts?source=work-journal&returnTo=${encodeURIComponent("/work-journal")}`
+    );
   };
 
   const saveEntry = async () => {
@@ -546,54 +509,16 @@ export default function WorkJournalView({
                       />
                     </div>
 
-                    {/* Create new context subtly integrated */}
-                    <div className="pt-6 border-t border-white/5 space-y-4">
-                      <p className="text-xs font-medium text-zinc-500">{t("createContext")}</p>
-                      <div className="flex gap-2">
-                        <select
-                          className="bg-transparent border-b border-white/10 text-sm text-zinc-400 focus:border-zinc-300 focus:ring-0 outline-none w-24 py-1"
-                          value={newContextType}
-                          onChange={(e) => setNewContextType(e.target.value as WorkJournalContextType)}
-                        >
-                          <option value="employment" className="bg-zinc-900">{t("contextTypes.employment")}</option>
-                          <option value="project" className="bg-zinc-900">{t("contextTypes.project")}</option>
-                        </select>
-                        <input
-                          className="flex-1 bg-transparent border-b border-white/10 text-sm text-zinc-100 placeholder:text-zinc-700 focus:border-zinc-300 focus:ring-0 outline-none py-1"
-                          placeholder={t("contextNamePlaceholder")}
-                          value={newContextName}
-                          onChange={(e) => setNewContextName(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && void createContext()}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void createContext()}
-                          className="text-zinc-400 hover:text-white transition-colors p-1"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <div className="pt-6 border-t border-white/5">
+                      <button
+                        type="button"
+                        onClick={openActivityContextManager}
+                        className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white"
+                      >
+                        <Plus className="h-4 w-4" />
+                        {t("manageContexts")}
+                      </button>
                     </div>
-
-                    {/* Suggestions */}
-                    {suggestions.length > 0 && (
-                      <div className="pt-6 border-t border-white/5 space-y-3">
-                         <p className="text-xs font-medium text-zinc-500">{t("suggestions")}</p>
-                         <div className="flex flex-wrap gap-2">
-                           {suggestions.slice(0, 3).map((suggestion) => (
-                              <div key={`sugg-${suggestion.name}`} className="flex items-center gap-1 bg-white/5 rounded-full pl-3 pr-1 py-1">
-                                 <span className="text-xs text-zinc-300 truncate max-w-[120px]">{suggestion.name}</span>
-                                 <button onClick={() => void promoteSuggestion(suggestion)} className="p-1 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white">
-                                    <Check className="h-3 w-3" />
-                                 </button>
-                                 <button onClick={() => void hideSuggestion(suggestion)} className="p-1 hover:bg-white/10 rounded-full text-zinc-500 hover:text-rose-400">
-                                    <X className="h-3 w-3" />
-                                 </button>
-                              </div>
-                           ))}
-                         </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

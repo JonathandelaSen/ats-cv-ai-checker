@@ -2,17 +2,32 @@ import type { WorkJournalContext } from "../../domain/entities/journal-context.e
 import type { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
 import type { WorkJournalContextSuggestion } from "../../domain/value-objects/context-suggestion.value-object";
 
-export function presentWorkJournalContext(context: WorkJournalContext) {
+interface WorkJournalContextPresenterInput {
+  toPrimitives(): {
+    id: string;
+    userId: string;
+    type: "employment" | "project" | "personal" | "other";
+    name: string;
+    roleOrLabel?: string | null;
+    status: "active" | "archived";
+    isDefault: boolean;
+    createdFromCv?: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export function presentWorkJournalContext(context: WorkJournalContextPresenterInput) {
   const primitives = context.toPrimitives();
   return {
     id: primitives.id,
     user_id: primitives.userId,
     type: primitives.type,
     name: primitives.name,
-    role_or_label: primitives.roleOrLabel,
+    role_or_label: primitives.roleOrLabel ?? null,
     status: primitives.status,
     is_default: primitives.isDefault,
-    created_from_cv: primitives.createdFromCv,
+    created_from_cv: primitives.createdFromCv ?? false,
     created_at: primitives.createdAt,
     updated_at: primitives.updatedAt,
   };
@@ -20,7 +35,7 @@ export function presentWorkJournalContext(context: WorkJournalContext) {
 
 export function presentWorkJournalEntry(
   entry: WorkJournalEntry,
-  context?: WorkJournalContext | null
+  context?: WorkJournalContext | WorkJournalContextPresenterInput | null
 ) {
   const primitives = entry.toPrimitives();
   return {

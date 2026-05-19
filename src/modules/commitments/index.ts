@@ -1,16 +1,10 @@
 export { createCommitmentsModule } from "./commitments.module";
 export {
   presentCommitment,
-  presentCommitmentContext,
   presentCommitmentItem,
   presentCommitmentOutcome,
   presentCommitmentsWorkspace,
 } from "./application/presenters/commitment-presenters";
-export type {
-  CommitmentContextPrimitives,
-  CommitmentContextStatus,
-  CommitmentContextType,
-} from "./domain/entities/commitment-context.entity";
 export type {
   CommitmentItemPrimitives,
   CommitmentItemStatus,

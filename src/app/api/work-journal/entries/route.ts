@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { workJournalModule } from "@/lib/container";
+import { activityContextsModule, workJournalModule } from "@/lib/container";
 import { presentWorkJournalEntry } from "@/modules/work-journal";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import {
@@ -19,13 +19,14 @@ export async function GET(req: NextRequest) {
     if (!authContext.ok) return authContext.response;
     const { supabase, user } = authContext;
     workJournalModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
 
     const parsed = parseListWorkJournalEntriesRequest(req.nextUrl.searchParams);
     if (!parsed.ok) return errorResponse(parsed.error);
 
     const [entries, contexts] = await Promise.all([
       workJournalModule.listEntries.execute(user.id, parsed.value),
-      workJournalModule.listContexts.execute(user.id),
+      activityContextsModule.listActivityContexts.execute(user.id),
     ]);
     const contextsById = new Map(contexts.map((context) => [context.id, context]));
     return ok(
@@ -51,13 +52,14 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) return errorResponse(parsed.error);
 
     workJournalModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
 
     const entry = await workJournalModule.createEntry.execute({
       user_id: user.id,
       ...parsed.value,
     });
 
-    const contexts = await workJournalModule.listContexts.execute(user.id);
+    const contexts = await activityContextsModule.listActivityContexts.execute(user.id);
     const context = contexts.find((item) => item.id === entry.contextId);
     return created(
       toWorkJournalEntryResponse(

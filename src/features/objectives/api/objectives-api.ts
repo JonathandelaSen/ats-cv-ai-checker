@@ -41,11 +41,6 @@ export interface SaveObjectiveInput {
   targetDate: string | null;
 }
 
-export interface CreateObjectiveContextInput {
-  name: string;
-  type: ObjectiveContextType;
-}
-
 export interface SaveObjectiveItemInput {
   title?: string;
   notes?: string | null;
@@ -112,18 +107,6 @@ export async function deleteObjective(id: string) {
   return readJsonResponse<DeleteCommitmentResponse>(
     res,
     "Could not delete objective."
-  );
-}
-
-export async function createObjectiveContext(input: CreateObjectiveContextInput) {
-  const res = await fetch("/api/commitments/contexts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  return readJsonResponse<ObjectiveContext>(
-    res,
-    "Could not create objective context."
   );
 }
 

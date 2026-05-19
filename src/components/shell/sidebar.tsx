@@ -59,6 +59,7 @@ interface SidebarProps {
     | "journal"
     | "objectives"
     | "received-feedback"
+    | "activity-context"
     | "feedback-notes"
     | "settings"
     | "admin";

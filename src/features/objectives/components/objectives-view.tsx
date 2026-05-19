@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Plus, Target } from "lucide-react";
 import type {
-  ObjectiveContextType,
   ObjectiveItem,
   ObjectiveItemStatus,
   ObjectiveOutcome,
@@ -31,6 +31,8 @@ import type {
 
 export default function ObjectivesView() {
   const t = useTranslations("objectives");
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const workspaceQuery = useObjectivesWorkspace();
   const mutations = useObjectivesMutations();
   const routeState = useObjectivesRouteState();
@@ -49,10 +51,6 @@ export default function ObjectivesView() {
   const [newOutcomeTitle, setNewOutcomeTitle] = useState("");
   const [newOutcomeType, setNewOutcomeType] =
     useState<ObjectiveOutcomeType>("leadership");
-  const [contextDraft, setContextDraft] = useState({
-    name: "",
-    type: "project" as ObjectiveContextType,
-  });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemForm, setItemForm] = useState<ItemEditForm | null>(null);
   const [editingOutcomeId, setEditingOutcomeId] = useState<string | null>(null);
@@ -91,6 +89,13 @@ export default function ObjectivesView() {
       replaceObjective(filteredCommitments[0].id);
     }
   }, [filteredCommitments, objectiveId, replaceObjective]);
+
+  useEffect(() => {
+    const activityContextId = searchParams.get("activityContextId");
+    if (activityContextId) {
+      setForm((current) => (current ? { ...current, contextId: activityContextId } : current));
+    }
+  }, [searchParams]);
 
   const clearInlineEdits = () => {
     setForm(null);
@@ -171,16 +176,10 @@ export default function ObjectivesView() {
     }
   };
 
-  const createContext = async () => {
-    if (!contextDraft.name.trim()) return;
-    setError(null);
-    try {
-      const data = await mutations.createContext.mutateAsync(contextDraft);
-      setContextDraft({ name: "", type: "project" });
-      setForm((current) => (current ? { ...current, contextId: data.id } : current));
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
+  const manageContexts = () => {
+    router.push(
+      `/activity-contexts?source=objectives&returnTo=${encodeURIComponent("/objectives")}`
+    );
   };
 
   const updateItemStatus = async (item: ObjectiveItem, status: ObjectiveItemStatus) => {
@@ -433,14 +432,12 @@ export default function ObjectivesView() {
           ) : form ? (
             <ObjectiveFormPanel
               contexts={contexts}
-              contextDraft={contextDraft}
               form={form}
               isCreating={isCreating}
               saving={saving}
               onCancel={() => setForm(null)}
-              onContextDraftChange={setContextDraft}
-              onCreateContext={createContext}
               onFormChange={setForm}
+              onManageContexts={manageContexts}
               onSave={saveObjective}
               priorityLabel={priorityLabel}
               sourceLabel={sourceLabel}

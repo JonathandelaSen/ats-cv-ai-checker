@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { workJournalModule } from "@/lib/container";
+import { activityContextsModule, workJournalModule } from "@/lib/container";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseDraftWorkJournalEntryRequest } from "../../validation";
 import type { DraftWorkJournalEntryResponse } from "./responses";
@@ -19,10 +19,18 @@ export async function POST(req: NextRequest) {
       return errorResponse(parsed.error);
     }
     workJournalModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
+    const contexts = await activityContextsModule.listActivityContexts.execute(user.id);
+    const context = contexts.find((item) => item.id === parsed.value.contextId);
     const finalText = await workJournalModule.draftEntry.execute(user.id, parsed.value.contextId, {
       provider: parsed.value.provider,
       apiKey: parsed.value.apiKey,
       model: parsed.value.model,
+      context: {
+        type: context?.toPrimitives().type ?? "other",
+        name: context?.toPrimitives().name ?? "Selected activity context",
+        roleOrLabel: null,
+      },
       dateStart: parsed.value.dateStart,
       dateEnd: parsed.value.dateEnd,
       topic: parsed.value.topic,

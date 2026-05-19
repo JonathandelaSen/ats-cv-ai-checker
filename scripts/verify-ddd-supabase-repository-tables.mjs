@@ -9,6 +9,7 @@ const tableOwners = new Map(
   Object.entries({
     analysis_chat_conversations: "analysis-chat",
     analysis_chat_messages: "analysis-chat",
+    activity_contexts: "activity-context",
     commitment_contexts: "commitments",
     commitment_items: "commitments",
     commitment_outcomes: "commitments",
@@ -25,14 +26,15 @@ const tableOwners = new Map(
     received_feedback: "received-feedback",
     work_journal_contexts: "work-journal",
     work_journal_entries: "work-journal",
-    work_journal_hidden_context_suggestions: "work-journal",
+    work_journal_hidden_context_suggestions: "activity-context",
   }),
 );
 
 const legacyCrossModuleReads = new Set([
   "src/modules/selection-process/infrastructure/repositories/supabase-follow-up.repository.ts::job_match_analyses",
   "src/modules/work-journal/infrastructure/repositories/supabase-cv-data.repository.ts::cvs",
-  "src/modules/commitments/infrastructure/repositories/supabase-commitment-context.repository.ts::activity_contexts",
+  "src/modules/activity-context/infrastructure/repositories/supabase-cv-data.repository.ts::cvs",
+  "src/modules/work-journal/infrastructure/repositories/supabase-work-journal-context.repository.ts::work_journal_hidden_context_suggestions",
   "src/modules/received-feedback/infrastructure/repositories/supabase-received-feedback.repository.ts::activity_contexts",
   "src/modules/work-journal/infrastructure/repositories/supabase-work-journal-context.repository.ts::activity_contexts",
 ]);

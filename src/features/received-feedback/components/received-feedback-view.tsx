@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
+  FolderKanban,
   Loader2,
   Pencil,
   Plus,
@@ -14,7 +16,6 @@ import { useTranslations } from "next-intl";
 import { getErrorMessage } from "@/lib/errors";
 import type {
   ActivityContext,
-  ActivityContextType,
   ReceivedFeedbackItem,
 } from "../api/received-feedback-api";
 import { useReceivedFeedbackMutations } from "../hooks/use-received-feedback-mutations";
@@ -56,14 +57,12 @@ function findDefaultContext(contexts: ActivityContext[]) {
 export default function ReceivedFeedbackView() {
   useReceivedFeedbackRouteState();
   const t = useTranslations("receivedFeedback");
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const feedbackQuery = useReceivedFeedbackList();
   const contextsQuery = useReceivedFeedbackContexts();
   const mutations = useReceivedFeedbackMutations();
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [contextDraft, setContextDraft] = useState({
-    name: "",
-    type: "project" as ActivityContextType,
-  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +72,6 @@ export default function ReceivedFeedbackView() {
   const contexts = contextsQuery.data?.contexts ?? [];
   const isEditing = editingId !== null;
   const saving =
-    mutations.createContext.isPending ||
     mutations.createFeedback.isPending ||
     mutations.updateFeedback.isPending ||
     mutations.deleteFeedback.isPending;
@@ -86,6 +84,15 @@ export default function ReceivedFeedbackView() {
   const visibleError = error ?? queryError;
 
   useEffect(() => {
+    const selectedContextId = searchParams.get("activityContextId");
+    if (selectedContextId) {
+      setForm((current) => ({
+        ...current,
+        activityContextId: selectedContextId,
+      }));
+      setIsFormOpen(true);
+      return;
+    }
     const defaultContext = findDefaultContext(contexts);
     if (defaultContext && !form.activityContextId) {
       setForm((current) => ({
@@ -93,7 +100,7 @@ export default function ReceivedFeedbackView() {
         activityContextId: defaultContext.id,
       }));
     }
-  }, [contexts, form.activityContextId]);
+  }, [contexts, form.activityContextId, searchParams]);
 
   const openNewForm = () => {
     const defaultContext = findDefaultContext(contexts);
@@ -123,16 +130,10 @@ export default function ReceivedFeedbackView() {
     setForm(emptyForm());
   };
 
-  const createContext = async () => {
-    if (!contextDraft.name.trim()) return;
-    setError(null);
-    try {
-      const context = await mutations.createContext.mutateAsync(contextDraft);
-      setContextDraft({ name: "", type: "project" });
-      setForm((current) => ({ ...current, activityContextId: context.id }));
-    } catch (err: unknown) {
-      setError(getErrorMessage(err) || t("errors.createContext"));
-    }
+  const manageContexts = () => {
+    router.push(
+      `/activity-contexts?source=received-feedback&returnTo=${encodeURIComponent("/received-feedback")}`
+    );
   };
 
   const saveFeedback = async () => {
@@ -293,45 +294,14 @@ export default function ReceivedFeedbackView() {
                   }
                 />
               </label>
-              <div className="flex gap-2 md:col-span-2">
-                <input
-                  className={inputClass}
-                  placeholder={t("placeholders.newContext")}
-                  value={contextDraft.name}
-                  onChange={(event) =>
-                    setContextDraft({ ...contextDraft, name: event.target.value })
-                  }
-                />
-                <select
-                  className={`${inputClass} max-w-36`}
-                  value={contextDraft.type}
-                  onChange={(event) =>
-                    setContextDraft({
-                      ...contextDraft,
-                      type: event.target.value as ActivityContextType,
-                    })
-                  }
-                >
-                  <option value="project" className="bg-zinc-900">
-                    {t("contextTypes.project")}
-                  </option>
-                  <option value="employment" className="bg-zinc-900">
-                    {t("contextTypes.employment")}
-                  </option>
-                  <option value="personal" className="bg-zinc-900">
-                    {t("contextTypes.personal")}
-                  </option>
-                  <option value="other" className="bg-zinc-900">
-                    {t("contextTypes.other")}
-                  </option>
-                </select>
+              <div className="md:col-span-2">
                 <button
-                  onClick={() => void createContext()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5 disabled:opacity-60"
-                  disabled={saving || !contextDraft.name.trim()}
+                  type="button"
+                  onClick={manageContexts}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5"
                 >
-                  <Plus className="h-4 w-4" />
-                  {t("actions.add")}
+                  <FolderKanban className="h-4 w-4" />
+                  {t("actions.manageContexts")}
                 </button>
               </div>
             </div>

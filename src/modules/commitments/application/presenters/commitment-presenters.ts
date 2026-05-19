@@ -1,4 +1,3 @@
-import type { CommitmentContext } from "../../domain/entities/commitment-context.entity";
 import type { CommitmentItem } from "../../domain/entities/commitment-item.entity";
 import type { CommitmentOutcome } from "../../domain/entities/commitment-outcome.entity";
 import type { Commitment } from "../../domain/entities/commitment.entity";
@@ -8,10 +7,6 @@ export interface CommitmentWorkspaceItem {
   commitment: ReturnType<Commitment["toPrimitives"]>;
   items: ReturnType<CommitmentItem["toPrimitives"]>[];
   outcomes: ReturnType<CommitmentOutcome["toPrimitives"]>[];
-}
-
-export function presentCommitmentContext(context: CommitmentContext) {
-  return context.toPrimitives();
 }
 
 export function presentCommitment(commitment: Commitment) {
@@ -28,7 +23,7 @@ export function presentCommitmentOutcome(outcome: CommitmentOutcome) {
 
 export function presentCommitmentsWorkspace(workspace: CommitmentsWorkspace) {
   return {
-    contexts: workspace.contexts.map((context) => context.toPrimitives()),
+    contexts: [],
     commitments: workspace.commitments.map((commitment) => {
       const primitives = commitment.toPrimitives();
       return {

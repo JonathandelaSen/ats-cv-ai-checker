@@ -14,6 +14,7 @@ import { WorkJournalView } from "@/features/work-journal";
 import { ObjectivesView } from "@/features/objectives";
 import { FeedbackNotesView } from "@/features/feedback-notes";
 import { ReceivedFeedbackView } from "@/features/received-feedback";
+import { ActivityContextView } from "@/features/activity-context";
 import ExtractionView from "@/components/cv-analysis/extraction-view";
 import AIAnalysisView from "@/components/cv-analysis/analysis-view";
 import CVAnalysesListView from "@/components/cv-analysis/cv-analyses-list-view";
@@ -70,6 +71,7 @@ type AppView =
   | "journal"
   | "objectives"
   | "received-feedback"
+  | "activity-context"
   | "feedback-notes"
   | "settings"
   | "admin";
@@ -466,6 +468,12 @@ export default function AppShell({
     } else if (window.location.pathname.startsWith("/received-feedback")) {
       queueMicrotask(() => {
         setActiveView("received-feedback");
+        setActiveAnalysisId(null);
+        setActiveAnalysis(null);
+      });
+    } else if (window.location.pathname.startsWith("/activity-contexts")) {
+      queueMicrotask(() => {
+        setActiveView("activity-context");
         setActiveAnalysisId(null);
         setActiveAnalysis(null);
       });
@@ -949,6 +957,16 @@ export default function AppShell({
               className="flex-1 flex flex-col overflow-hidden min-h-0"
             >
               <ReceivedFeedbackView />
+            </motion.div>
+          ) : activeView === "activity-context" ? (
+            <motion.div
+              key="activity-context"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col overflow-hidden min-h-0"
+            >
+              <ActivityContextView />
             </motion.div>
           ) : activeView === "settings" ? (
             <motion.div

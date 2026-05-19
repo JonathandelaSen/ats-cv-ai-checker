@@ -10,8 +10,6 @@ export interface HttpValidationError {
 const commitmentSources = ["manager", "self", "company", "project", "other"] as const;
 const commitmentStatuses = ["active", "paused", "achieved", "missed", "cancelled"] as const;
 const priorities = ["low", "medium", "high"] as const;
-const contextTypes = ["employment", "project", "personal", "other"] as const;
-const contextStatuses = ["active", "archived"] as const;
 const itemStatuses = ["todo", "in_progress", "done", "cancelled"] as const;
 const outcomeTypes = ["promotion", "role_change", "leadership", "mentoring", "money", "recognition", "learning", "other"] as const;
 const outcomeStatuses = ["expected", "achieved", "missed", "changed"] as const;
@@ -39,19 +37,6 @@ export interface UpdateCommitmentHttpInput {
   priority?: (typeof priorities)[number] | null;
   startDate?: string;
   targetDate?: string | null;
-}
-
-export interface CreateCommitmentContextHttpInput {
-  type: (typeof contextTypes)[number];
-  name: string;
-  roleOrLabel?: string | null;
-}
-
-export interface UpdateCommitmentContextHttpInput {
-  type?: (typeof contextTypes)[number];
-  name?: string;
-  roleOrLabel?: string | null;
-  status?: (typeof contextStatuses)[number];
 }
 
 export interface CreateCommitmentItemHttpInput {
@@ -220,35 +205,6 @@ export function parseUpdateCommitmentRequest(
       targetDate,
     },
   };
-}
-
-export function parseCreateCommitmentContextRequest(
-  body: unknown
-): Result<CreateCommitmentContextHttpInput, HttpValidationError> {
-  if (!isRecord(body)) return validationError("Request body must be a JSON object");
-
-  const type = requiredStringEnum(body.type, contextTypes);
-  const name = requiredText(body.name);
-  const roleOrLabel = optionalText(body.roleOrLabel);
-  if (!type || !name || (body.roleOrLabel !== undefined && roleOrLabel === undefined)) {
-    return validationError("Invalid commitment context payload");
-  }
-  return { ok: true, value: { type, name, roleOrLabel } };
-}
-
-export function parseUpdateCommitmentContextRequest(
-  body: unknown
-): Result<UpdateCommitmentContextHttpInput, HttpValidationError> {
-  if (!isRecord(body)) return validationError("Request body must be a JSON object");
-
-  const type = optionalStringEnum(body.type, contextTypes);
-  const name = body.name === undefined ? undefined : requiredText(body.name);
-  const roleOrLabel = optionalText(body.roleOrLabel);
-  const status = optionalStringEnum(body.status, contextStatuses);
-  if (name === null || roleOrLabel === undefined) {
-    return validationError("Invalid commitment context payload");
-  }
-  return { ok: true, value: { type, name, roleOrLabel, status } };
 }
 
 export function parseCreateCommitmentItemRequest(

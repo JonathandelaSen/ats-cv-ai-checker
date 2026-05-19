@@ -2,9 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  type CreateObjectiveContextInput,
   type Objective,
-  type ObjectiveContext,
   type ObjectiveItem,
   type ObjectiveOutcome,
   type ObjectiveWithRelations,
@@ -13,7 +11,6 @@ import {
   type SaveObjectiveItemInput,
   type SaveObjectiveOutcomeInput,
   createObjective,
-  createObjectiveContext,
   createObjectiveItem,
   createObjectiveOutcome,
   deleteObjective,
@@ -24,14 +21,12 @@ import {
   updateObjectiveOutcome,
 } from "../api/objectives-api";
 import {
-  addObjectiveContextToWorkspace,
   addObjectiveItemToWorkspace,
   addObjectiveOutcomeToWorkspace,
   addObjectiveToWorkspace,
   removeObjectiveFromWorkspace,
   removeObjectiveItemFromWorkspace,
   removeObjectiveOutcomeFromWorkspace,
-  replaceObjectiveContextInWorkspace,
   replaceObjectiveInWorkspace,
   replaceObjectiveItemInWorkspace,
   replaceObjectiveOutcomeInWorkspace,
@@ -76,22 +71,6 @@ export function useObjectivesMutations() {
 
   const userIdFromWorkspace = (workspace: ObjectivesWorkspace | undefined) =>
     workspace?.contexts[0]?.userId ?? workspace?.commitments[0]?.userId ?? "optimistic";
-
-  const optimisticContext = (
-    input: CreateObjectiveContextInput,
-    workspace: ObjectivesWorkspace | undefined,
-    id: string
-  ): ObjectiveContext => ({
-    id,
-    userId: userIdFromWorkspace(workspace),
-    type: input.type,
-    name: input.name,
-    roleOrLabel: null,
-    status: "active",
-    isDefault: false,
-    createdAt: now(),
-    updatedAt: now(),
-  });
 
   const optimisticObjective = (
     input: SaveObjectiveInput,
@@ -174,30 +153,6 @@ export function useObjectivesMutations() {
   const optimisticId = (kind: string) => `optimistic-${kind}-${Date.now()}`;
 
   return {
-    createContext: useMutation({
-      mutationFn: createObjectiveContext,
-      onMutate: async (input) => {
-        const previous = await startOptimisticUpdate();
-        const id = optimisticId("context");
-        setWorkspace((workspace) =>
-          addObjectiveContextToWorkspace(
-            workspace,
-            optimisticContext(input, workspace, id)
-          )
-        );
-        return { previous, optimisticId: id };
-      },
-      onError: (_error, _variables, context) => rollback(context),
-      onSuccess: (context, _variables, mutationContext) => {
-        setWorkspace((workspace) =>
-          replaceObjectiveContextInWorkspace(
-            workspace,
-            context,
-            mutationContext.optimisticId
-          )
-        );
-      },
-    }),
     createObjective: useMutation({
       mutationFn: ({ input }: CreateObjectiveMutationVariables) =>
         createObjective(input),

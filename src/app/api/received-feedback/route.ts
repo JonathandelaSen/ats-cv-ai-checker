@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { receivedFeedbackModule } from "@/lib/container";
+import { activityContextsModule, receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { ok, created, errorResponse, handleApiError } from "@/modules/shared";
 import { parseCreateReceivedFeedbackRequest } from "./validation";
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     receivedFeedbackModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
     const feedback = await receivedFeedbackModule.createReceivedFeedback.execute({
       userId: user.id,
       ...parsed.value,

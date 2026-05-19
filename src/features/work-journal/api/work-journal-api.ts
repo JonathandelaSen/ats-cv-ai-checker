@@ -1,16 +1,14 @@
 import type {
+  ActivityContextResponse,
+  ListActivityContextsResponse,
+} from "@/app/api/activity-contexts/responses";
+import type {
   WorkJournalContextLegacy,
-  WorkJournalContextResponse,
-  WorkJournalContextSuggestionLegacy,
-  WorkJournalContextSuggestionResponse,
-  WorkJournalContextType,
   WorkJournalEntryInputMode,
   WorkJournalEntryLegacy,
   WorkJournalEntryResponse,
 } from "./work-journal-types";
 import {
-  toWorkJournalContextLegacy,
-  toWorkJournalContextSuggestionLegacy,
   toWorkJournalEntryLegacy,
 } from "./work-journal-types";
 
@@ -38,14 +36,14 @@ export interface SaveWorkJournalEntryInput {
 }
 
 export async function listWorkJournalContexts() {
-  const res = await fetch("/api/work-journal/contexts");
-  const data = await readJsonResponse<{
-    contexts: WorkJournalContextResponse[];
-    suggestions: WorkJournalContextSuggestionResponse[];
-  }>(res, "Could not load work journal contexts.");
+  const res = await fetch("/api/activity-contexts");
+  const data = await readJsonResponse<ListActivityContextsResponse>(
+    res,
+    "Could not load activity contexts."
+  );
   return {
-    contexts: data.contexts.map(toWorkJournalContextLegacy),
-    suggestions: data.suggestions.map(toWorkJournalContextSuggestionLegacy),
+    contexts: data.contexts.map(toWorkJournalContextLegacyFromActivityContext),
+    suggestions: [],
   };
 }
 
@@ -56,42 +54,6 @@ export async function listWorkJournalEntries() {
     "Could not load work journal entries."
   );
   return data.map(toWorkJournalEntryLegacy);
-}
-
-export async function createWorkJournalContext(input: {
-  type: WorkJournalContextType;
-  name: string;
-  is_default: boolean;
-}) {
-  const res = await fetch("/api/work-journal/contexts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  const data = await readJsonResponse<WorkJournalContextResponse>(
-    res,
-    "Could not create work journal context."
-  );
-  return toWorkJournalContextLegacy(data);
-}
-
-export async function handleWorkJournalSuggestion(input: {
-  action: "promote" | "hide";
-  type: WorkJournalContextType;
-  name: string;
-  role_or_label: string | null;
-  is_default?: boolean;
-}) {
-  const res = await fetch("/api/work-journal/contexts/suggestions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  const data = await readJsonResponse<WorkJournalContextResponse | { ok: true }>(
-    res,
-    "Could not update work journal suggestion."
-  );
-  return "ok" in data ? data : toWorkJournalContextLegacy(data);
 }
 
 export async function createWorkJournalEntry(input: SaveWorkJournalEntryInput) {
@@ -147,4 +109,21 @@ export async function updateWorkJournalEntry(input: {
 export async function deleteWorkJournalEntry(id: string) {
   const res = await fetch(`/api/work-journal/entries/${id}`, { method: "DELETE" });
   return readJsonResponse<{ ok: true }>(res, "Could not delete work journal entry.");
+}
+
+function toWorkJournalContextLegacyFromActivityContext(
+  input: ActivityContextResponse
+): WorkJournalContextLegacy {
+  return {
+    id: input.id,
+    user_id: input.userId,
+    type: input.type,
+    name: input.name,
+    role_or_label: null,
+    status: input.status,
+    is_default: input.isDefault,
+    created_from_cv: false,
+    created_at: input.createdAt,
+    updated_at: input.updatedAt,
+  };
 }

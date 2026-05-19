@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedRequestContext } from "@/app/api/_shared/auth/request-context";
-import { receivedFeedbackModule } from "@/lib/container";
+import { activityContextsModule, receivedFeedbackModule } from "@/lib/container";
 import { presentReceivedFeedback } from "@/modules/received-feedback";
 import { ok, errorResponse, handleApiError } from "@/modules/shared";
 import { parseUpdateReceivedFeedbackRequest } from "../validation";
@@ -27,6 +27,7 @@ export async function PATCH(
     }
 
     receivedFeedbackModule.bindRequest(supabase);
+    activityContextsModule.bindRequest(supabase);
     const feedback = await receivedFeedbackModule.updateReceivedFeedback.execute(
       user.id,
       id,

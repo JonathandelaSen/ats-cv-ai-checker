@@ -188,6 +188,7 @@ export const messages = {
       topic: "Topic / tag (optional)",
       topicPlaceholder: "E.g. LTI integration, onboarding...",
       createContext: "Create new context",
+      manageContexts: "Manage contexts",
       contextTypes: {
         employment: "Employment",
         project: "Project",
@@ -613,6 +614,7 @@ export const messages = {
         add: "Add",
         cancel: "Cancel",
         save: "Save",
+        manageContexts: "Manage contexts",
       },
       fields: {
         activityContext: "Activity context",
@@ -716,7 +718,7 @@ export const messages = {
       target: "Target {date}",
       sourceLabel: "Source: {source}",
       filters: { open: "Open", all: "All", closed: "Closed" },
-      actions: { add: "Add", cancel: "Cancel", save: "Save", edit: "Edit" },
+      actions: { add: "Add", cancel: "Cancel", save: "Save", edit: "Edit", manageContexts: "Manage contexts" },
       fields: {
         title: "Title",
         context: "Context",
@@ -1122,6 +1124,7 @@ export const messages = {
       topic: "Tema / etiqueta (opcional)",
       topicPlaceholder: "Ej: Integración LTI, Onboarding...",
       createContext: "Crear nuevo contexto",
+      manageContexts: "Gestionar contextos",
       contextTypes: {
         employment: "Empleo",
         project: "Proyecto",
@@ -1547,6 +1550,7 @@ export const messages = {
         add: "Añadir",
         cancel: "Cancelar",
         save: "Guardar",
+        manageContexts: "Gestionar contextos",
       },
       fields: {
         activityContext: "Contexto de actividad",
@@ -1649,7 +1653,7 @@ export const messages = {
       target: "Objetivo {date}",
       sourceLabel: "Origen: {source}",
       filters: { open: "Abiertos", all: "Todos", closed: "Cerrados" },
-      actions: { add: "Añadir", cancel: "Cancelar", save: "Guardar", edit: "Editar" },
+      actions: { add: "Añadir", cancel: "Cancelar", save: "Guardar", edit: "Editar", manageContexts: "Gestionar contextos" },
       fields: {
         title: "Título",
         context: "Contexto",

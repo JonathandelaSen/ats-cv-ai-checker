@@ -1,10 +1,8 @@
 import { faker } from "@faker-js/faker";
-import type { CreateCommitmentContextInput } from "../application/use-cases/create-context.use-case";
 import type { CreateCommitmentInput } from "../application/use-cases/create-commitment.use-case";
 import type { CreateCommitmentItemInput } from "../application/use-cases/create-item.use-case";
 import type { CreateCommitmentOutcomeInput } from "../application/use-cases/create-outcome.use-case";
 
-const CONTEXT_TYPES = ["employment", "project", "personal", "other"] as const;
 const SOURCES = ["manager", "self", "company", "project", "other"] as const;
 const PRIORITIES = ["low", "medium", "high"] as const;
 const ITEM_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
@@ -21,21 +19,6 @@ const OUTCOME_TYPES = [
 const OUTCOME_STATUSES = ["expected", "achieved", "missed", "changed"] as const;
 
 export class CommitmentFixture {
-  static createContextInput(
-    overrides: Partial<CreateCommitmentContextInput> = {},
-  ): CreateCommitmentContextInput {
-    return {
-      userId: overrides.userId ?? faker.string.uuid(),
-      type: faker.helpers.arrayElement(CONTEXT_TYPES),
-      name: faker.helpers.arrayElement([
-        `${faker.company.name()} - ${faker.date.recent().getFullYear()}`,
-        `Proyecto ${faker.commerce.productName()}`,
-        `Desarrollo personal - ${faker.person.jobArea()}`,
-      ]),
-      ...overrides,
-    };
-  }
-
   static createCommitmentInput(
     overrides: Partial<CreateCommitmentInput> = {},
   ): CreateCommitmentInput {

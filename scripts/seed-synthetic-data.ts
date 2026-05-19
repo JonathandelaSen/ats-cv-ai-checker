@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { faker } from "@faker-js/faker";
 import { InMemoryQueryBus } from "@/modules/shared";
-import { createActivityContextsModule } from "@/modules/activity";
+import { createActivityContextsModule } from "@/modules/activity-context";
 import { createCVLibraryE2EModule } from "@/modules/cv-library/cv-library.e2e.module";
 import {
   createCVAnalysisModule,
@@ -28,7 +28,7 @@ import { createReceivedFeedbackModule } from "@/modules/received-feedback";
 import { createWorkJournalModule } from "@/modules/work-journal";
 import { createCommitmentsModule } from "@/modules/commitments";
 import { createSelectionProcessModule } from "@/modules/selection-process";
-import { ActivityContextFixture } from "@/modules/activity/test-helpers/activity-context.fixture";
+import { ActivityContextFixture } from "@/modules/activity-context/test-helpers/activity-context.fixture";
 import { CVDocumentFixture } from "@/modules/cv-library/test-helpers/cv-document.fixture";
 import { CVAnalysisFixture } from "@/modules/cv-analysis/test-helpers/cv-analysis.fixture";
 import { JobMatchAnalysisFixture } from "@/modules/job-match-analysis/test-helpers/job-match-analysis.fixture";
@@ -534,20 +534,18 @@ async function main() {
   // -----------------------------------------------------------------------
   log("8/9", `Creating ${COUNTS.workJournalEntries} work journal entries...`);
 
-  // Ensure default work journal context exists
-  const wjDefaultCtx = await workJournalModule.ensureDefaultContext.execute(userId);
-  if (!wjDefaultCtx) {
-    console.error("Failed to create default work journal context");
+  const wjDefaultCtx = allContexts.find((context) => context.toPrimitives().isDefault);
+  if (!wjDefaultCtx && contextIds.length === 0) {
+    console.error("Failed to find default activity context");
     process.exit(1);
   }
-  const wjContextId = wjDefaultCtx.toPrimitives().id;
+  const wjContextId = wjDefaultCtx?.toPrimitives().id ?? contextIds[0];
 
-  // Create a few extra work journal contexts
   const wjContextIds = [wjContextId];
   const wjContextNames = ["Proyecto Principal", "Investigación", "Reuniones"];
   for (const name of wjContextNames) {
-    const ctx = await workJournalModule.createContext.execute({
-      user_id: userId,
+    const ctx = await activityModule.createActivityContext.execute({
+      userId,
       type: faker.helpers.arrayElement(["employment", "project", "personal", "other"] as const),
       name,
     });
@@ -572,14 +570,18 @@ async function main() {
   let totalItems = 0;
   let totalOutcomes = 0;
 
-  // Ensure default commitment context
-  const cmtDefault = await commitmentsModule.ensureDefaultContext.execute(userId);
-  const cmtContextIds = [cmtDefault.toPrimitives().id];
+  const cmtContextIds = [wjContextId];
 
   for (let c = 0; c < COUNTS.commitmentContexts; c++) {
-    const ctx = await commitmentsModule.createContext.execute(
-      CommitmentFixture.createContextInput({ userId }),
-    );
+    const ctx = await activityModule.createActivityContext.execute({
+      userId,
+      type: faker.helpers.arrayElement(["employment", "project", "personal", "other"] as const),
+      name: faker.helpers.arrayElement([
+        `${faker.company.name()} - ${faker.date.recent().getFullYear()}`,
+        `Proyecto ${faker.commerce.productName()}`,
+        `Desarrollo personal - ${faker.person.jobArea()}`,
+      ]),
+    });
     cmtContextIds.push(ctx.toPrimitives().id);
   }
 

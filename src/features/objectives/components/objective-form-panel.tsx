@@ -1,7 +1,6 @@
-import { Loader2, Save, X } from "lucide-react";
+import { FolderKanban, Loader2, Save, X } from "lucide-react";
 import type {
   ObjectiveContext,
-  ObjectiveContextType,
   ObjectivePriority,
   ObjectiveSource,
   ObjectiveStatus,
@@ -16,14 +15,12 @@ import {
 
 interface ObjectiveFormPanelProps {
   contexts: ObjectiveContext[];
-  contextDraft: { name: string; type: ObjectiveContextType };
   form: ObjectiveForm;
   isCreating: boolean;
   saving: boolean;
   onCancel: () => void;
-  onContextDraftChange: (draft: { name: string; type: ObjectiveContextType }) => void;
-  onCreateContext: () => void;
   onFormChange: (form: ObjectiveForm) => void;
+  onManageContexts: () => void;
   onSave: () => void;
   priorityLabel: (priority: ObjectivePriority) => string;
   sourceLabel: (source: ObjectiveSource) => string;
@@ -33,14 +30,12 @@ interface ObjectiveFormPanelProps {
 
 export function ObjectiveFormPanel({
   contexts,
-  contextDraft,
   form,
   isCreating,
   saving,
   onCancel,
-  onContextDraftChange,
-  onCreateContext,
   onFormChange,
+  onManageContexts,
   onSave,
   priorityLabel,
   sourceLabel,
@@ -87,26 +82,14 @@ export function ObjectiveFormPanel({
               ))}
             </select>
           </label>
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <label className="space-y-1.5">
-              <span className="text-xs font-medium text-zinc-500">
-                {t("fields.newContext")}
-              </span>
-              <input
-                className={inputClass}
-                placeholder={t("placeholders.context")}
-                value={contextDraft.name}
-                onChange={(e) =>
-                  onContextDraftChange({ ...contextDraft, name: e.target.value })
-                }
-              />
-            </label>
+          <div className="flex items-end">
             <button
               type="button"
-              onClick={onCreateContext}
-              className="mt-6 rounded-md border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5"
+              onClick={onManageContexts}
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5"
             >
-              {t("actions.add")}
+              <FolderKanban className="h-4 w-4" />
+              {t("actions.manageContexts")}
             </button>
           </div>
         </div>

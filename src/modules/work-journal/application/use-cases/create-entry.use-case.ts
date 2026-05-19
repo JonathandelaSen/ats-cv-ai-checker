@@ -1,16 +1,12 @@
 import { IsoDate, OptionalIsoDate, Timestamp, UserId } from "@/modules/shared";
 import { WorkJournalEntry } from "../../domain/entities/journal-entry.entity";
-import type { WorkJournalContextRepository } from "../../domain/repositories/work-journal-context.repository";
 import type { WorkJournalEntryRepository } from "../../domain/repositories/work-journal-entry.repository";
 import type { EventTracker } from "@/modules/shared/domain/repositories/event-tracker.repository";
-import { ContextNotFoundError } from "../../domain/errors/context-not-found.error";
-import { ContextArchivedError } from "../../domain/errors/context-archived.error";
 import { createRequestId } from "@/lib/observability";
 import { WorkJournalContextId } from "../../domain/value-objects/work-journal-context-id.value-object";
 import { WorkJournalEntryId } from "../../domain/value-objects/work-journal-entry-id.value-object";
 import { WorkJournalFinalText } from "../../domain/value-objects/work-journal-final-text.value-object";
 import { type EntryInputMode, WorkJournalInputMode } from "../../domain/value-objects/work-journal-input-mode.value-object";
-import { WorkJournalIsDefault } from "../../domain/value-objects/work-journal-is-default.value-object";
 import { WorkJournalNotes } from "../../domain/value-objects/work-journal-notes.value-object";
 import { WorkJournalTopic } from "../../domain/value-objects/work-journal-topic.value-object";
 
@@ -28,7 +24,6 @@ export interface CreateEntryInput {
 export class CreateEntryUseCase {
   constructor(
     private readonly deps: {
-      contextRepo: WorkJournalContextRepository;
       entryRepo: WorkJournalEntryRepository;
       tracker: EventTracker;
     }
@@ -37,12 +32,6 @@ export class CreateEntryUseCase {
   async execute(input: CreateEntryInput): Promise<WorkJournalEntry> {
     const userId = UserId.fromPrimitives(input.user_id);
     const contextId = WorkJournalContextId.fromPrimitives(input.context_id);
-    const context = await this.deps.contextRepo.findById(contextId, userId);
-    if (!context) throw new ContextNotFoundError(input.context_id);
-    if (!context.isActive()) throw new ContextArchivedError(input.context_id);
-
-    context.update({ isDefault: WorkJournalIsDefault.fromPrimitives(true) });
-    await this.deps.contextRepo.save(context);
 
     const requestId = createRequestId("wj-entry");
     await this.deps.tracker.record({

@@ -2,7 +2,6 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  createActivityContext,
   createReceivedFeedback,
   deleteReceivedFeedback,
   updateReceivedFeedback,
@@ -19,12 +18,6 @@ export function useReceivedFeedbackMutations() {
   };
 
   return {
-    createContext: useMutation({
-      mutationFn: createActivityContext,
-      onSuccess: async () => {
-        await invalidateFeedback();
-      },
-    }),
     createFeedback: useMutation({
       mutationFn: createReceivedFeedback,
       onSuccess: async () => {
